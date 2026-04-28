@@ -2,7 +2,7 @@ const { getTemplateRegistry } = require("./templateRegistry");
 
 const DEFAULT_FIRM_NAME = "KEENAN & BHATIA, LLC";
 const DEFAULT_FIRM_ADDRESS_BLOCK = "4600 Madison Ave. Ste. 810\nKansas City, Missouri 64112\n(816) 809-2100";
-const DEFAULT_CORP_REP_LOCATION = "Via Zoom";
+const DEFAULT_CORP_REP_LOCATION = "Known to Defendants.";
 const DEFAULT_CORP_REP_DOCUMENT_REQUEST =
   "Pursuant to Mo. S. Ct. R. 57.03(b)(3), the deponent(s) are requested to produce prior to or at the deposition any materials on which they rely in giving their testimony.";
 const DEFAULT_PRODUCTION_FORMAT_INSTRUCTIONS =
@@ -75,6 +75,8 @@ function buildTokenMap(intake) {
     ...intake,
     courtName: buildCourtName(intake),
     plaintiffReferenceName: buildPlaintiffReference(intake),
+    plaintiffNameFormal: toTitleCase(normalizeValue(intake.plaintiffName)),
+    defendantNameFormal: toTitleCase(normalizeValue(intake.defendantName)),
     firmName: normalizeValue(intake.firmName) || DEFAULT_FIRM_NAME,
     firmAddressBlock: normalizeValue(intake.firmAddressBlock) || DEFAULT_FIRM_ADDRESS_BLOCK,
     signingAttorney: resolveSigningAttorneyName(intake.signingAttorney),
@@ -86,6 +88,8 @@ function buildTokenMap(intake) {
     defendantReferenceName: buildDefendantReference(intake),
     collectiveDefendantShortName: buildDefendantShortName(intake),
     targetDefendants: buildTargetDefendants(intake),
+    targetDefendantsFormal: buildTargetDefendantsFormal(intake),
+    allDefendantsFormal: buildAllDefendantsFormal(intake),
     responseDeliveryInstructions: DEFAULT_RESPONSE_DELIVERY_INSTRUCTIONS,
     productionFormatInstructions: DEFAULT_PRODUCTION_FORMAT_INSTRUCTIONS,
     esiInstructionText: DEFAULT_ESI_INSTRUCTION_TEXT,
@@ -94,6 +98,7 @@ function buildTokenMap(intake) {
     protectiveOrderActionName: buildProtectiveOrderActionName(intake),
     matterFolderName: buildMatterFolderName(intake),
     additionalRoleBasedPersons: buildAdditionalRoleBasedPersons(intake),
+    serviceDate: formatLongDate(intake.serviceDate) || normalizeValue(intake.serviceDate),
     employmentDateRange: buildLookbackDateRange(intake.serviceDate),
     accommodationDateRange: buildLookbackDateRange(intake.serviceDate),
     corpRepEntity: buildCorpRepEntity(intake),
@@ -131,23 +136,46 @@ function buildTokenMap(intake) {
   const rfpTrioIssueParagraphs = buildRfpTrioIssueParagraphs(enrichedIntake);
 
   const omnibusDeponentTokens = buildOmnibusIndividualTokens(enrichedIntake);
-  const plaintiffSubjectEntry = normalizeValue(enrichedIntake.plaintiffName) || "Plaintiff";
+  const plaintiffSubjectEntry = toTitleCase(normalizeValue(enrichedIntake.plaintiffName)) || "Plaintiff";
   const fullSubjectList = [plaintiffSubjectEntry, ...combinedSubjects];
+  const rfpFullSubjectList = [
+    ...fullSubjectList,
+    "Any person whom you may call to testify or otherwise give evidence (e.g., a statement or affidavit) in this action.",
+  ];
+
+  const individualRfpActorTokens = Object.fromEntries(
+    Array.from({ length: 6 }, (_, i) => [
+      `{{rfpActorComplaintParagraph${i + 1}}}`,
+      rfpActorComplaintParagraphs[i] || "",
+    ]),
+  );
+  const individualRfpCommsTokens = Object.fromEntries(
+    Array.from({ length: 8 }, (_, i) => [
+      `{{rfpPlaintiffCommunicationsParagraph${i + 1}}}`,
+      rfpPlaintiffCommunicationsParagraphs[i] || "",
+    ]),
+  );
+  const individualRogActorTokens = Object.fromEntries(
+    Array.from({ length: 6 }, (_, i) => [
+      `{{interrogatoryActorComplaintParagraph${i + 1}}}`,
+      interrogatoryActorComplaintParagraphs[i] || "",
+    ]),
+  );
 
   return {
     ...directTokens,
     ...omnibusDeponentTokens,
+    ...individualRfpActorTokens,
+    ...individualRfpCommsTokens,
+    ...individualRogActorTokens,
     "{{omnibusScheduleBlocks}}": renderOmnibusScheduleBlocks(buildOmnibusDeponents(enrichedIntake)),
     "{{attorneyRosterBlock}}": renderLineList(enrichedIntake.attorneyRoster),
     "{{attorneyEmailBlock}}": renderLineList(enrichedIntake.attorneyEmails),
     "{{keyPersonsBlock}}": renderNumberedList(enrichedIntake.keyPersonsList),
     "{{additionalRoleBasedPersonsBlock}}": renderLetteredList(enrichedIntake.additionalRoleBasedPersons),
-    "{{interrogatory3SubjectsBlock}}": renderLetteredEntries(combinedSubjects),
-    "{{rfpSubjectListBlock}}": renderLetteredEntries([
-      ...fullSubjectList,
-      "Any person whom you may call to testify or otherwise give evidence (e.g., a statement or affidavit) in this action.",
-    ]),
-    "{{rfpEmailBoxSubjectListBlock}}": renderLetteredEntries(fullSubjectList),
+    "{{interrogatory3SubjectsBlock}}": renderRogSubjectList(fullSubjectList),
+    "{{rfpSubjectListBlock}}": renderRfpSubjectList(rfpFullSubjectList),
+    "{{rfpEmailBoxSubjectListBlock}}": renderRfpSubjectList(fullSubjectList),
     "{{claimsAndCountsBlock}}": renderNumberedList(enrichedIntake.claimsAndCounts),
     "{{protectedTraitsBlock}}": renderNumberedList(enrichedIntake.protectedTraits),
     "{{retaliationActivitiesBlock}}": renderNumberedList(enrichedIntake.retaliationActivities),
@@ -278,13 +306,14 @@ function buildProtectiveOrderActionName(intake) {
 }
 
 function buildAdditionalRoleBasedPersons(intake) {
-  const plaintiffName = normalizeValue(intake.plaintiffName) || "Plaintiff";
+  const ref = buildPlaintiffReference(intake);
+  const defendant = buildDefendantReference(intake);
   return [
-    `Any person who participated in the decision to discipline ${plaintiffName}`,
-    `Any person who participated in ${plaintiffName}'s accommodation process`,
-    `Any person who supervised ${plaintiffName}`,
-    `Any person supervised by a person who supervised ${plaintiffName}`,
-    `Any person who replaced ${plaintiffName} or assumed any part of ${plaintiffName}'s job functions`,
+    `Any person who participated in the decision to discipline ${ref}`,
+    `Any person who participated in ${ref}'s accommodation process at ${defendant}`,
+    `Any person who supervised ${ref}`,
+    `Any person supervised by a person who supervised ${ref}, from the beginning of ${ref}'s employment to its end`,
+    `Any person who replaced ${ref} or assumed any part of ${ref}'s job functions following ${ref}'s departure from ${defendant}`,
   ].join("\n");
 }
 
@@ -977,6 +1006,52 @@ function formatLongDate(rawValue) {
 
 function renderLetteredEntries(entries) {
   return entries.map((entry, index) => `(${String.fromCharCode(97 + index)}) ${entry}`).join("\n\n");
+}
+
+// RFP subject list: plain semicolon list, final entry gets a period
+function renderRfpSubjectList(entries) {
+  return entries
+    .map((entry, index) => {
+      const clean = entry.trimEnd();
+      if (/[.;]$/.test(clean)) return clean;
+      return index === entries.length - 1 ? `${clean}.` : `${clean};`;
+    })
+    .join("\n");
+}
+
+// ROG subject list: "a. entry;" format with a period on the final entry
+function renderRogSubjectList(entries) {
+  return entries
+    .map((entry, index) => {
+      const letter = String.fromCharCode(97 + index);
+      const clean = entry.trimEnd();
+      const hasPunctuation = /[.;]$/.test(clean);
+      const suffix = hasPunctuation ? "" : index === entries.length - 1 ? "." : ";";
+      return `${letter}. ${clean}${suffix}`;
+    })
+    .join("\n");
+}
+
+function buildTargetDefendantsFormal(intake) {
+  const defendants = splitLines(intake.allDefendants).map(toTitleCase);
+  if (defendants.length === 0) return "";
+  const referenceName = normalizeValue(intake.defendantReferenceName) || buildDefendantPartyLabel(intake);
+  const partyLabel = buildDefendantPartyLabel(intake);
+  const joined =
+    defendants.length === 1
+      ? defendants[0]
+      : defendants.length === 2
+      ? `${defendants[0]} and ${defendants[1]}`
+      : `${defendants.slice(0, -1).join(", ")}, and ${defendants[defendants.length - 1]}`;
+  return `${joined} ("${referenceName}" or "${partyLabel}")`;
+}
+
+function buildAllDefendantsFormal(intake) {
+  const defendants = splitLines(intake.allDefendants).map(toTitleCase);
+  if (defendants.length === 0) return "";
+  if (defendants.length === 1) return defendants[0];
+  if (defendants.length === 2) return `${defendants[0]} and ${defendants[1]}`;
+  return `${defendants.slice(0, -1).join(", ")}, and ${defendants[defendants.length - 1]}`;
 }
 
 function buildProgramName(intake) {
