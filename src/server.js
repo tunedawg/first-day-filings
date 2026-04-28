@@ -13,7 +13,7 @@ const {
   getValidAccessToken,
 } = require("./auth");
 const { extractCaseContext } = require("./extractor");
-const { buildDocumentName, validateSelections } = require("./generator");
+const { buildDocumentName, buildMatterFolderName, validateSelections } = require("./generator");
 const { createDriveFolder, copyGoogleDoc, inspectTemplateFile, replaceDocTokens } = require("./google");
 const { getQuestionnaire, getTemplateRegistry } = require("./templateRegistry");
 
@@ -89,7 +89,7 @@ async function handleGenerate(request, response, body) {
 
   const session = getSessionFromRequest(request);
   const accessToken = await getValidAccessToken(session);
-  const folder = await createDriveFolder(accessToken, intake.matterFolderName, intake.parentFolderId);
+  const folder = await createDriveFolder(accessToken, buildMatterFolderName(intake), intake.parentFolderId);
   const createdDocuments = [];
 
   for (const template of selectedTemplates) {

@@ -1184,6 +1184,7 @@ function validateSelections(selectedTemplateIds, intake) {
 
 module.exports = {
   buildDocumentName,
+  buildMatterFolderName,
   buildTokenMap,
   normalizeValue,
   validateSelections,
