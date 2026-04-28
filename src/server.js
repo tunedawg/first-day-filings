@@ -1,4 +1,4 @@
-require("dotenv").config({ path: require("node:path").join(__dirname, "..", ".env") });
+try { require("dotenv").config({ path: require("node:path").join(__dirname, "..", ".env") }); } catch (_) {}
 const fs = require("node:fs");
 const path = require("node:path");
 const http = require("node:http");
