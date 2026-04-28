@@ -239,7 +239,19 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "GET") {
       const requestPath = requestUrl.pathname === "/" ? "/index.html" : requestUrl.pathname;
       const safePath = path.normalize(requestPath).replace(/^(\.\.[/\\])+/, "");
-      sendFile(response, path.join(publicDir, safePath));
+      const filePath = path.join(publicDir, safePath);
+
+      if (requestUrl.pathname === "/" && fs.existsSync(filePath)) {
+        const proto = request.headers["x-forwarded-proto"] || "http";
+        const host = request.headers["x-forwarded-host"] || request.headers.host || `localhost:${PORT}`;
+        const siteUrl = `${proto}://${host}`;
+        const html = fs.readFileSync(filePath, "utf8").replace(/\{\{SITE_URL\}\}/g, siteUrl);
+        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0", Pragma: "no-cache", Expires: "0" });
+        response.end(html);
+        return;
+      }
+
+      sendFile(response, filePath);
       return;
     }
 
