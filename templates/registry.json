@@ -1,0 +1,111 @@
+{
+  "documents": [
+    {
+      "id": "omnibus_notice_of_deposition",
+      "title": "Omnibus Notice of Deposition",
+      "description": "Missouri state-court omnibus notice with repeating deponent schedule blocks.",
+      "googleTemplateDocId": "1JH9DAnTXdLWUV5kdY36KregyoYDN7zvtLBZDmucTAe4",
+      "requiredFields": [
+        "courtCounty",
+        "plaintiffName",
+        "defendantName",
+        "caseNumber",
+        "serviceDate",
+        "signingAttorney",
+        "attorneyForLine",
+        "attorneyRoster",
+        "attorneyEmails"
+      ]
+    },
+    {
+      "id": "corporate_representative_deposition_notice",
+      "title": "Notice of Corporate Representative Deposition",
+      "description": "Rule 57.03(b)(4) notice with Exhibit A topics and document request language.",
+      "googleTemplateDocId": "13CHtBzNeSuYLtcjKll3xadovcqby8xR8gD8KAZCUUD0",
+      "requiredFields": [
+        "courtCounty",
+        "plaintiffName",
+        "defendantName",
+        "caseNumber",
+        "serviceDate",
+        "signingAttorney",
+        "attorneyForLine",
+        "attorneyRoster",
+        "attorneyEmails",
+        "corpRepDate",
+        "corpRepTime"
+      ]
+    },
+    {
+      "id": "first_rfps",
+      "title": "First Requests for Production",
+      "description": "Missouri first-set RFPs with native-format ESI instructions and recurring person lists.",
+      "googleTemplateDocId": "190lGkSkA1jHbCCRBNhbLcjTABaNJwhxO4OP5yfgvpz8",
+      "requiredFields": [
+        "courtCounty",
+        "plaintiffName",
+        "defendantName",
+        "caseNumber",
+        "serviceDate",
+        "signingAttorney",
+        "attorneyForLine",
+        "attorneyRoster",
+        "allDefendants",
+        "defendantReferenceName",
+        "keyPersonsList"
+      ]
+    },
+    {
+      "id": "first_interrogatories",
+      "title": "First Interrogatories",
+      "description": "Missouri first-set interrogatories with verification block and recurring witness categories.",
+      "googleTemplateDocId": "1HBSYxDpwl7sGvRFmBNduObQmuPLMQYqdXwK4Cen0QxQ",
+      "requiredFields": [
+        "courtCounty",
+        "plaintiffName",
+        "defendantName",
+        "caseNumber",
+        "serviceDate",
+        "signingAttorney",
+        "attorneyForLine",
+        "attorneyRoster",
+        "allDefendants",
+        "defendantReferenceName",
+        "keyPersonsList"
+      ]
+    },
+    {
+      "id": "proposed_protective_order",
+      "title": "Proposed Protective Order",
+      "description": "Proposed confidentiality order using the Missouri definitions and designation process reflected in the sample.",
+      "googleTemplateDocId": "1Civ65CyS8vIjLjqsvwryNajV2NhavSyiTzipUZ-BYxY",
+      "requiredFields": [
+        "courtCounty",
+        "courtDivision",
+        "plaintiffName",
+        "defendantName",
+        "caseNumber",
+        "collectiveDefendantShortName",
+        "judgeName"
+      ]
+    },
+    {
+      "id": "motion_for_entry_of_protective_order",
+      "title": "Motion for Entry of Protective Order",
+      "description": "Short motion seeking entry of the accompanying proposed protective order.",
+      "googleTemplateDocId": "1JUvUj4FJ5pSOPwqyqp0ZCOr0IBzdIv0LdNZQCWiqX78",
+      "requiredFields": [
+        "courtCounty",
+        "courtDivision",
+        "plaintiffName",
+        "defendantName",
+        "caseNumber",
+        "serviceDate",
+        "signingAttorney",
+        "attorneyForLine",
+        "attorneyRoster",
+        "attorneyEmails"
+      ]
+    }
+  ]
+}

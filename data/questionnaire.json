@@ -1,0 +1,235 @@
+{
+  "sections": [
+    {
+      "id": "caption",
+      "title": "Caption and Filing Data",
+      "description": "Court caption fields that recur across all five Missouri state-court discovery filings.",
+      "fields": [
+        { "id": "courtCounty", "label": "Court county", "type": "text", "required": true, "placeholder": "Jackson" },
+        { "id": "courtDivision", "label": "Court division / location (optional)", "type": "text", "required": false, "placeholder": "AT KANSAS CITY" },
+        { "id": "plaintiffName", "label": "Plaintiff name", "type": "text", "required": true, "placeholder": "FERN PAYNE" },
+        { "id": "plaintiffReferenceName", "label": "Plaintiff reference name", "type": "text", "required": false, "placeholder": "Ms. Payne" },
+        { "id": "defendantName", "label": "Lead defendant name", "type": "text", "required": true, "placeholder": "THE METROPOLITAN COMMUNITY COLLEGE FOUNDATION et al." },
+        { "id": "caseNumber", "label": "Case number", "type": "text", "required": true, "placeholder": "2616-CV12184" },
+        { "id": "serviceDate", "label": "Document / service date", "type": "date", "required": true }
+      ]
+    },
+    {
+      "id": "attorneys",
+      "title": "Attorney Signature Block",
+      "description": "Signature and email block used in the notices and written discovery.",
+      "fields": [
+        {
+          "id": "signingAttorney",
+          "label": "Signing attorney",
+          "type": "select",
+          "required": true,
+          "options": [
+            { "value": "edward_keenan", "label": "Edward (E.E.) Keenan" },
+            { "value": "sonal_bhatia", "label": "Sonal Bhatia" },
+            { "value": "jr_montgomery", "label": "JR Montgomery" },
+            { "value": "aaron_hadlow", "label": "Aaron Hadlow" },
+            { "value": "hilary_orzick", "label": "Hilary J. Orzick" }
+          ]
+        },
+        { "id": "videoOperatorName", "label": "Video operator name", "type": "text", "required": false, "placeholder": "Noah Tunis" },
+        {
+          "id": "includedAttorneys",
+          "label": "Included attorneys",
+          "type": "checkbox-group",
+          "required": true,
+          "options": [
+            { "value": "edward_keenan", "label": "Edward (E.E.) Keenan", "description": "Mo. #62993 • ee@keenanfirm.com", "checked": true },
+            { "value": "sonal_bhatia", "label": "Sonal Bhatia", "description": "Mo. #67519 • sonal@keenanfirm.com", "checked": true },
+            { "value": "jr_montgomery", "label": "JR Montgomery", "description": "Mo. #68281 • jr@keenanfirm.com", "checked": true },
+            { "value": "aaron_hadlow", "label": "Aaron Hadlow", "description": "Mo. #70987 • aaron@keenanfirm.com", "checked": true },
+            { "value": "hilary_orzick", "label": "Hilary J. Orzick", "description": "Mo. #78359 • hilary@keenanfirm.com", "checked": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "omnibusDepositions",
+      "title": "Omnibus Notice of Deposition",
+      "description": "Repeating witness schedule for the omnibus deposition notice.",
+      "fields": [
+        {
+          "id": "omnibusDeponentCount",
+          "label": "How many deponents?",
+          "type": "select",
+          "required": true,
+          "options": [
+            { "value": "1", "label": "1" },
+            { "value": "2", "label": "2" },
+            { "value": "3", "label": "3" },
+            { "value": "4", "label": "4" },
+            { "value": "5", "label": "5" },
+            { "value": "6", "label": "6" },
+            { "value": "7", "label": "7" },
+            { "value": "8", "label": "8" }
+          ]
+        },
+        { "id": "omnibusDeponent1Name", "label": "Deponent 1 name", "type": "text", "required": false, "placeholder": "Gabrielle Moore-Jones", "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 1 } },
+        { "id": "omnibusDeponent1Date", "label": "Deponent 1 date", "type": "date", "required": false, "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 1 } },
+        { "id": "omnibusDeponent1Time", "label": "Deponent 1 time", "type": "text", "required": false, "placeholder": "10:00 AM CT", "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 1 } },
+        { "id": "omnibusDeponent1InPerson", "label": "Deponent 1 is not via Zoom", "type": "checkbox", "required": false, "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 1 } },
+        { "id": "omnibusDeponent1Location", "label": "Deponent 1 location", "type": "textarea", "required": false, "placeholder": "4600 Madison Ave. Ste. 810\nKansas City, MO 64112", "showIf": { "field": "omnibusDeponent1InPerson", "op": "eq", "value": true } },
+        { "id": "omnibusDeponent2Name", "label": "Deponent 2 name", "type": "text", "required": false, "placeholder": "Brandi Fockler", "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 2 } },
+        { "id": "omnibusDeponent2Date", "label": "Deponent 2 date", "type": "date", "required": false, "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 2 } },
+        { "id": "omnibusDeponent2Time", "label": "Deponent 2 time", "type": "text", "required": false, "placeholder": "10:00 AM CT", "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 2 } },
+        { "id": "omnibusDeponent2InPerson", "label": "Deponent 2 is not via Zoom", "type": "checkbox", "required": false, "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 2 } },
+        { "id": "omnibusDeponent2Location", "label": "Deponent 2 location", "type": "textarea", "required": false, "placeholder": "4600 Madison Ave. Ste. 810\nKansas City, MO 64112", "showIf": { "field": "omnibusDeponent2InPerson", "op": "eq", "value": true } },
+        { "id": "omnibusDeponent3Name", "label": "Deponent 3 name", "type": "text", "required": false, "placeholder": "Dr. Samaiyah Jones Scott", "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 3 } },
+        { "id": "omnibusDeponent3Date", "label": "Deponent 3 date", "type": "date", "required": false, "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 3 } },
+        { "id": "omnibusDeponent3Time", "label": "Deponent 3 time", "type": "text", "required": false, "placeholder": "10:00 AM CT", "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 3 } },
+        { "id": "omnibusDeponent3InPerson", "label": "Deponent 3 is not via Zoom", "type": "checkbox", "required": false, "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 3 } },
+        { "id": "omnibusDeponent3Location", "label": "Deponent 3 location", "type": "textarea", "required": false, "placeholder": "4600 Madison Ave. Ste. 810\nKansas City, MO 64112", "showIf": { "field": "omnibusDeponent3InPerson", "op": "eq", "value": true } },
+        { "id": "omnibusDeponent4Name", "label": "Deponent 4 name", "type": "text", "required": false, "placeholder": "Tiffany Bradley", "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 4 } },
+        { "id": "omnibusDeponent4Date", "label": "Deponent 4 date", "type": "date", "required": false, "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 4 } },
+        { "id": "omnibusDeponent4Time", "label": "Deponent 4 time", "type": "text", "required": false, "placeholder": "10:00 AM CT", "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 4 } },
+        { "id": "omnibusDeponent4InPerson", "label": "Deponent 4 is not via Zoom", "type": "checkbox", "required": false, "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 4 } },
+        { "id": "omnibusDeponent4Location", "label": "Deponent 4 location", "type": "textarea", "required": false, "placeholder": "4600 Madison Ave. Ste. 810\nKansas City, MO 64112", "showIf": { "field": "omnibusDeponent4InPerson", "op": "eq", "value": true } },
+        { "id": "omnibusDeponent5Name", "label": "Deponent 5 name", "type": "text", "required": false, "placeholder": "Tina Hafner", "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 5 } },
+        { "id": "omnibusDeponent5Date", "label": "Deponent 5 date", "type": "date", "required": false, "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 5 } },
+        { "id": "omnibusDeponent5Time", "label": "Deponent 5 time", "type": "text", "required": false, "placeholder": "10:00 AM CT", "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 5 } },
+        { "id": "omnibusDeponent5InPerson", "label": "Deponent 5 is not via Zoom", "type": "checkbox", "required": false, "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 5 } },
+        { "id": "omnibusDeponent5Location", "label": "Deponent 5 location", "type": "textarea", "required": false, "placeholder": "4600 Madison Ave. Ste. 810\nKansas City, MO 64112", "showIf": { "field": "omnibusDeponent5InPerson", "op": "eq", "value": true } },
+        { "id": "omnibusDeponent6Name", "label": "Deponent 6 name", "type": "text", "required": false, "placeholder": "Fred Wise", "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 6 } },
+        { "id": "omnibusDeponent6Date", "label": "Deponent 6 date", "type": "date", "required": false, "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 6 } },
+        { "id": "omnibusDeponent6Time", "label": "Deponent 6 time", "type": "text", "required": false, "placeholder": "10:00 AM CT", "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 6 } },
+        { "id": "omnibusDeponent6InPerson", "label": "Deponent 6 is not via Zoom", "type": "checkbox", "required": false, "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 6 } },
+        { "id": "omnibusDeponent6Location", "label": "Deponent 6 location", "type": "textarea", "required": false, "placeholder": "4600 Madison Ave. Ste. 810\nKansas City, MO 64112", "showIf": { "field": "omnibusDeponent6InPerson", "op": "eq", "value": true } },
+        { "id": "omnibusDeponent7Name", "label": "Deponent 7 name", "type": "text", "required": false, "placeholder": "Nancy Perez", "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 7 } },
+        { "id": "omnibusDeponent7Date", "label": "Deponent 7 date", "type": "date", "required": false, "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 7 } },
+        { "id": "omnibusDeponent7Time", "label": "Deponent 7 time", "type": "text", "required": false, "placeholder": "10:00 AM CT", "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 7 } },
+        { "id": "omnibusDeponent7InPerson", "label": "Deponent 7 is not via Zoom", "type": "checkbox", "required": false, "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 7 } },
+        { "id": "omnibusDeponent7Location", "label": "Deponent 7 location", "type": "textarea", "required": false, "placeholder": "4600 Madison Ave. Ste. 810\nKansas City, MO 64112", "showIf": { "field": "omnibusDeponent7InPerson", "op": "eq", "value": true } },
+        { "id": "omnibusDeponent8Name", "label": "Deponent 8 name", "type": "text", "required": false, "placeholder": "Additional witness", "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 8 } },
+        { "id": "omnibusDeponent8Date", "label": "Deponent 8 date", "type": "date", "required": false, "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 8 } },
+        { "id": "omnibusDeponent8Time", "label": "Deponent 8 time", "type": "text", "required": false, "placeholder": "10:00 AM CT", "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 8 } },
+        { "id": "omnibusDeponent8InPerson", "label": "Deponent 8 is not via Zoom", "type": "checkbox", "required": false, "showIf": { "field": "omnibusDeponentCount", "op": "gte", "value": 8 } },
+        { "id": "omnibusDeponent8Location", "label": "Deponent 8 location", "type": "textarea", "required": false, "placeholder": "4600 Madison Ave. Ste. 810\nKansas City, MO 64112", "showIf": { "field": "omnibusDeponent8InPerson", "op": "eq", "value": true } }
+      ]
+    },
+    {
+      "id": "corpRep",
+      "title": "Corporate Representative Deposition",
+      "description": "Corporate representative notice metadata. Exhibit A topics are generated from the case details below.",
+      "fields": [
+        { "id": "corpRepDate", "label": "Corporate representative date", "type": "date", "required": true },
+        { "id": "corpRepTime", "label": "Corporate representative time", "type": "text", "required": true, "placeholder": "10:00 AM CT" }
+      ]
+    },
+    {
+      "id": "caseTheories",
+      "title": "Claims, Counts, and Allegations",
+      "description": "Case-specific allegations that change the substance of discovery requests and deposition topics.",
+      "fields": [
+        {
+          "id": "claimsAndCounts",
+          "label": "Claims and counts",
+          "type": "checkbox-group",
+          "required": true,
+          "options": [
+            { "value": "race", "label": "Race discrimination" },
+            { "value": "color", "label": "Color discrimination" },
+            { "value": "age", "label": "Age discrimination" },
+            { "value": "sex", "label": "Sex discrimination" },
+            { "value": "disability", "label": "Disability discrimination" },
+            { "value": "associational", "label": "Associational discrimination" },
+            { "value": "retaliation", "label": "Retaliation" },
+            { "value": "workers_comp", "label": "Workers' compensation retaliation" },
+            { "value": "whistleblower", "label": "Whistleblower retaliation" },
+            { "value": "rsmo_105_055", "label": "RSMo 105.055" }
+          ]
+        },
+        {
+          "id": "associationalClarification",
+          "label": "Associational discrimination clarification",
+          "type": "text",
+          "required": false,
+          "placeholder": "Associate's protected trait, disability, or relationship at issue",
+          "showIf": { "field": "claimsAndCounts", "op": "includes", "value": "associational" }
+        },
+        {
+          "id": "adverseActions",
+          "label": "Adverse actions at issue",
+          "type": "checkbox-group",
+          "required": false,
+          "options": [
+            { "value": "discipline", "label": "Discipline" },
+            { "value": "pip", "label": "Performance Improvement Plan" },
+            { "value": "schedule_reduction", "label": "Schedule reduction" },
+            { "value": "termination", "label": "Termination" },
+            { "value": "denial_of_accommodation", "label": "Denial of accommodation" },
+            { "value": "other", "label": "Other" }
+          ]
+        },
+        {
+          "id": "adverseActionsOther",
+          "label": "Other adverse action",
+          "type": "text",
+          "required": false,
+          "placeholder": "Describe the other adverse action",
+          "showIf": { "field": "adverseActions", "op": "includes", "value": "other" }
+        },
+        { "id": "comparatorGroupHeader", "type": "section-header", "label": "Comparator Groups", "description": "Check the comparator buckets you want to include, then fill in the matching names or short group descriptions." },
+        { "id": "includeSameDepartmentComparators", "label": "Include same department or program comparators", "type": "checkbox", "required": false },
+        { "id": "sameDepartmentComparators", "label": "Same department or program comparators", "type": "textarea", "required": false, "rows": 3, "placeholder": "Employees in the same department or program, one per line", "showIf": { "field": "includeSameDepartmentComparators", "op": "eq", "value": true } },
+        { "id": "includeSameRoleComparators", "label": "Include same role or title comparators", "type": "checkbox", "required": false },
+        { "id": "sameRoleComparators", "label": "Same role or title comparators", "type": "textarea", "required": false, "rows": 3, "placeholder": "Employees in the same role or title, one per line", "showIf": { "field": "includeSameRoleComparators", "op": "eq", "value": true } },
+        { "id": "includeSameSupervisorComparators", "label": "Include same supervisor comparators", "type": "checkbox", "required": false },
+        { "id": "sameSupervisorComparators", "label": "Same supervisor comparators", "type": "textarea", "required": false, "rows": 3, "placeholder": "Employees with the same supervisor, one per line", "showIf": { "field": "includeSameSupervisorComparators", "op": "eq", "value": true } },
+        { "id": "includeSameDecisionMakerComparators", "label": "Include same decision-maker comparators", "type": "checkbox", "required": false },
+        { "id": "sameDecisionMakerComparators", "label": "Same decision-maker comparators", "type": "textarea", "required": false, "rows": 3, "placeholder": "Employees affected by the same decision-maker, one per line", "showIf": { "field": "includeSameDecisionMakerComparators", "op": "eq", "value": true } },
+        { "id": "includeAccommodationComparators", "label": "Include accommodation comparators", "type": "checkbox", "required": false },
+        { "id": "accommodationComparators", "label": "Accommodation comparators", "type": "textarea", "required": false, "rows": 3, "placeholder": "Employees who sought or received accommodations, one per line", "showIf": { "field": "includeAccommodationComparators", "op": "eq", "value": true } },
+        { "id": "includeDisciplineComparators", "label": "Include discipline or PIP comparators", "type": "checkbox", "required": false },
+        { "id": "disciplineComparators", "label": "Discipline or PIP comparators", "type": "textarea", "required": false, "rows": 3, "placeholder": "Employees disciplined or placed on a PIP, one per line", "showIf": { "field": "includeDisciplineComparators", "op": "eq", "value": true } },
+        { "id": "includeReplacementComparators", "label": "Include replacement or successor comparators", "type": "checkbox", "required": false },
+        { "id": "replacementComparators", "label": "Replacement or successor comparators", "type": "textarea", "required": false, "rows": 3, "placeholder": "Replacement or successor employees, one per line", "showIf": { "field": "includeReplacementComparators", "op": "eq", "value": true } },
+        { "id": "includeOtherComparators", "label": "Include other comparator groups", "type": "checkbox", "required": false },
+        { "id": "otherComparators", "label": "Other comparator groups", "type": "textarea", "required": false, "rows": 3, "placeholder": "Other relevant comparator groups, one per line", "showIf": { "field": "includeOtherComparators", "op": "eq", "value": true } },
+        { "id": "decisionMakerHeader", "type": "section-header", "label": "Decision-Makers and Actors", "description": "Check the role buckets you want to include, then add the names for each selected role." },
+        { "id": "includeDisciplineDecisionMakers", "label": "Include discipline decision-makers", "type": "checkbox", "required": false },
+        { "id": "disciplineDecisionMakers", "label": "Discipline decision-makers", "type": "textarea", "required": false, "rows": 3, "placeholder": "Name each person involved in discipline decisions, one per line", "showIf": { "field": "includeDisciplineDecisionMakers", "op": "eq", "value": true } },
+        { "id": "includeTerminationDecisionMakers", "label": "Include termination decision-makers", "type": "checkbox", "required": false },
+        { "id": "terminationDecisionMakers", "label": "Termination decision-makers", "type": "textarea", "required": false, "rows": 3, "placeholder": "Name each person involved in termination decisions, one per line", "showIf": { "field": "includeTerminationDecisionMakers", "op": "eq", "value": true } },
+        { "id": "includeAccommodationDecisionMakers", "label": "Include accommodation decision-makers", "type": "checkbox", "required": false },
+        { "id": "accommodationDecisionMakers", "label": "Accommodation decision-makers", "type": "textarea", "required": false, "rows": 3, "placeholder": "Name each person involved in accommodation decisions, one per line", "showIf": { "field": "includeAccommodationDecisionMakers", "op": "eq", "value": true } },
+        { "id": "includeLeaveScheduleDecisionMakers", "label": "Include leave or schedule decision-makers", "type": "checkbox", "required": false },
+        { "id": "leaveScheduleDecisionMakers", "label": "Leave or schedule decision-makers", "type": "textarea", "required": false, "rows": 3, "placeholder": "Name each person involved in leave, attendance, or schedule decisions, one per line", "showIf": { "field": "includeLeaveScheduleDecisionMakers", "op": "eq", "value": true } },
+        { "id": "includeComplaintRecipients", "label": "Include complaint recipients", "type": "checkbox", "required": false },
+        { "id": "complaintRecipients", "label": "Complaint recipients", "type": "textarea", "required": false, "rows": 3, "placeholder": "Name each person who received complaints or reports, one per line", "showIf": { "field": "includeComplaintRecipients", "op": "eq", "value": true } },
+        { "id": "includeHrParticipants", "label": "Include HR participants", "type": "checkbox", "required": false },
+        { "id": "hrParticipants", "label": "HR participants", "type": "textarea", "required": false, "rows": 3, "placeholder": "Name each HR participant, one per line", "showIf": { "field": "includeHrParticipants", "op": "eq", "value": true } },
+        { "id": "includeSupervisors", "label": "Include supervisors", "type": "checkbox", "required": false },
+        { "id": "supervisors", "label": "Supervisors", "type": "textarea", "required": false, "rows": 3, "placeholder": "Name each supervisor, one per line", "showIf": { "field": "includeSupervisors", "op": "eq", "value": true } },
+        { "id": "includeOtherActors", "label": "Include other key actors", "type": "checkbox", "required": false },
+        { "id": "otherActors", "label": "Other key actors", "type": "textarea", "required": false, "rows": 3, "placeholder": "Other relevant actors tied to the challenged events, one per line", "showIf": { "field": "includeOtherActors", "op": "eq", "value": true } }
+      ]
+    },
+    {
+      "id": "discoveryLists",
+      "title": "Discovery Witness and Subject Lists",
+      "description": "Named people and recurring categories reused throughout the interrogatories and RFPs.",
+      "fields": [
+        { "id": "allDefendants", "label": "All defendants", "type": "textarea", "required": true, "placeholder": "The Metropolitan Community College Foundation\nMetropolitan Community College\nThe Junior College District of Metropolitan Kansas City" },
+        { "id": "defendantReferenceName", "label": "Consistent defendant reference", "type": "text", "required": true, "placeholder": "MCC" },
+        { "id": "programName", "label": "Program or department name (optional)", "type": "text", "required": false, "placeholder": "TRIO" },
+        { "id": "keyPersonsList", "label": "Recurring key persons list", "type": "textarea", "required": true, "placeholder": "Gabrielle Moore-Jones\nDr. Samaiyah Jones Scott\nBrandi Fockler\nTina Hafner\nTiffany Bradley\nFred Wise\nNancy Perez" }
+      ]
+    },
+    {
+      "id": "protectiveOrder",
+      "title": "Protective Order Data",
+      "description": "Party definitions and confidentiality categories for the proposed protective order.",
+      "fields": [
+        { "id": "collectiveDefendantShortName", "label": "Collective defendant short name", "type": "text", "required": true, "placeholder": "MCC" },
+        { "id": "protectiveOrderActionCaption", "label": "Protective order action name", "type": "text", "required": false, "placeholder": "Fern Payne v. The Metropolitan Community College Foundation" },
+        { "id": "protectiveOrderActionCaseNumber", "label": "Protective order case number", "type": "text", "required": false, "placeholder": "2616-CV12184" },
+        { "id": "judgeName", "label": "Judge name", "type": "text", "required": false, "placeholder": "HON. ADAM CAINE" }
+      ]
+    }
+  ]
+}

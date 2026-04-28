@@ -1,0 +1,6 @@
+.env
+node_modules/
+templates/final-docx-masters-v2-tokenized/
+scripts/__pycache__/
+*.pyc
+*.pyo

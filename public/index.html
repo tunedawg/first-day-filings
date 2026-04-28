@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>First Day Filings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" type="module"></script>
+  </head>
+  <body>
+    <nav class="topbar">
+      <a href="/" class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none">
+            <path d="M9 5.5h10.5c3.6 0 5.5 1.8 5.5 5.2v13.1c0 2.9-1.8 4.7-4.8 4.7H9.8C6.8 28.5 5 26.7 5 23.8V10.2c0-3 1.9-4.7 4-4.7Z" fill="currentColor" opacity="0.18"/>
+            <path d="M12 4.5h8.8c3.1 0 4.7 1.6 4.7 4.6v12.4c0 3.3-1.8 5-5 5H11.2c-3 0-4.7-1.7-4.7-4.8V9.1c0-3 1.7-4.6 4.6-4.6Z" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M11 11h10M11 16h10M11 21h6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M20.5 4.8v3.7c0 1 .5 1.5 1.5 1.5h3.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="brand-name">First Day Filings</span>
+      </a>
+      <div class="topbar-right">
+        <button id="clearAllButton" class="topbar-clear-btn" type="button">Clear all fields</button>
+        <button id="googleLoginButtonTop" class="auth-chip auth-chip-login" type="button">
+          <span class="auth-chip-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 5.2 5.6 8.8v6.4L12 18.8l6.4-3.6V8.8L12 5.2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M5.6 8.8 12 12.4l6.4-3.6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M12 12.4v6.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span id="googleLoginButtonTopLabel">Connect Google Drive</span>
+        </button>
+        <button id="googleLogoutButtonTop" class="auth-chip auth-chip-logout" type="button" hidden>Sign out</button>
+      </div>
+    </nav>
+
+    <main class="wizard">
+      <div class="wizard-hero">
+        <p class="hero-kicker">Missouri employment litigation · first-day workflow</p>
+        <h1>First Day Filings</h1>
+        <p class="hero-sub">Upload the petition and AI extracts the intake data. Choose your filings and generate directly to Google Drive.</p>
+      </div>
+
+      <div class="wizard-track">
+
+        <!-- Step 1: Upload -->
+        <div class="wizard-step" id="stepUpload">
+          <div class="step-aside">
+            <div class="step-badge">1</div>
+            <div class="step-connector" aria-hidden="true"></div>
+          </div>
+          <div class="step-body">
+            <div class="step-head">
+              <h2>Upload the Petition</h2>
+              <p>Drop a PDF and AI reads it in seconds — no manual entry required.</p>
+            </div>
+
+            <div class="upload-zone" id="uploadZone">
+              <div class="upload-zone-inner">
+                <svg class="upload-icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                  <path d="M24 8v20M16 16l8-8 8 8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M8 34v4a2 2 0 002 2h28a2 2 0 002-2v-4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+                <div class="upload-zone-text">
+                  <strong id="uploadZoneLabel">Drop a PDF here, or click to browse</strong>
+                  <span>PDF or DOCX · up to 5 files</span>
+                </div>
+                <input type="file" id="sourceFiles" accept=".pdf,.docx" multiple aria-label="Choose source documents" />
+              </div>
+              <div class="upload-zone-actions">
+                <button id="extractButton" class="action-primary" type="button">Extract with AI</button>
+              </div>
+            </div>
+
+            <div id="extractionSummary" class="extraction-summary" hidden>
+              <div class="extraction-summary-header">
+                <span class="extraction-ok-badge">✓ Extracted</span>
+                <span id="extractionSummaryTitle" class="extraction-summary-label"></span>
+              </div>
+              <ul id="extractionSummaryList" class="extraction-summary-list"></ul>
+              <div class="extraction-actions">
+                <button id="applyAndGenerateButton" class="action-primary" type="button">Apply &amp; Generate →</button>
+                <button id="applyAndReviewButton" class="action-secondary" type="button">Review &amp; Edit Details</button>
+              </div>
+            </div>
+
+            <div id="extractionStatus" class="extraction-status" hidden></div>
+
+            <div class="step-skip">
+              <button id="skipToManualButton" class="link-button" type="button">Fill in the details manually instead →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Details (conditional) -->
+        <div class="wizard-step" id="stepDetails" hidden>
+          <div class="step-aside">
+            <div class="step-badge">2</div>
+            <div class="step-connector" aria-hidden="true"></div>
+          </div>
+          <div class="step-body">
+            <div class="step-head">
+              <h2>Review &amp; Edit Details</h2>
+              <p>Every field is optional — leave blank anything you don't want in the generated docs.</p>
+            </div>
+            <div id="questionnaireRoot" class="questionnaire"></div>
+            <div class="step-foot">
+              <button id="continueToGenerateButton" class="action-primary" type="button">Continue to Generate →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Generate -->
+        <div class="wizard-step" id="stepGenerate">
+          <div class="step-aside">
+            <div class="step-badge">3</div>
+          </div>
+          <div class="step-body">
+            <div class="step-head">
+              <h2>Generate Documents</h2>
+              <p>Sign in to Google, choose your filings, and create them directly in Drive.</p>
+            </div>
+
+            <div class="generate-card">
+              <div class="generate-auth-row">
+                <div class="auth-state">
+                  <div class="auth-state-label">Google Drive</div>
+                  <div id="authSummary" class="auth-state-value">Checking session…</div>
+                </div>
+                <div class="auth-state-actions">
+                  <button id="googleLoginButton" class="action-secondary" type="button">Sign in with Google</button>
+                  <button id="googleLogoutButton" class="action-ghost" type="button" hidden>Sign out</button>
+                </div>
+              </div>
+
+              <div class="template-chooser">
+                <div class="template-chooser-head">
+                  <h3>Select Filings</h3>
+                  <button id="validateTemplatesButton" class="action-ghost action-sm" type="button">Check Template IDs</button>
+                </div>
+                <div id="templateSelectionRoot" class="template-selection"></div>
+              </div>
+
+              <div id="statusBanner" class="status idle" role="status" aria-live="polite">Loading questionnaire and template registry…</div>
+              <div id="generationProgress" class="generation-progress" hidden aria-hidden="true">
+                <div id="generationProgressBar" class="generation-progress-bar"></div>
+              </div>
+
+              <div id="signInNotice" class="sign-in-notice" hidden>
+                Sign in to Google Drive above before generating documents.
+              </div>
+
+              <div class="generate-cta">
+                <button id="generateButton" class="action-primary action-generate" type="button">Generate to Google Drive</button>
+              </div>
+
+              <div id="results" class="results"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <p class="build-stamp">Build: 2026-04-27 linear-wizard-v2</p>
+    </main>
+    <!-- Confirm modal -->
+    <div id="confirmModal" class="confirm-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="confirmModalTitle">
+      <div class="confirm-modal">
+        <h3 id="confirmModalTitle" class="confirm-modal-title">Clear all fields?</h3>
+        <p class="confirm-modal-body">This will erase every field in the form and cannot be undone.</p>
+        <div class="confirm-modal-actions">
+          <button id="confirmModalCancel" class="action-secondary" type="button">Cancel</button>
+          <button id="confirmModalConfirm" class="action-danger" type="button">Yes, clear everything</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
