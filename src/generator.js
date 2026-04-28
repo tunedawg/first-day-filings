@@ -1062,8 +1062,14 @@ function sanitizeFileName(value) {
 }
 
 function buildDocumentName(template, intake) {
-  const debtor = sanitizeFileName(intake.debtorName || intake.clientName || "Matter");
-  return `${debtor} - ${template.title}`;
+  const plaintiffLastName = sanitizeFileName(extractLastName(intake.plaintiffName) || "Plaintiff");
+  const defendantAbbrev = sanitizeFileName(
+    normalizeValue(intake.defendantReferenceName) ||
+    normalizeValue(intake.collectiveDefendantShortName) ||
+    buildDefendantPartyLabel(intake) ||
+    "Defendant"
+  );
+  return `${plaintiffLastName}_${defendantAbbrev} - ${template.title}`;
 }
 
 function validateSelections(selectedTemplateIds, intake) {
