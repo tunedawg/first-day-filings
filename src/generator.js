@@ -179,6 +179,8 @@ function buildTokenMap(intake) {
     "{{claimsAndCountsBlock}}": renderNumberedList(enrichedIntake.claimsAndCounts),
     "{{protectedTraitsBlock}}": renderNumberedList(enrichedIntake.protectedTraits),
     "{{retaliationActivitiesBlock}}": renderNumberedList(enrichedIntake.retaliationActivities),
+    "{{interrogatoryProtectedStatusFields}}": buildInterrogatoryProtectedStatusFields(enrichedIntake),
+    "{{interrogatoryComplaintTypes}}": buildInterrogatoryComplaintTypes(enrichedIntake),
     "{{adverseActionsBlock}}": renderNumberedList(enrichedIntake.adverseActions),
     "{{complaintTypesBlock}}": renderNumberedList(enrichedIntake.complaintTypes),
     "{{comparatorGroupsBlock}}": renderNumberedEntries(comparatorEntries),
@@ -705,6 +707,104 @@ function normalizeClaimsAndCounts(intake) {
   }
 
   return normalizedClaims;
+}
+
+function getClaimKeys(intake) {
+  const rawClaims = Array.isArray(intake.claimsAndCounts)
+    ? intake.claimsAndCounts
+    : splitLines(intake.claimsAndCounts);
+
+  return rawClaims.map((claim) => normalizeValue(claim).toLowerCase()).filter(Boolean);
+}
+
+function claimKeysInclude(claimKeys, matchers) {
+  return claimKeys.some((claim) => matchers.some((matcher) => matcher.test(claim)));
+}
+
+function buildInterrogatoryProtectedStatusFields(intake) {
+  const claimKeys = getClaimKeys(intake);
+  const explicitTraits = splitLines(intake.protectedTraits).map((trait) => trait.toLowerCase());
+  const fields = [];
+
+  if (
+    claimKeysInclude(claimKeys, [/\brace\b/, /race discrimination/]) ||
+    explicitTraits.some((trait) => /\brace\b/.test(trait))
+  ) {
+    fields.push("race");
+  }
+
+  if (
+    claimKeysInclude(claimKeys, [/\bcolor\b/, /color discrimination/]) ||
+    explicitTraits.some((trait) => /\bcolor\b/.test(trait))
+  ) {
+    fields.push("color");
+  }
+
+  if (
+    claimKeysInclude(claimKeys, [/\bage\b/, /age discrimination/]) ||
+    explicitTraits.some((trait) => /\bage\b/.test(trait))
+  ) {
+    fields.push("age");
+  }
+
+  if (
+    claimKeysInclude(claimKeys, [/\bsex\b/, /\bgender\b/, /sex discrimination/]) ||
+    explicitTraits.some((trait) => /\bsex\b|\bgender\b/.test(trait))
+  ) {
+    fields.push("sex");
+  }
+
+  if (
+    claimKeysInclude(claimKeys, [/\bdisability\b/, /failure to accommodate/, /\bassociational\b/]) ||
+    explicitTraits.some((trait) => /\bdisab|accommodat|associat/.test(trait))
+  ) {
+    fields.push("known disability status");
+  }
+
+  return joinWithCommasAndAnd(fields.length > 0 ? fields : ["protected characteristics or statuses at issue"]);
+}
+
+function buildInterrogatoryComplaintTypes(intake) {
+  const claimKeys = getClaimKeys(intake);
+  const complaintTypes = [];
+
+  if (claimKeysInclude(claimKeys, [/\brace\b/, /race discrimination/])) {
+    complaintTypes.push("race discrimination");
+  }
+
+  if (claimKeysInclude(claimKeys, [/\bcolor\b/, /color discrimination/])) {
+    complaintTypes.push("color discrimination");
+  }
+
+  if (claimKeysInclude(claimKeys, [/\bage\b/, /age discrimination/])) {
+    complaintTypes.push("age discrimination");
+  }
+
+  if (claimKeysInclude(claimKeys, [/\bsex\b/, /\bgender\b/, /sex discrimination/])) {
+    complaintTypes.push("sex discrimination");
+  }
+
+  if (claimKeysInclude(claimKeys, [/\bdisability\b/, /failure to accommodate/])) {
+    complaintTypes.push("disability discrimination or failure to accommodate");
+  }
+
+  if (claimKeysInclude(claimKeys, [/\bassociational\b/])) {
+    complaintTypes.push("associational discrimination");
+  }
+
+  if (claimKeysInclude(claimKeys, [/\bretaliation\b/])) {
+    complaintTypes.push("retaliation");
+  }
+
+  if (claimKeysInclude(claimKeys, [/workers'?_?\s*comp/, /workers'? compensation/])) {
+    complaintTypes.push("workers' compensation retaliation");
+  }
+
+  if (claimKeysInclude(claimKeys, [/\bwhistleblower\b/, /105\.055/, /rsmo_105_055/])) {
+    complaintTypes.push("whistleblowing or violations of RSMo 105.055");
+  }
+
+  return joinWithCommasAndAnd(complaintTypes.length > 0 ? complaintTypes : ["discrimination or retaliation"]);
 }
 
 function normalizeAdverseActions(intake) {

@@ -226,6 +226,18 @@ For allegation-sensitive interrogatories like the current Items 3 and 4, conside
 
 That gives the questionnaire a direct place to capture the substantive theories that drive those requests.
 
+### Count-specific identity fields
+
+For Interrogatories 7, 10, 11, 15, and 16, replace the Payne-specific status fields with:
+
+- `{{interrogatoryProtectedStatusFields}}`
+  Replace `race, age, known disability status`
+
+Where those interrogatories ask whether the person has ever complained of `discrimination or retaliation`, replace only that subject phrase with:
+
+- `{{interrogatoryComplaintTypes}}`
+  Example output for Payne-style claims: `race discrimination, age discrimination, disability discrimination or failure to accommodate, and retaliation`
+
 ### Closing / verification
 
 - `{{serviceDate}}`
