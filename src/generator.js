@@ -168,7 +168,12 @@ function buildTokenMap(intake) {
     ]),
   );
 
-  return {
+  const listTokens = {
+    "{{rfpSubjectListBlock}}": renderRfpSubjectList(rfpFullSubjectList).split("\n"),
+    "{{rfpEmailBoxSubjectListBlock}}": renderRfpSubjectList(fullSubjectList).split("\n"),
+  };
+
+  const tokenMap = {
     ...directTokens,
     ...omnibusDeponentTokens,
     ...individualRfpActorTokens,
@@ -181,8 +186,6 @@ function buildTokenMap(intake) {
     "{{keyPersonsBlock}}": renderNumberedList(enrichedIntake.keyPersonsList),
     "{{additionalRoleBasedPersonsBlock}}": renderLetteredList(enrichedIntake.additionalRoleBasedPersons),
     "{{interrogatory3SubjectsBlock}}": renderRogSubjectList(fullSubjectList),
-    "{{rfpSubjectListBlock}}": renderRfpSubjectList(rfpFullSubjectList),
-    "{{rfpEmailBoxSubjectListBlock}}": renderRfpSubjectList(fullSubjectList),
     "{{claimsAndCountsBlock}}": renderNumberedList(enrichedIntake.claimsAndCounts),
     "{{protectedTraitsBlock}}": renderNumberedList(enrichedIntake.protectedTraits),
     "{{retaliationActivitiesBlock}}": renderNumberedList(enrichedIntake.retaliationActivities),
@@ -208,6 +211,8 @@ function buildTokenMap(intake) {
     "{{rfpSupervisorPeerTrainingParagraph}}": normalizeValue(rfpSupervisorPeerTrainingParagraph),
     "{{rfpTrioIssueParagraphsBlock}}": renderParagraphBlock(rfpTrioIssueParagraphs),
   };
+
+  return { tokenMap, listTokens };
 }
 
 function buildCourtName(intake) {
@@ -1374,10 +1379,12 @@ function validateSelections(selectedTemplateIds, intake) {
     }
   }
 
+  const { tokenMap, listTokens } = buildTokenMap(enrichedIntake);
   return {
     issues,
     selectedTemplates,
-    tokenMap: buildTokenMap(enrichedIntake),
+    tokenMap,
+    listTokens,
   };
 }
 

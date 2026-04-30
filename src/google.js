@@ -133,10 +133,87 @@ async function replaceDocTokens(accessToken, documentId, tokenMap) {
   });
 }
 
+// Replaces a token with multiple items as separate paragraphs using insertText.
+// Unlike replaceAllText (which produces soft line breaks inside list paragraphs),
+// insertText with \n creates true paragraph breaks that inherit the original
+// paragraph's list formatting, giving each item its own numbered/bulleted line.
+async function replaceTokenWithParagraphs(accessToken, documentId, token, items) {
+  // Replace the token with a unique sentinel so we can find its exact character index.
+  // Using replaceAllText here only to locate the position — insertText handles the real content.
+  const sentinel = `\x01${Date.now()}\x01`;
+  const sentinelResult = await googleRequest(
+    accessToken,
+    `${GOOGLE_DOCS_API}/documents/${documentId}:batchUpdate`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        requests: [
+          {
+            replaceAllText: {
+              containsText: { text: token, matchCase: true },
+              replaceText: items.length > 0 ? sentinel : "",
+            },
+          },
+        ],
+      }),
+    },
+  );
+
+  // If the token wasn't in this document, nothing more to do
+  const replaced = sentinelResult?.replies?.[0]?.replaceAllText?.occurrencesChanged ?? 0;
+  if (replaced === 0 || items.length === 0) return;
+
+  // Locate the sentinel's exact character index in the document body
+  const doc = await googleRequest(
+    accessToken,
+    `${GOOGLE_DOCS_API}/documents/${documentId}?fields=body(content(paragraph(elements(startIndex,endIndex,textRun(content)))))`,
+  );
+
+  let sentinelStart = null;
+  let sentinelEnd = null;
+
+  outer: for (const bodyEl of doc.body?.content || []) {
+    for (const pe of bodyEl.paragraph?.elements || []) {
+      const text = pe.textRun?.content || "";
+      const idx = text.indexOf(sentinel);
+      if (idx !== -1) {
+        sentinelStart = pe.startIndex + idx;
+        sentinelEnd = sentinelStart + sentinel.length;
+        break outer;
+      }
+    }
+  }
+
+  if (sentinelStart === null) return;
+
+  // Delete the sentinel then insert items joined with \n as a single batchUpdate.
+  // insertText with \n creates true paragraph breaks (inheriting list formatting),
+  // whereas replaceAllText in this context only creates soft line breaks.
+  await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${documentId}:batchUpdate`, {
+    method: "POST",
+    body: JSON.stringify({
+      requests: [
+        {
+          deleteContentRange: {
+            range: { startIndex: sentinelStart, endIndex: sentinelEnd },
+          },
+        },
+        {
+          insertText: {
+            location: { index: sentinelStart },
+            text: items.join("\n"),
+          },
+        },
+      ],
+    }),
+  });
+}
+
 module.exports = {
   copyGoogleDoc,
   createDriveFolder,
   getDriveFile,
   inspectTemplateFile,
   replaceDocTokens,
+  replaceTokenWithParagraphs,
 };

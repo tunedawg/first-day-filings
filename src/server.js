@@ -14,7 +14,7 @@ const {
 } = require("./auth");
 const { extractCaseContext } = require("./extractor");
 const { buildDocumentName, buildMatterFolderName, validateSelections } = require("./generator");
-const { createDriveFolder, copyGoogleDoc, inspectTemplateFile, replaceDocTokens } = require("./google");
+const { createDriveFolder, copyGoogleDoc, inspectTemplateFile, replaceDocTokens, replaceTokenWithParagraphs } = require("./google");
 const { getQuestionnaire, getTemplateRegistry } = require("./templateRegistry");
 
 const PORT = Number(process.env.PORT || 3000);
@@ -83,7 +83,7 @@ async function handleGenerate(request, response, body) {
     Array.isArray(body.selectedTemplateIds) && body.selectedTemplateIds.length > 0
       ? body.selectedTemplateIds
       : getTemplateRegistry().documents.map((document) => document.id);
-  const { issues, selectedTemplates, tokenMap } = validateSelections(selectedTemplateIds, intake);
+  const { issues, selectedTemplates, tokenMap, listTokens } = validateSelections(selectedTemplateIds, intake);
 
   if (issues.length > 0) {
     sendJson(response, 400, { ok: false, issues });
@@ -102,6 +102,9 @@ async function handleGenerate(request, response, body) {
     try {
       copiedDoc = await copyGoogleDoc(accessToken, template.googleTemplateDocId, documentName, folder.id);
       await replaceDocTokens(accessToken, copiedDoc.id, tokenMap);
+      for (const [token, items] of Object.entries(listTokens)) {
+        await replaceTokenWithParagraphs(accessToken, copiedDoc.id, token, items);
+      }
     } catch (error) {
       throw new Error(
         `Template "${template.title}" failed. ${error.message} ` +
