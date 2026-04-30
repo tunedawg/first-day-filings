@@ -665,17 +665,17 @@ function parseJsonArray(rawValue) {
 }
 
 function renderLineList(rawValue) {
-  return splitLines(rawValue).join("\n");
+  return splitLines(rawValue).join("");
 }
 
 function renderNumberedList(rawValue) {
   return splitLines(rawValue)
     .map((entry, index) => `${index + 1}. ${entry}`)
-    .join("\n");
+    .join("");
 }
 
 function renderNumberedEntries(entries) {
-  return entries.map((entry, index) => `${index + 1}. ${entry}`).join("\n");
+  return entries.map((entry, index) => `${index + 1}. ${entry}`).join("");
 }
 
 function renderLetteredList(rawValue) {
@@ -1112,7 +1112,7 @@ function formatLongDate(rawValue) {
 }
 
 function renderLetteredEntries(entries) {
-  return entries.map((entry, index) => `(${String.fromCharCode(97 + index)}) ${entry}`).join("\n");
+  return entries.map((entry, index) => `(${String.fromCharCode(97 + index)}) ${entry}`).join("");
 }
 
 // RFP subject list: plain semicolon list, final entry gets a period
