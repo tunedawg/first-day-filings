@@ -192,7 +192,7 @@ function buildTokenMap(intake) {
     "{{complaintTypesBlock}}": renderNumberedList(enrichedIntake.complaintTypes),
     "{{comparatorGroupsBlock}}": renderNumberedEntries(comparatorEntries),
     "{{decisionMakersBlock}}": renderNumberedEntries(decisionMakerEntries),
-    "{{corpRepIssueTopicsBlock}}": renderNumberedEntries(corpRepIssueTopics),
+    "{{corpRepIssueTopicsBlock}}": corpRepIssueTopics.join("\n"),
     "{{interrogatoryIssuePromptsBlock}}": renderNumberedEntries(interrogatoryIssuePrompts),
     "{{interrogatoryActorComplaintParagraphsBlock}}": renderParagraphBlock(interrogatoryActorComplaintParagraphs),
     "{{interrogatoryTrioMetricsParagraph}}": normalizeValue(interrogatoryTrioMetricsParagraph),
