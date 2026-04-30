@@ -144,7 +144,7 @@ function buildTokenMap(intake) {
   ];
 
   const individualRfpActorTokens = Object.fromEntries(
-    Array.from({ length: 6 }, (_, i) => [
+    Array.from({ length: 8 }, (_, i) => [
       `{{rfpActorComplaintParagraph${i + 1}}}`,
       rfpActorComplaintParagraphs[i] || "",
     ]),
@@ -156,9 +156,15 @@ function buildTokenMap(intake) {
     ]),
   );
   const individualRogActorTokens = Object.fromEntries(
-    Array.from({ length: 6 }, (_, i) => [
+    Array.from({ length: 8 }, (_, i) => [
       `{{interrogatoryActorComplaintParagraph${i + 1}}}`,
       interrogatoryActorComplaintParagraphs[i] || "",
+    ]),
+  );
+  const individualRfpTrioIssueTokens = Object.fromEntries(
+    Array.from({ length: 9 }, (_, i) => [
+      `{{rfpTrioIssueParagraph${i + 1}}}`,
+      rfpTrioIssueParagraphs[i] || "",
     ]),
   );
 
@@ -168,6 +174,7 @@ function buildTokenMap(intake) {
     ...individualRfpActorTokens,
     ...individualRfpCommsTokens,
     ...individualRogActorTokens,
+    ...individualRfpTrioIssueTokens,
     "{{omnibusScheduleBlocks}}": renderOmnibusScheduleBlocks(buildOmnibusDeponents(enrichedIntake)),
     "{{attorneyRosterBlock}}": renderLineList(enrichedIntake.attorneyRoster),
     "{{attorneyEmailBlock}}": renderLineList(enrichedIntake.attorneyEmails),
@@ -902,7 +909,7 @@ function buildRfpPlaintiffCommunicationsParagraphs(intake) {
 }
 
 function buildRfpActorComplaintParagraphs(intake) {
-  const actors = buildNamedActorList(intake, 4);
+  const actors = buildNamedActorList(intake, 8);
   const defendantReference = buildDefendantReference(intake);
   const lookbackStart = buildLookbackStart(intake.serviceDate);
 
@@ -1237,7 +1244,7 @@ function sanitizeFileName(value) {
 }
 
 function buildDocumentName(template, intake) {
-  const plaintiffLastName = sanitizeFileName(extractLastName(intake.plaintiffName) || "Plaintiff");
+  const plaintiffLastName = sanitizeFileName(toTitleCase(extractLastName(intake.plaintiffName)) || "Plaintiff");
   const defendantAbbrev = sanitizeFileName(
     normalizeValue(intake.defendantReferenceName) ||
     normalizeValue(intake.collectiveDefendantShortName) ||
