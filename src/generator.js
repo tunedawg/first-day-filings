@@ -986,46 +986,138 @@ function buildRfpTrioIssueParagraphs(intake) {
 }
 
 function buildCorpRepIssueTopicEntries(intake) {
-  const plaintiffName = normalizeValue(intake.plaintiffName) || "Plaintiff";
-  const defendantReference = buildDefendantReference(intake);
-  const claims = normalizeClaimsAndCounts(intake);
-  const adverseActions = normalizeAdverseActions(intake);
-  const decisionMakers = buildDecisionMakerEntries(intake);
-  const comparatorEntries = buildComparatorEntries(intake);
+  const defendant = buildDefendantShortName(intake);
+  const plaintiffRef = buildPlaintiffReference(intake);
+  const claimKeys = getClaimKeys(intake);
+  const adverseActionKeys = (Array.isArray(intake.adverseActions)
+    ? intake.adverseActions
+    : splitLines(intake.adverseActions)
+  ).filter(Boolean);
   const lookbackStart = buildLookbackStart(intake.serviceDate);
   const topics = [];
 
-  if (decisionMakers.length > 0) {
+  const hasDisability = claimKeysInclude(claimKeys, [/\bdisability\b/, /failure.to.accommodate/]);
+  const hasAssociational = claimKeysInclude(claimKeys, [/\bassociational\b/]);
+  const hasFMLA = claimKeysInclude(claimKeys, [/\bfmla\b/, /medical.leave/, /family.leave/]);
+  const hasWorkersComp = claimKeysInclude(claimKeys, [/workers.?comp/]);
+  const hasRetaliation = claimKeysInclude(claimKeys, [/\bretaliation\b/]);
+  const hasWhistleblower = claimKeysInclude(claimKeys, [/\bwhistleblower\b/, /rsmo_105_055/]);
+  const hasRace = claimKeysInclude(claimKeys, [/\brace\b/]);
+  const hasSex = claimKeysInclude(claimKeys, [/\bsex\b/, /\bgender\b/]);
+  const hasAge = claimKeysInclude(claimKeys, [/\bage\b/]);
+  const hasColor = claimKeysInclude(claimKeys, [/\bcolor\b/]);
+
+  // Builds the inline demographic/status clause used in the circumstances and replacement topics.
+  // Demographics are claim-specific; injury history and prior complaint status are always included.
+  function demographicClause() {
+    const fields = [];
+    if (hasAge) fields.push("age");
+    if (hasSex) fields.push("sex");
+    if (hasRace) fields.push("race");
+    if (hasColor) fields.push("color");
+    if (hasDisability) fields.push("disability status");
+    if (hasAssociational) fields.push("associational status");
+    fields.push("workers' compensation and workplace injury history");
+    return joinWithCommasAndAnd(fields) + ", and whether they had previously complained of unlawful discrimination or retaliation";
+  }
+
+  const ADVERSE_ACTION_NOUN = {
+    termination: "termination",
+    discipline: "formal discipline",
+    pip: "placement on a Performance Improvement Plan",
+    schedule_reduction: "schedule reduction",
+    denial_of_accommodation: "denial of accommodation",
+  };
+
+  const adverseActionNounPhrases = adverseActionKeys.map((k) => ADVERSE_ACTION_NOUN[k]).filter(Boolean);
+  const adverseActionLabel =
+    adverseActionNounPhrases.length > 0 ? joinWithCommasAndAnd(adverseActionNounPhrases) : "termination";
+
+  // 1. Plaintiff's history
+  topics.push(`${plaintiffRef}'s performance and disciplinary history at ${defendant}.`);
+
+  // 2. Circumstances of the adverse action — reasons, actors, and demographics in one topic
+  topics.push(
+    `The circumstances of ${plaintiffRef}'s ${adverseActionLabel}, including all reasons and the identities and roles of all persons who played any role in that decision, their ${demographicClause()}.`,
+  );
+
+  // 3. Complete reasons (standalone, invites full factual development)
+  topics.push(
+    `${defendant}'s complete reasons for ${plaintiffRef}'s ${adverseActionLabel}, including all underlying facts and information that played into the decision.`,
+  );
+
+  // 4. Replacement / successor — demographics bundled in
+  topics.push(
+    `The identity of the person who replaced ${plaintiffRef} or assumed ${plaintiffRef}'s job functions following ${plaintiffRef}'s departure, including their ${demographicClause()}.`,
+  );
+
+  // Plaintiff-specific claim circumstances
+  if (hasDisability || hasAssociational) {
+    topics.push(`${plaintiffRef}'s request for a disability accommodation and ${defendant}'s handling of that request.`);
+  }
+
+  if (hasFMLA) {
+    topics.push(`${plaintiffRef}'s requests for medical or family leave and ${defendant}'s handling of each request.`);
+  }
+
+  if (hasWorkersComp) {
     topics.push(
-      `The identities and roles of all persons involved in ${joinWithCommasAndAnd(
-        decisionMakers.map((entry) => entry.replace(/^[^:]+:\s*/, "")),
-      )}.`,
+      `${plaintiffRef}'s workplace injury or workers' compensation claim, including ${defendant}'s handling of the injury report or claim.`,
     );
   }
 
-  if (claims.length > 0) {
+  if (hasRetaliation) {
+    topics.push(`All complaints or protected activity by ${plaintiffRef} that preceded any adverse employment action.`);
+  }
+
+  // Per-claim complaint history — one topic per claim type
+  if (hasRace) topics.push(`All complaints or reports of race discrimination at ${defendant} from ${lookbackStart} to present.`);
+  if (hasColor) topics.push(`All complaints or reports of color discrimination at ${defendant} from ${lookbackStart} to present.`);
+  if (hasAge) topics.push(`All complaints or reports of age discrimination at ${defendant} from ${lookbackStart} to present.`);
+  if (hasSex) topics.push(`All complaints or reports of sex discrimination or sexual harassment at ${defendant} from ${lookbackStart} to present.`);
+  if (hasDisability) topics.push(`All complaints or reports of disability discrimination or failure to accommodate at ${defendant} from ${lookbackStart} to present.`);
+  if (hasAssociational) topics.push(`All complaints or reports of associational discrimination at ${defendant} from ${lookbackStart} to present.`);
+  if (hasRetaliation) topics.push(`All complaints or reports of retaliation at ${defendant} from ${lookbackStart} to present.`);
+  if (hasWhistleblower) topics.push(`All reports or incidents of whistleblowing or reports of illegal activity at ${defendant} from ${lookbackStart} to present.`);
+
+  // Age-specific hiring comparator
+  if (hasAge) {
     topics.push(
-      `All complaints, reports, charges, investigations, and lawsuits involving ${joinWithCommasAndAnd(claims)} made to, by, or against ${defendantReference} from ${lookbackStart} to present.`,
+      `The age of each person hired into the position in which ${plaintiffRef} was last employed at ${defendant} from ${lookbackStart} to present.`,
     );
   }
 
-  if (adverseActions.length > 0) {
+  // Workers' comp omnibus — name, injury, outcome, current employment status
+  if (hasWorkersComp) {
     topics.push(
-      `All facts, policies, practices, and examples concerning ${joinWithCommasAndAnd(adverseActions)} affecting ${plaintiffName} or similarly situated employees from ${lookbackStart} to present.`,
+      `All workplace injury reports and workers' compensation claims at ${defendant} from ${lookbackStart} to present, including the name of the employee, the nature of the injury, the outcome, whether the employee is still employed, and if not, the reason for separation.`,
     );
   }
 
-  if (comparatorEntries.length > 0) {
+  // Exit interviews
+  topics.push(`All exit interviews conducted at ${defendant} from ${lookbackStart} to present.`);
+
+  // Disciplinary policies and progressive discipline departure
+  topics.push(
+    `${defendant}'s disciplinary policies and procedures, including the types of discipline available and any progressive discipline process.`,
+  );
+  if (adverseActionKeys.some((k) => ["termination", "discipline", "pip"].includes(k))) {
     topics.push(
-      `The identities, treatment, and outcomes of comparator employees or groups, including ${joinWithCommasAndAnd(
-        comparatorEntries.map((entry) => entry.replace(/^[^:]+:\s*/, "")),
-      )}, from ${lookbackStart} to present.`,
+      `The reasons ${defendant} did not follow its progressive discipline policies and procedures in connection with the employment decisions at issue.`,
     );
   }
 
-  claims.forEach((claim) => {
-    topics.push(`All facts, data, and decision-making concerning ${claim} allegations asserted by ${plaintiffName}.`);
-  });
+  // Accommodation/leave policies (if applicable)
+  if (hasDisability || hasAssociational || hasFMLA) {
+    topics.push(
+      `${defendant}'s policies governing disability accommodation requests${hasFMLA ? " and employee requests for medical or family leave" : ""} from ${lookbackStart} to present.`,
+    );
+  }
+
+  // Document retention
+  topics.push(
+    `${defendant}'s document retention policies, litigation holds, and preservation of emails, HRIS records, and other electronically stored information related to ${plaintiffRef}'s employment.`,
+  );
 
   return dedupeEntries(topics);
 }
