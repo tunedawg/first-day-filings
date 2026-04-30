@@ -8,6 +8,17 @@
         { "id": "courtCounty", "label": "Court county", "type": "text", "required": true, "placeholder": "Jackson" },
         { "id": "courtDivision", "label": "Court division / location (optional)", "type": "text", "required": false, "placeholder": "AT KANSAS CITY" },
         { "id": "plaintiffName", "label": "Plaintiff name", "type": "text", "required": true, "placeholder": "FERN PAYNE" },
+        {
+          "id": "plaintiffGender",
+          "label": "Plaintiff pronouns",
+          "type": "select",
+          "required": true,
+          "options": [
+            { "value": "she", "label": "She / Her / Ms." },
+            { "value": "he", "label": "He / Him / Mr." },
+            { "value": "they", "label": "They / Them / Mx." }
+          ]
+        },
         { "id": "plaintiffReferenceName", "label": "Plaintiff reference name", "type": "text", "required": false, "placeholder": "Ms. Payne" },
         { "id": "defendantName", "label": "Lead defendant name", "type": "text", "required": true, "placeholder": "THE METROPOLITAN COMMUNITY COLLEGE FOUNDATION et al." },
         { "id": "caseNumber", "label": "Case number", "type": "text", "required": true, "placeholder": "2616-CV12184" },

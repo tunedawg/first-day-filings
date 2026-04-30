@@ -109,6 +109,8 @@ function buildTokenMap(intake) {
     corpRepTopics: buildCorpRepTopicsBlock(intake),
     confidentialityExamples: "",
     programName: buildProgramName(intake),
+    ...buildPronounFields(intake.plaintiffGender),
+    plaintiffNameVariationsList: buildPlaintiffNameVariationsList(intake.plaintiffName),
   };
 
   const directTokens = Object.entries(enrichedIntake).reduce((accumulator, [key, value]) => {
@@ -917,10 +919,14 @@ function buildRfpActorComplaintParagraphs(intake) {
   const actors = buildNamedActorList(intake, 8);
   const defendantReference = buildDefendantReference(intake);
   const lookbackStart = buildLookbackStart(intake.serviceDate);
+  const claimKeys = getClaimKeys(intake);
+  const whistleblowerClause = claimKeysInclude(claimKeys, [/\bwhistleblower\b/, /rsmo_105_055/])
+    ? ", or violations of RSMo 105.055"
+    : "";
 
   return actors.map(
     (actor) =>
-      `Please produce all communications and documents which relate to any complaints made against or about ${actor} by any employee or former employee of ${defendantReference} for discrimination, retaliation, or violations of RSMo 105.055 from ${lookbackStart} to present.`,
+      `Please produce all communications and documents which relate to any complaints made against or about ${actor} by any employee or former employee of ${defendantReference} for discrimination, retaliation${whistleblowerClause} from ${lookbackStart} to present.`,
   );
 }
 
@@ -1256,6 +1262,56 @@ function buildAllDefendantsFormal(intake) {
   if (defendants.length === 1) return defendants[0];
   if (defendants.length === 2) return `${defendants[0]} and ${defendants[1]}`;
   return `${defendants.slice(0, -1).join(", ")}, and ${defendants[defendants.length - 1]}`;
+}
+
+function buildPronounFields(genderValue) {
+  const gender = normalizeValue(genderValue) || "she";
+  const map = {
+    she: { plaintiffTitle: "Ms.", plaintiffSubjectPronoun: "she", plaintiffObjectPronoun: "her", plaintiffPossessivePronoun: "her", plaintiffReflexivePronoun: "herself" },
+    he: { plaintiffTitle: "Mr.", plaintiffSubjectPronoun: "he", plaintiffObjectPronoun: "him", plaintiffPossessivePronoun: "his", plaintiffReflexivePronoun: "himself" },
+    they: { plaintiffTitle: "Mx.", plaintiffSubjectPronoun: "they", plaintiffObjectPronoun: "them", plaintiffPossessivePronoun: "their", plaintiffReflexivePronoun: "themselves" },
+  };
+  return map[gender] || map.she;
+}
+
+function buildPlaintiffNameVariationsList(fullName) {
+  const parts = normalizeValue(fullName).split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return "";
+
+  const firstName = parts[0];
+  const lastName = parts[parts.length - 1];
+  const variations = [];
+
+  // First name: add trailing 'e' if not already there
+  if (!/e$/i.test(firstName)) {
+    variations.push(firstName + "e");
+  }
+  // First name: double the last consonant
+  if (/[^aeiou]$/i.test(firstName)) {
+    variations.push(firstName + firstName[firstName.length - 1]);
+  }
+
+  // Last name: drop trailing 'e'
+  if (/e$/i.test(lastName) && lastName.length > 2) {
+    variations.push(lastName.slice(0, -1));
+  }
+  // Last name: y → i substitution (and drop trailing 'e' of the result)
+  if (/y/i.test(lastName)) {
+    const withI = lastName.replace(/y/g, "i").replace(/Y/g, "I");
+    if (withI.toLowerCase() !== lastName.toLowerCase()) {
+      variations.push(withI);
+      if (/e$/i.test(withI) && withI.length > 2) {
+        variations.push(withI.slice(0, -1));
+      }
+    }
+  }
+
+  const origLower = new Set([firstName.toLowerCase(), lastName.toLowerCase()]);
+  const unique = [...new Set(variations)].filter((v) => !origLower.has(v.toLowerCase()));
+
+  if (unique.length === 0) return "";
+  if (unique.length === 1) return `'${unique[0]}'`;
+  return `${unique.slice(0, -1).map((v) => `'${v}'`).join(", ")}, and '${unique[unique.length - 1]}'`;
 }
 
 function buildProgramName(intake) {
