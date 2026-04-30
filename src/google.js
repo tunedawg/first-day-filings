@@ -209,9 +209,62 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items)
   });
 }
 
+// One-time migration: replaces hardcoded she/her/Ms. in template docs with pronoun tokens.
+// Safe because in these discovery templates all female pronouns refer to the plaintiff.
+async function fixPronounTokensInDoc(accessToken, template) {
+  const replacements = [
+    // Reflexive first (contains "her" as prefix, must go before "her " patterns)
+    { text: "Herself", to: "{{plaintiffReflexivePronoun}}" },
+    { text: "herself", to: "{{plaintiffReflexivePronoun}}" },
+    // Possessive: "her " or "Her " directly before a noun (space-terminated)
+    { text: "Her ", to: "{{plaintiffPossessivePronoun}} " },
+    { text: "her ", to: "{{plaintiffPossessivePronoun}} " },
+    // Object: "her" at end of clause (followed by punctuation)
+    { text: "Her.", to: "{{plaintiffObjectPronoun}}." },
+    { text: "her.", to: "{{plaintiffObjectPronoun}}." },
+    { text: "Her,", to: "{{plaintiffObjectPronoun}}," },
+    { text: "her,", to: "{{plaintiffObjectPronoun}}," },
+    { text: "Her;", to: "{{plaintiffObjectPronoun}};" },
+    { text: "her;", to: "{{plaintiffObjectPronoun}};" },
+    // Subject pronoun
+    { text: "She ", to: "{{plaintiffSubjectPronoun}} " },
+    { text: "she ", to: "{{plaintiffSubjectPronoun}} " },
+    // Title
+    { text: "Ms.", to: "{{plaintiffTitle}}" },
+  ];
+
+  const requests = replacements.map(({ text, to }) => ({
+    replaceAllText: {
+      containsText: { text, matchCase: true },
+      replaceText: to,
+    },
+  }));
+
+  try {
+    const result = await googleRequest(
+      accessToken,
+      `${GOOGLE_DOCS_API}/documents/${template.googleTemplateDocId}:batchUpdate`,
+      { method: "POST", body: JSON.stringify({ requests }) },
+    );
+
+    const changes = (result?.replies || [])
+      .map((reply, i) => ({
+        from: replacements[i].text,
+        to: replacements[i].to,
+        count: reply.replaceAllText?.occurrencesChanged ?? 0,
+      }))
+      .filter((c) => c.count > 0);
+
+    return { templateId: template.id, title: template.title, ok: true, changes };
+  } catch (error) {
+    return { templateId: template.id, title: template.title, ok: false, error: error.message };
+  }
+}
+
 module.exports = {
   copyGoogleDoc,
   createDriveFolder,
+  fixPronounTokensInDoc,
   getDriveFile,
   inspectTemplateFile,
   replaceDocTokens,

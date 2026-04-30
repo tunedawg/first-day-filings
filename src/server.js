@@ -14,7 +14,7 @@ const {
 } = require("./auth");
 const { extractCaseContext } = require("./extractor");
 const { buildDocumentName, buildMatterFolderName, validateSelections } = require("./generator");
-const { createDriveFolder, copyGoogleDoc, inspectTemplateFile, replaceDocTokens, replaceTokenWithParagraphs } = require("./google");
+const { createDriveFolder, copyGoogleDoc, fixPronounTokensInDoc, inspectTemplateFile, replaceDocTokens, replaceTokenWithParagraphs } = require("./google");
 const { getQuestionnaire, getTemplateRegistry } = require("./templateRegistry");
 
 const PORT = Number(process.env.PORT || 3000);
@@ -227,6 +227,17 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "POST" && requestUrl.pathname === "/api/generate") {
       const body = await collectRequestBody(request);
       await handleGenerate(request, response, body);
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/admin/fix-pronoun-tokens") {
+      const session = getSessionFromRequest(request);
+      const accessToken = await getValidAccessToken(session);
+      const registry = getTemplateRegistry();
+      const results = await Promise.all(
+        registry.documents.map((template) => fixPronounTokensInDoc(accessToken, template)),
+      );
+      sendJson(response, 200, { ok: true, results });
       return;
     }
 
