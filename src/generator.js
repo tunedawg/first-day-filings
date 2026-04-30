@@ -665,17 +665,17 @@ function parseJsonArray(rawValue) {
 }
 
 function renderLineList(rawValue) {
-  return splitLines(rawValue).join("");
+  return splitLines(rawValue).join("\n");
 }
 
 function renderNumberedList(rawValue) {
   return splitLines(rawValue)
     .map((entry, index) => `${index + 1}. ${entry}`)
-    .join("");
+    .join("\n");
 }
 
 function renderNumberedEntries(entries) {
-  return entries.map((entry, index) => `${index + 1}. ${entry}`).join("");
+  return entries.map((entry, index) => `${index + 1}. ${entry}`).join("\n");
 }
 
 function renderLetteredList(rawValue) {
@@ -1112,7 +1112,7 @@ function formatLongDate(rawValue) {
 }
 
 function renderLetteredEntries(entries) {
-  return entries.map((entry, index) => `(${String.fromCharCode(97 + index)}) ${entry}`).join("");
+  return entries.map((entry, index) => `(${String.fromCharCode(97 + index)}) ${entry}`).join("\n");
 }
 
 // RFP subject list: plain semicolon list, final entry gets a period
@@ -1123,7 +1123,7 @@ function renderRfpSubjectList(entries) {
       if (/[.;]$/.test(clean)) return clean;
       return index === entries.length - 1 ? `${clean}.` : `${clean};`;
     })
-    .join("");
+    .join("\n");
 }
 
 // ROG subject list: "a. entry;" format with a period on the final entry
@@ -1136,7 +1136,7 @@ function renderRogSubjectList(entries) {
       const suffix = hasPunctuation ? "" : index === entries.length - 1 ? "." : ";";
       return `${letter}. ${clean}${suffix}`;
     })
-    .join("");
+    .join("\n");
 }
 
 function buildTargetDefendantsFormal(intake) {
