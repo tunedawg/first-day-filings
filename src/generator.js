@@ -173,6 +173,8 @@ function buildTokenMap(intake) {
   const listTokens = {
     "{{rfpSubjectListBlock}}": renderRfpSubjectList(rfpFullSubjectList).split("\n"),
     "{{rfpEmailBoxSubjectListBlock}}": renderRfpSubjectList(fullSubjectList).split("\n"),
+    "{{rfpActorComplaintParagraphsBlock}}": rfpActorComplaintParagraphs.filter(Boolean),
+    "{{rfpPlaintiffCommunicationsBlock}}": rfpPlaintiffCommunicationsParagraphs.filter(Boolean),
   };
 
   const tokenMap = {
@@ -203,8 +205,8 @@ function buildTokenMap(intake) {
     "{{interrogatoryTrioMetricsParagraph}}": normalizeValue(interrogatoryTrioMetricsParagraph),
     "{{corpRepTopicsBlock}}": normalizeValue(enrichedIntake.corpRepTopics),
     "{{confidentialityExamplesBlock}}": renderLineList(enrichedIntake.confidentialityExamples),
-    "{{rfpPlaintiffCommunicationsBlock}}": renderParagraphBlock(rfpPlaintiffCommunicationsParagraphs),
-    "{{rfpActorComplaintParagraphsBlock}}": renderParagraphBlock(rfpActorComplaintParagraphs),
+    "{{rfpPlaintiffCommunicationsBlock}}": "",
+    "{{rfpActorComplaintParagraphsBlock}}": "",
     "{{rfpSupervisorCoachingParagraph}}": normalizeValue(rfpSupervisorCoachingParagraph),
     "{{rfpSupervisorEmployeeListParagraph}}": normalizeValue(rfpSupervisorEmployeeListParagraph),
     "{{rfpSupervisorSeparationParagraph}}": normalizeValue(rfpSupervisorSeparationParagraph),
@@ -228,7 +230,7 @@ function buildCourtName(intake) {
     return "";
   }
 
-  return `IN THE CIRCUIT COURT OF ${county.toUpperCase()} COUNTY, MISSOURI`;
+  return `IN THE CIRCUIT COURT OF ${county.toUpperCase()} COUNTY\nSTATE OF MISSOURI`;
 }
 
 function toTitleCase(value) {
@@ -1218,13 +1220,18 @@ function renderLetteredEntries(entries) {
   return entries.map((entry, index) => `(${String.fromCharCode(97 + index)}) ${entry}`).join("");
 }
 
-// RFP subject list: plain semicolon list, final entry gets a period
+// RFP subject list: lettered "(a) Name;" format, final entry gets a period
 function renderRfpSubjectList(entries) {
   return entries
     .map((entry, index) => {
+      const letter = `(${String.fromCharCode(97 + index)})`;
       const clean = entry.trimEnd();
-      if (/[.;]$/.test(clean)) return clean;
-      return index === entries.length - 1 ? `${clean}.` : `${clean};`;
+      const punctuated = /[.;]$/.test(clean)
+        ? clean
+        : index === entries.length - 1
+        ? `${clean}.`
+        : `${clean};`;
+      return `${letter} ${punctuated}`;
     })
     .join("\n");
 }
