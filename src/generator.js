@@ -174,8 +174,8 @@ function buildTokenMap(intake) {
     "{{rfpSubjectListBlock}}": renderRfpSubjectList(rfpFullSubjectList).split("\n"),
     "{{rfpEmailBoxSubjectListBlock}}": renderRfpSubjectList(fullSubjectList).split("\n"),
     "{{corpRepIssueTopicsBlock}}": corpRepIssueTopics,
-    "{{rfpActorComplaintParagraphsBlock}}": rfpActorComplaintParagraphs.filter(Boolean),
-    "{{rfpPlaintiffCommunicationsBlock}}": rfpPlaintiffCommunicationsParagraphs.filter(Boolean),
+    "{{rfpActorComplaintParagraphsBlock}}": { items: rfpActorComplaintParagraphs.filter(Boolean), appendPerItem: "Response:" },
+    "{{rfpPlaintiffCommunicationsBlock}}": { items: rfpPlaintiffCommunicationsParagraphs.filter(Boolean), appendPerItem: "Response:" },
     "{{interrogatory3SubjectsBlock}}": fullSubjectList.map((entry, i) => {
       const clean = entry.trimEnd();
       return /[.;]$/.test(clean) ? clean : i === fullSubjectList.length - 1 ? `${clean}.` : `${clean};`;

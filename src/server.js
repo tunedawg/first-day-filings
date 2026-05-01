@@ -102,8 +102,10 @@ async function handleGenerate(request, response, body) {
     try {
       copiedDoc = await copyGoogleDoc(accessToken, template.googleTemplateDocId, documentName, folder.id);
       await replaceDocTokens(accessToken, copiedDoc.id, tokenMap);
-      for (const [token, items] of Object.entries(listTokens)) {
-        await replaceTokenWithParagraphs(accessToken, copiedDoc.id, token, items);
+      for (const [token, value] of Object.entries(listTokens)) {
+        const items = Array.isArray(value) ? value : value.items;
+        const appendPerItem = Array.isArray(value) ? null : (value.appendPerItem || null);
+        await replaceTokenWithParagraphs(accessToken, copiedDoc.id, token, items, appendPerItem);
       }
     } catch (error) {
       throw new Error(

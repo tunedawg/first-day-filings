@@ -137,7 +137,7 @@ async function replaceDocTokens(accessToken, documentId, tokenMap) {
 // Unlike replaceAllText (which produces soft line breaks inside list paragraphs),
 // insertText with \n creates true paragraph breaks that inherit the original
 // paragraph's list formatting, giving each item its own numbered/bulleted line.
-async function replaceTokenWithParagraphs(accessToken, documentId, token, items) {
+async function replaceTokenWithParagraphs(accessToken, documentId, token, items, appendPerItem = null) {
   // Replace the token with a unique sentinel so we can find its exact character index.
   // Using replaceAllText here only to locate the position — insertText handles the real content.
   const sentinel = `FDFST${Date.now()}FDFST`;
@@ -195,9 +195,25 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items)
   const sentinelStart = docIndices[sentinelIdx];
   const sentinelEnd = docIndices[sentinelIdx + sentinel.length - 1] + 1;
 
-  // Delete the sentinel then insert items joined with \n as a single batchUpdate.
-  // insertText with \n creates true paragraph breaks (inheriting list formatting),
-  // whereas replaceAllText in this context only creates soft line breaks.
+  // Interleave appendPerItem (e.g. "Response:") after each item when requested.
+  // insertText with \n creates true paragraph breaks inheriting list formatting.
+  const expandedItems = appendPerItem
+    ? items.flatMap((item) => [item, appendPerItem])
+    : [...items];
+
+  // Pre-calculate document positions of appendPerItem paragraphs so we can
+  // remove their list formatting (deleteParagraphBullets) after insertion.
+  const appendRanges = [];
+  if (appendPerItem) {
+    let pos = sentinelStart;
+    for (const item of expandedItems) {
+      if (item === appendPerItem) {
+        appendRanges.push({ startIndex: pos, endIndex: pos + item.length });
+      }
+      pos += item.length + 1; // +1 for the \n separator
+    }
+  }
+
   await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${documentId}:batchUpdate`, {
     method: "POST",
     body: JSON.stringify({
@@ -210,12 +226,23 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items)
         {
           insertText: {
             location: { index: sentinelStart },
-            text: items.join("\n"),
+            text: expandedItems.join("\n"),
           },
         },
       ],
     }),
   });
+
+  // Remove numbered-list formatting from appendPerItem paragraphs so they
+  // appear as plain text (no auto-number) between the numbered request items.
+  if (appendRanges.length > 0) {
+    await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${documentId}:batchUpdate`, {
+      method: "POST",
+      body: JSON.stringify({
+        requests: appendRanges.map((range) => ({ deleteParagraphBullets: { range } })),
+      }),
+    });
+  }
 }
 
 // One-time migration: replaces hardcoded she/her/Ms. in template docs with pronoun tokens.
