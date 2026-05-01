@@ -173,6 +173,7 @@ function buildTokenMap(intake) {
   const listTokens = {
     "{{rfpSubjectListBlock}}": renderRfpSubjectList(rfpFullSubjectList).split("\n"),
     "{{rfpEmailBoxSubjectListBlock}}": renderRfpSubjectList(fullSubjectList).split("\n"),
+    "{{corpRepIssueTopicsBlock}}": corpRepIssueTopics,
     "{{rfpActorComplaintParagraphsBlock}}": rfpActorComplaintParagraphs.filter(Boolean),
     "{{rfpPlaintiffCommunicationsBlock}}": rfpPlaintiffCommunicationsParagraphs.filter(Boolean),
     "{{interrogatory3SubjectsBlock}}": fullSubjectList.map((entry, i) => {
@@ -203,7 +204,6 @@ function buildTokenMap(intake) {
     "{{complaintTypesBlock}}": renderNumberedList(enrichedIntake.complaintTypes),
     "{{comparatorGroupsBlock}}": renderNumberedEntries(comparatorEntries),
     "{{decisionMakersBlock}}": renderNumberedEntries(decisionMakerEntries),
-    "{{corpRepIssueTopicsBlock}}": corpRepIssueTopics.join("\n"),
     "{{interrogatoryIssuePromptsBlock}}": renderNumberedEntries(interrogatoryIssuePrompts),
     "{{interrogatoryTrioMetricsParagraph}}": normalizeValue(interrogatoryTrioMetricsParagraph),
     "{{corpRepTopicsBlock}}": normalizeValue(enrichedIntake.corpRepTopics),
@@ -380,139 +380,7 @@ function buildCorpRepFormat(intake) {
 }
 
 function buildCorpRepTopicsBlock(intake) {
-  const plaintiffName = normalizeValue(intake.plaintiffName) || "Plaintiff";
-  const claims = normalizeClaimsAndCounts(intake);
-  const protectedTraits = splitLines(intake.protectedTraits);
-  const adverseActions = normalizeAdverseActions(intake);
-  const decisionMakers = buildDecisionMakerEntries(intake);
-  const defendantReference = buildDefendantReference(intake);
-  const actorNames = buildCorpRepActorNames(intake);
-  const comparatorReference = buildComparatorReference(intake);
-  const workLocationReference = buildWorkLocationReference(intake);
-  const additionalTopics = buildCorpRepIssueTopicEntries(intake);
-  const issuePrompts = buildInterrogatoryIssuePromptEntries(intake);
-  const topics = [];
-
-  pushUniqueTopic(
-    topics,
-    `${plaintiffName}'s employment history, job duties, performance evaluations, and disciplinary history.`,
-  );
-
-  const actorSentence = actorNames.length > 0 ? joinWithCommasAndAnd(actorNames) : "all persons";
-  const claimsSentence =
-    claims.length > 0
-      ? joinWithCommasAndAnd(claims.map((claim) => claim.replace(/^Count\s+[IVXLC0-9]+[:.\-\s]*/i, "")))
-      : "the claims and charges asserted in this matter";
-
-  pushUniqueTopic(
-    topics,
-    `The identities and roles of ${actorSentence} who played any role in decisions concerning ${plaintiffName}'s claims and charges, including ${claimsSentence}, discipline, leave, accommodations, or any other adverse employment action.`,
-  );
-
-  if (claims.length > 0) {
-    pushUniqueTopic(
-      topics,
-      `All facts relating to the claims and charges asserted by ${plaintiffName}, including ${claimsSentence}.`,
-    );
-  }
-
-  if (adverseActions.length > 0) {
-    pushUniqueTopic(
-      topics,
-      `All facts relating to the adverse actions at issue, including ${joinWithCommasAndAnd(adverseActions)}.`,
-    );
-  }
-
-  if (protectedTraits.length > 0) {
-    pushUniqueTopic(
-      topics,
-      `All facts relating to the protected traits, statuses, or conditions at issue, including ${joinWithCommasAndAnd(protectedTraits)}.`,
-    );
-  }
-
-  if (decisionMakers.length > 0) {
-    pushUniqueTopic(
-      topics,
-      `The identities, roles, and involvement of ${joinWithCommasAndAnd(
-        decisionMakers.map((entry) => normalizeDecisionMakerEntry(entry)),
-      )}.`,
-    );
-  }
-
-  if (claims.some((claim) => /retaliation/i.test(claim))) {
-    pushUniqueTopic(topics, `All complaints or reports of retaliation made to or against ${defendantReference}.`);
-  }
-
-  if (claims.some((claim) => /disab|accommodat/i.test(claim))) {
-    pushUniqueTopic(
-      topics,
-      `All complaints or reports of disability discrimination, failure to accommodate, or accommodation-related issues made to or against ${defendantReference}.`,
-    );
-  }
-
-  if (claims.some((claim) => /\bage\b/i.test(claim))) {
-    pushUniqueTopic(topics, `All complaints or reports of age discrimination made to or against ${defendantReference}.`);
-  }
-
-  if (claims.some((claim) => /whistleblower|105\.055|fraud|falsification/i.test(claim))) {
-    pushUniqueTopic(
-      topics,
-      `All complaints or reports of suspected fraud, unlawful conduct, or violation of whistleblower rights made to or against ${defendantReference}.`,
-    );
-  }
-
-  if (claims.some((claim) => /workers'? compensation/i.test(claim))) {
-    pushUniqueTopic(
-      topics,
-      `All complaints or reports of workers' compensation-related retaliation made to or against ${defendantReference}.`,
-    );
-  }
-
-  if (actorNames.length > 0) {
-    pushUniqueTopic(
-      topics,
-      `All complaints or reports of discrimination, harassment, and/or retaliation against ${joinWithCommasAndAnd(actorNames)}.`,
-    );
-  }
-
-  pushUniqueTopic(
-    topics,
-    `All disciplinary policies and procedures maintained by ${defendantReference}, including progressive discipline practices and use of Performance Improvement Plans.`,
-  );
-
-  pushUniqueTopic(
-    topics,
-    `The identities of all employees in ${comparatorReference} who have been placed on a Performance Improvement Plan, including their age, race, color, sex, and disability status.`,
-  );
-
-  pushUniqueTopic(
-    topics,
-    `The demographic makeup, including age, race, color, sex, and disability status, of employees in ${comparatorReference}.`,
-  );
-
-  pushUniqueTopic(
-    topics,
-    `${defendantReference}'s document retention policies, litigation holds, and preservation of electronically stored information related to ${plaintiffName}'s employment.`,
-  );
-
-  pushUniqueTopic(
-    topics,
-    `All anti-discrimination, anti-harassment, anti-retaliation, and complaint-reporting policies maintained by ${defendantReference}.`,
-  );
-
-  pushUniqueTopic(topics, `The location of any cameras in ${plaintiffName}'s work location at ${defendantReference}.`);
-
-  pushUniqueTopic(
-    topics,
-    `The demographic makeup of ${workLocationReference}, including the age, race, color, sex, and disability status of its employees.`,
-  );
-
-  issuePrompts.forEach((topic) => pushUniqueTopic(topics, topic));
-  additionalTopics.forEach((topic) => pushUniqueTopic(topics, topic));
-
-  return topics
-    .map((topicText, index) => `${index + 1}. ${topicText}`)
-    .join("\n\n");
+  return buildCorpRepIssueTopicEntries(intake).join("\n\n");
 }
 
 function ensureAttorneySelection(selectedAttorneyIds) {
@@ -1001,14 +869,14 @@ function buildRfpTrioIssueParagraphs(intake) {
 
 function buildCorpRepIssueTopicEntries(intake) {
   const defendant = buildDefendantShortName(intake);
-  const plaintiffRef = buildPlaintiffReference(intake);
   const claimKeys = getClaimKeys(intake);
   const adverseActionKeys = (Array.isArray(intake.adverseActions)
     ? intake.adverseActions
     : splitLines(intake.adverseActions)
   ).filter(Boolean);
   const lookbackStart = buildLookbackStart(intake.serviceDate);
-  const topics = [];
+  const namedActors = buildNamedActorList(intake, 4);
+  const possessive = normalizeValue(intake.plaintiffPossessivePronoun) || "their";
 
   const hasDisability = claimKeysInclude(claimKeys, [/\bdisability\b/, /failure.to.accommodate/]);
   const hasAssociational = claimKeysInclude(claimKeys, [/\bassociational\b/]);
@@ -1021,20 +889,6 @@ function buildCorpRepIssueTopicEntries(intake) {
   const hasAge = claimKeysInclude(claimKeys, [/\bage\b/]);
   const hasColor = claimKeysInclude(claimKeys, [/\bcolor\b/]);
 
-  // Builds the inline demographic/status clause used in the circumstances and replacement topics.
-  // Demographics are claim-specific; injury history and prior complaint status are always included.
-  function demographicClause() {
-    const fields = [];
-    if (hasAge) fields.push("age");
-    if (hasSex) fields.push("sex");
-    if (hasRace) fields.push("race");
-    if (hasColor) fields.push("color");
-    if (hasDisability) fields.push("disability status");
-    if (hasAssociational) fields.push("associational status");
-    fields.push("workers' compensation and workplace injury history");
-    return joinWithCommasAndAnd(fields) + ", and whether they had previously complained of unlawful discrimination or retaliation";
-  }
-
   const ADVERSE_ACTION_NOUN = {
     termination: "termination",
     discipline: "formal discipline",
@@ -1042,49 +896,38 @@ function buildCorpRepIssueTopicEntries(intake) {
     schedule_reduction: "schedule reduction",
     denial_of_accommodation: "denial of accommodation",
   };
-
   const adverseActionNounPhrases = adverseActionKeys.map((k) => ADVERSE_ACTION_NOUN[k]).filter(Boolean);
   const adverseActionLabel =
     adverseActionNounPhrases.length > 0 ? joinWithCommasAndAnd(adverseActionNounPhrases) : "termination";
 
-  // 1. Plaintiff's history
-  topics.push(`${plaintiffRef}'s performance and disciplinary history at ${defendant}.`);
+  const topics = [];
 
-  // 2. Circumstances of the adverse action — reasons, actors, and demographics in one topic
+  topics.push(`Plaintiff's performance and disciplinary history at ${defendant}.`);
+
   topics.push(
-    `The circumstances of ${plaintiffRef}'s ${adverseActionLabel}, including all reasons and the identities and roles of all persons who played any role in that decision, their ${demographicClause()}.`,
+    `The identities and roles of all persons who played any role in Plaintiff's ${adverseActionLabel}. ` +
+    `For each such individual, provide their age, whether they have ever sustained a workplace injury, ` +
+    `and whether they have ever previously made complaints of unlawful discrimination or retaliation.`,
   );
 
-  // 3. Complete reasons (standalone, invites full factual development)
   topics.push(
-    `${defendant}'s complete reasons for ${plaintiffRef}'s ${adverseActionLabel}, including all underlying facts and information that played into the decision.`,
+    `The identity of the person(s) who replaced Plaintiff or assumed any of Plaintiff's job functions ` +
+    `following Plaintiff's departure from ${defendant}, including each such individual's age, and whether ` +
+    `they had previously made complaints of unlawful discrimination or retaliation, or had a workplace injury.`,
   );
 
-  // 4. Replacement / successor — demographics bundled in
   topics.push(
-    `The identity of the person who replaced ${plaintiffRef} or assumed ${plaintiffRef}'s job functions following ${plaintiffRef}'s departure, including their ${demographicClause()}.`,
+    `Your complete reasons for Plaintiff's ${adverseActionLabel}, including all underlying facts and ` +
+    `information playing into each decision.`,
   );
 
-  // Plaintiff-specific claim circumstances
-  if (hasDisability || hasAssociational) {
-    topics.push(`${plaintiffRef}'s request for a disability accommodation and ${defendant}'s handling of that request.`);
-  }
-
-  if (hasFMLA) {
-    topics.push(`${plaintiffRef}'s requests for medical or family leave and ${defendant}'s handling of each request.`);
-  }
-
-  if (hasWorkersComp) {
+  for (const actor of namedActors) {
     topics.push(
-      `${plaintiffRef}'s workplace injury or workers' compensation claim, including ${defendant}'s handling of the injury report or claim.`,
+      `All complaints or reports of discrimination, harassment, and/or retaliation against ${actor} ` +
+      `from ${lookbackStart} to present.`,
     );
   }
 
-  if (hasRetaliation) {
-    topics.push(`All complaints or protected activity by ${plaintiffRef} that preceded any adverse employment action.`);
-  }
-
-  // Per-claim complaint history — one topic per claim type
   if (hasRace) topics.push(`All complaints or reports of race discrimination at ${defendant} from ${lookbackStart} to present.`);
   if (hasColor) topics.push(`All complaints or reports of color discrimination at ${defendant} from ${lookbackStart} to present.`);
   if (hasAge) topics.push(`All complaints or reports of age discrimination at ${defendant} from ${lookbackStart} to present.`);
@@ -1094,43 +937,37 @@ function buildCorpRepIssueTopicEntries(intake) {
   if (hasRetaliation) topics.push(`All complaints or reports of retaliation at ${defendant} from ${lookbackStart} to present.`);
   if (hasWhistleblower) topics.push(`All reports or incidents of whistleblowing or reports of illegal activity at ${defendant} from ${lookbackStart} to present.`);
 
-  // Age-specific hiring comparator
-  if (hasAge) {
-    topics.push(
-      `The age of each person hired into the position in which ${plaintiffRef} was last employed at ${defendant} from ${lookbackStart} to present.`,
-    );
+  if (hasDisability || hasAssociational) {
+    topics.push(`Plaintiff's request for a disability accommodation and Your handling of that request.`);
   }
-
-  // Workers' comp omnibus — name, injury, outcome, current employment status
+  if (hasFMLA) {
+    topics.push(`Plaintiff's requests for medical or family leave and Your handling of each request.`);
+  }
   if (hasWorkersComp) {
-    topics.push(
-      `All workplace injury reports and workers' compensation claims at ${defendant} from ${lookbackStart} to present, including the name of the employee, the nature of the injury, the outcome, whether the employee is still employed, and if not, the reason for separation.`,
-    );
+    topics.push(`Plaintiff's workplace injury or workers' compensation claim, including Your handling of the injury report or claim.`);
+    topics.push(`All workplace injury reports and workers' compensation claims at ${defendant} from ${lookbackStart} to present.`);
+  }
+  if (hasRetaliation) {
+    topics.push(`All complaints or protected activity by Plaintiff that preceded any adverse employment action.`);
   }
 
-  // Exit interviews
-  topics.push(`All exit interviews conducted at ${defendant} from ${lookbackStart} to present.`);
+  if (!hasWorkersComp) {
+    topics.push(`All workplace injuries at ${defendant} from ${lookbackStart} to present.`);
+  }
 
-  // Disciplinary policies and progressive discipline departure
+  topics.push(`All anti-discrimination, anti-harassment, and anti-retaliation policies.`);
+  topics.push(`All policies outlining shifts in departments or changes in job roles.`);
+  topics.push(`All policies and procedures relating to employee promotion, demotion, or role changes.`);
+  topics.push(`All exit interviews or separation documentation for employees of ${defendant} from ${lookbackStart} to present.`);
+  topics.push(`Your disciplinary policies and procedures, including the types of discipline available and progressive discipline practices.`);
+  topics.push(`Any and all policies that You believe Plaintiff violated in the course of ${possessive} employment.`);
+  topics.push(`Your document retention policies, litigation holds, and the preservation of emails, chats, and other electronically stored information related to Plaintiff's employment and departure.`);
+  topics.push(`The location of any cameras in Plaintiff's work location.`);
+  topics.push(`The demographic makeup of the ${defendant} location where Plaintiff worked, including the age of its employees.`);
   topics.push(
-    `${defendant}'s disciplinary policies and procedures, including the types of discipline available and any progressive discipline process.`,
-  );
-  if (adverseActionKeys.some((k) => ["termination", "discipline", "pip"].includes(k))) {
-    topics.push(
-      `The reasons ${defendant} did not follow its progressive discipline policies and procedures in connection with the employment decisions at issue.`,
-    );
-  }
-
-  // Accommodation/leave policies (if applicable)
-  if (hasDisability || hasAssociational || hasFMLA) {
-    topics.push(
-      `${defendant}'s policies governing disability accommodation requests${hasFMLA ? " and employee requests for medical or family leave" : ""} from ${lookbackStart} to present.`,
-    );
-  }
-
-  // Document retention
-  topics.push(
-    `${defendant}'s document retention policies, litigation holds, and preservation of emails, HRIS records, and other electronically stored information related to ${plaintiffRef}'s employment.`,
+    `The identities, including age, of all individuals who have left ${defendant} voluntarily or been ` +
+    `terminated since ${lookbackStart}, whether they have ever complained of unlawful discrimination or ` +
+    `retaliation, and whether they have ever reported a workplace injury.`,
   );
 
   return dedupeEntries(topics);
