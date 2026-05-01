@@ -642,12 +642,22 @@ function createSingleCheckbox(field) {
   return wrapper;
 }
 
+const GUIDED_FLOW_SECTIONS = [
+  "caption",
+  "attorneys",
+  "omnibusDepositions",
+  "corpRep",
+  "discoveryLists",
+  "protectiveOrder",
+];
+
 function renderQuestionnaire() {
   questionnaireRoot.innerHTML = "";
 
   for (const section of asArray(questionnaire?.sections)) {
     const sectionNode = document.createElement("section");
     sectionNode.className = "panel";
+    sectionNode.id = "qs-" + section.id;
 
     const header = document.createElement("div");
     header.className = "panel-header stacked";
@@ -668,10 +678,40 @@ function renderQuestionnaire() {
     questionnaireRoot.appendChild(sectionNode);
   }
 
+  buildGuidedFlow();
   bindConditionalFields();
   updateConditionalFields();
   updateOmnibusLocationVisibility();
   applyDraftToIntake();
+}
+
+function buildGuidedFlow() {
+  GUIDED_FLOW_SECTIONS.forEach((sectionId, index) => {
+    const panel = document.querySelector(`#qs-${sectionId}`);
+    if (!panel) return;
+
+    const foot = document.createElement("div");
+    foot.className = "step-foot";
+
+    const isLast = index === GUIDED_FLOW_SECTIONS.length - 1;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "action-primary";
+    btn.textContent = isLast ? "Continue to Generate →" : "Next →";
+
+    btn.addEventListener("click", () => {
+      saveDraft();
+      if (isLast) {
+        stepGenerate?.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        const nextId = GUIDED_FLOW_SECTIONS[index + 1];
+        document.querySelector(`#qs-${nextId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+
+    foot.appendChild(btn);
+    panel.appendChild(foot);
+  });
 }
 
 function renderOmnibusFields(section, grid) {
@@ -1310,8 +1350,12 @@ if (extractButton) {
 if (applyAndGenerateButton) {
   applyAndGenerateButton.addEventListener("click", () => {
     applySuggestedValues();
-    setStatus("Extracted values applied. Sign in and generate when ready.", "success");
-    scrollToGenerate();
+    saveDraft();
+    if (stepDetails) stepDetails.hidden = false;
+    window.setTimeout(() => {
+      const firstSection = document.querySelector(`#qs-${GUIDED_FLOW_SECTIONS[0]}`);
+      (firstSection || stepDetails)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   });
 }
 
