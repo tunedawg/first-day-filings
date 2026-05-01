@@ -163,28 +163,37 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items)
   const replaced = sentinelResult?.replies?.[0]?.replaceAllText?.occurrencesChanged ?? 0;
   if (replaced === 0 || items.length === 0) return;
 
-  // Locate the sentinel's exact character index in the document body
+  // Locate the sentinel's exact character index in the document body.
+  // Build an offset map across all text runs so we can find the sentinel
+  // even when Google Docs splits it across multiple text run boundaries.
   const doc = await googleRequest(
     accessToken,
     `${GOOGLE_DOCS_API}/documents/${documentId}?fields=body(content(paragraph(elements(startIndex,endIndex,textRun(content)))))`,
   );
 
-  let sentinelStart = null;
-  let sentinelEnd = null;
-
-  outer: for (const bodyEl of doc.body?.content || []) {
+  const spans = [];
+  for (const bodyEl of doc.body?.content || []) {
     for (const pe of bodyEl.paragraph?.elements || []) {
-      const text = pe.textRun?.content || "";
-      const idx = text.indexOf(sentinel);
-      if (idx !== -1) {
-        sentinelStart = pe.startIndex + idx;
-        sentinelEnd = sentinelStart + sentinel.length;
-        break outer;
+      if (pe.textRun?.content) {
+        spans.push({ text: pe.textRun.content, start: pe.startIndex });
       }
     }
   }
 
-  if (sentinelStart === null) return;
+  let combinedText = "";
+  const docIndices = [];
+  for (const span of spans) {
+    for (let i = 0; i < span.text.length; i++) {
+      docIndices.push(span.start + i);
+    }
+    combinedText += span.text;
+  }
+
+  const sentinelIdx = combinedText.indexOf(sentinel);
+  if (sentinelIdx === -1) return;
+
+  const sentinelStart = docIndices[sentinelIdx];
+  const sentinelEnd = docIndices[sentinelIdx + sentinel.length - 1] + 1;
 
   // Delete the sentinel then insert items joined with \n as a single batchUpdate.
   // insertText with \n creates true paragraph breaks (inheriting list formatting),

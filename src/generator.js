@@ -110,7 +110,7 @@ function buildTokenMap(intake) {
     confidentialityExamples: "",
     programName: buildProgramName(intake),
     ...buildPronounFields(intake.plaintiffGender),
-    plaintiffNameVariationsList: buildPlaintiffNameVariationsList(intake.plaintiffName),
+    plaintiffNameVariationsList: "",
   };
 
   const directTokens = Object.entries(enrichedIntake).reduce((accumulator, [key, value]) => {
@@ -1119,45 +1119,6 @@ function buildPronounFields(genderValue) {
   return map[gender] || map.she;
 }
 
-function buildPlaintiffNameVariationsList(fullName) {
-  const parts = normalizeValue(fullName).split(/\s+/).filter(Boolean);
-  if (parts.length < 2) return "";
-
-  const firstName = parts[0];
-  const lastName = parts[parts.length - 1];
-  const variations = [];
-
-  // First name: add trailing 'e' if not already there
-  if (!/e$/i.test(firstName)) {
-    variations.push(firstName + "e");
-  }
-  // First name: double the last consonant
-  if (/[^aeiou]$/i.test(firstName)) {
-    variations.push(firstName + firstName[firstName.length - 1]);
-  }
-
-  // Last name: drop trailing 'e'
-  if (/e$/i.test(lastName) && lastName.length > 2) {
-    variations.push(lastName.slice(0, -1));
-  }
-  // Last name: y → i substitution (and drop trailing 'e' of the result)
-  if (/y/i.test(lastName)) {
-    const withI = lastName.replace(/y/g, "i").replace(/Y/g, "I");
-    if (withI.toLowerCase() !== lastName.toLowerCase()) {
-      variations.push(withI);
-      if (/e$/i.test(withI) && withI.length > 2) {
-        variations.push(withI.slice(0, -1));
-      }
-    }
-  }
-
-  const origLower = new Set([firstName.toLowerCase(), lastName.toLowerCase()]);
-  const unique = [...new Set(variations)].filter((v) => !origLower.has(v.toLowerCase()));
-
-  if (unique.length === 0) return "";
-  if (unique.length === 1) return `'${unique[0]}'`;
-  return `${unique.slice(0, -1).map((v) => `'${v}'`).join(", ")}, and '${unique[unique.length - 1]}'`;
-}
 
 function buildProgramName(intake) {
   return (
