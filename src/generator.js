@@ -175,6 +175,11 @@ function buildTokenMap(intake) {
     "{{rfpEmailBoxSubjectListBlock}}": renderRfpSubjectList(fullSubjectList).split("\n"),
     "{{rfpActorComplaintParagraphsBlock}}": rfpActorComplaintParagraphs.filter(Boolean),
     "{{rfpPlaintiffCommunicationsBlock}}": rfpPlaintiffCommunicationsParagraphs.filter(Boolean),
+    "{{interrogatory3SubjectsBlock}}": fullSubjectList.map((entry, i) => {
+      const clean = entry.trimEnd();
+      return /[.;]$/.test(clean) ? clean : i === fullSubjectList.length - 1 ? `${clean}.` : `${clean};`;
+    }),
+    "{{interrogatoryActorComplaintParagraphsBlock}}": interrogatoryActorComplaintParagraphs.filter(Boolean),
   };
 
   const tokenMap = {
@@ -189,7 +194,6 @@ function buildTokenMap(intake) {
     "{{attorneyEmailBlock}}": renderLineList(enrichedIntake.attorneyEmails),
     "{{keyPersonsBlock}}": renderNumberedList(enrichedIntake.keyPersonsList),
     "{{additionalRoleBasedPersonsBlock}}": renderLetteredList(enrichedIntake.additionalRoleBasedPersons),
-    "{{interrogatory3SubjectsBlock}}": renderRogSubjectList(fullSubjectList),
     "{{claimsAndCountsBlock}}": renderNumberedList(enrichedIntake.claimsAndCounts),
     "{{protectedTraitsBlock}}": renderNumberedList(enrichedIntake.protectedTraits),
     "{{retaliationActivitiesBlock}}": renderNumberedList(enrichedIntake.retaliationActivities),
@@ -201,12 +205,9 @@ function buildTokenMap(intake) {
     "{{decisionMakersBlock}}": renderNumberedEntries(decisionMakerEntries),
     "{{corpRepIssueTopicsBlock}}": corpRepIssueTopics.join("\n"),
     "{{interrogatoryIssuePromptsBlock}}": renderNumberedEntries(interrogatoryIssuePrompts),
-    "{{interrogatoryActorComplaintParagraphsBlock}}": renderParagraphBlock(interrogatoryActorComplaintParagraphs),
     "{{interrogatoryTrioMetricsParagraph}}": normalizeValue(interrogatoryTrioMetricsParagraph),
     "{{corpRepTopicsBlock}}": normalizeValue(enrichedIntake.corpRepTopics),
     "{{confidentialityExamplesBlock}}": renderLineList(enrichedIntake.confidentialityExamples),
-    "{{rfpPlaintiffCommunicationsBlock}}": "",
-    "{{rfpActorComplaintParagraphsBlock}}": "",
     "{{rfpSupervisorCoachingParagraph}}": normalizeValue(rfpSupervisorCoachingParagraph),
     "{{rfpSupervisorEmployeeListParagraph}}": normalizeValue(rfpSupervisorEmployeeListParagraph),
     "{{rfpSupervisorSeparationParagraph}}": normalizeValue(rfpSupervisorSeparationParagraph),
