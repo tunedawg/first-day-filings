@@ -140,7 +140,7 @@ async function replaceDocTokens(accessToken, documentId, tokenMap) {
 async function replaceTokenWithParagraphs(accessToken, documentId, token, items) {
   // Replace the token with a unique sentinel so we can find its exact character index.
   // Using replaceAllText here only to locate the position — insertText handles the real content.
-  const sentinel = `\x01${Date.now()}\x01`;
+  const sentinel = `FDFST${Date.now()}FDFST`;
   const sentinelResult = await googleRequest(
     accessToken,
     `${GOOGLE_DOCS_API}/documents/${documentId}:batchUpdate`,
