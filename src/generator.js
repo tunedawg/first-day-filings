@@ -293,7 +293,7 @@ function buildCorpRepEntity(intake) {
 }
 
 function buildMatterFolderName(intake) {
-  const plaintiffLastName = extractLastName(intake.plaintiffName) || "Plaintiff";
+  const plaintiffLastName = toTitleCase(extractLastName(intake.plaintiffName)) || "Plaintiff";
   const defendantShortName =
     normalizeValue(intake.collectiveDefendantShortName) ||
     normalizeValue(intake.defendantReferenceName) ||
