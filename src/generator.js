@@ -81,6 +81,7 @@ function buildTokenMap(intake) {
     firmAddressBlock: normalizeValue(intake.firmAddressBlock) || DEFAULT_FIRM_ADDRESS_BLOCK,
     signingAttorney: resolveSigningAttorneyName(intake.signingAttorney),
     attorneyForLine: buildAttorneyForLine(intake),
+    anAttorneyForPlaintiff: buildAnAttorneyForLine(intake),
     zoomContactName: resolveSigningAttorneyName(intake.signingAttorney),
     zoomContactEmail: resolveSigningAttorneyEmail(intake.signingAttorney),
     attorneyRoster: buildAttorneyRoster(intake.includedAttorneys),
@@ -170,17 +171,20 @@ function buildTokenMap(intake) {
     ]),
   );
 
+  const punctuateListItems = (entries) =>
+    entries.map((entry, i, arr) => {
+      const clean = entry.trimEnd();
+      return /[.;]$/.test(clean) ? clean : i === arr.length - 1 ? `${clean}.` : `${clean};`;
+    });
+
   const listTokens = {
-    "{{rfpSubjectListBlock}}": renderRfpSubjectList(rfpFullSubjectList).split("\n"),
-    "{{rfpEmailBoxSubjectListBlock}}": renderRfpSubjectList(fullSubjectList).split("\n"),
+    "{{rfpSubjectListBlock}}": punctuateListItems(rfpFullSubjectList),
+    "{{rfpEmailBoxSubjectListBlock}}": punctuateListItems(fullSubjectList),
     "{{corpRepIssueTopicsBlock}}": corpRepIssueTopics,
     "{{rfpActorComplaintParagraphsBlock}}": { items: rfpActorComplaintParagraphs.filter(Boolean), appendPerItem: "Response:" },
     "{{rfpPlaintiffCommunicationsBlock}}": { items: rfpPlaintiffCommunicationsParagraphs.filter(Boolean), appendPerItem: "Response:" },
-    "{{interrogatory3SubjectsBlock}}": fullSubjectList.map((entry, i) => {
-      const clean = entry.trimEnd();
-      return /[.;]$/.test(clean) ? clean : i === fullSubjectList.length - 1 ? `${clean}.` : `${clean};`;
-    }),
-    "{{interrogatoryActorComplaintParagraphsBlock}}": interrogatoryActorComplaintParagraphs.filter(Boolean),
+    "{{interrogatory3SubjectsBlock}}": punctuateListItems(fullSubjectList),
+    "{{interrogatoryActorComplaintParagraphsBlock}}": { items: interrogatoryActorComplaintParagraphs.filter(Boolean), appendPerItem: "ANSWER:" },
   };
 
   const tokenMap = {
@@ -254,6 +258,11 @@ function resolveSigningAttorneyEmail(attorneyId) {
 function buildAttorneyForLine(intake) {
   const plaintiffName = toTitleCase(intake.plaintiffName);
   return plaintiffName ? `Attorneys for Plaintiff ${plaintiffName}` : "Attorneys for Plaintiff";
+}
+
+function buildAnAttorneyForLine(intake) {
+  const plaintiffName = toTitleCase(intake.plaintiffName);
+  return plaintiffName ? `An attorney for Plaintiff ${plaintiffName}` : "An attorney for Plaintiff";
 }
 
 function buildAttorneyRoster(selectedAttorneyIds) {
