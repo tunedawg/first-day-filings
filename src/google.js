@@ -178,18 +178,36 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items,
     return result;
   }
 
-  // Use  (soft line break) before appendPerItem so it stays in the same
-  // paragraph as the item text, preserving list indentation and numbering.
-  // Only added between items — template provides the final label.
-  const insertedText = appendPerItem
-    ? items.map((item, i) => i < items.length - 1 ? `${item}\u000B${appendPerItem}` : item).join('\n')
-    : items.join('\n');
+  // Build expanded items: each appendPerItem gets its own paragraph (\n), so Google Docs
+  // creates a real paragraph break. appendPerItem paragraphs will have deleteParagraphBullets
+  // applied so they don't get a list number, and updateParagraphStyle to match the template's
+  // own indentation for that label (captured from the template doc on first occurrence).
+  const expandedItems = appendPerItem
+    ? items.flatMap((item, i) => i < items.length - 1 ? [item, appendPerItem] : [item])
+    : [...items];
+  const insertedText = expandedItems.join("\n");
+
+  let templateAppendStyle = null;
 
   // Loop: the token may appear multiple times in the template (e.g. same block token
   // used under several numbered RFPs). replaceAllText replaced ALL occurrences with
   // the sentinel — process each one in turn until none remain.
   for (let occurrence = 0; occurrence < replaced; occurrence++) {
     const doc = await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${documentId}`);
+
+    // On first occurrence, scan for an existing appendPerItem paragraph in the template
+    // to capture its indentation style (so inserted labels match template formatting).
+    if (appendPerItem && !templateAppendStyle) {
+      for (const el of doc.body?.content || []) {
+        if (!el.paragraph) continue;
+        const text = (el.paragraph.elements || [])
+          .map((e) => e.textRun?.content || "").join("").trim();
+        if (text === appendPerItem) {
+          templateAppendStyle = el.paragraph.paragraphStyle || {};
+          break;
+        }
+      }
+    }
 
     let combinedText = "";
     const docIndices = [];
@@ -205,20 +223,6 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items,
 
     const sentinelStart = docIndices[sentinelIdx];
     const sentinelEnd = docIndices[sentinelIdx + sentinel.length - 1] + 1;
-
-    // Calculate ranges for appendPerItem text so we can bold it.
-    // appendPerItem sits after a  within its item's paragraph.
-    const boldRanges = [];
-    if (appendPerItem) {
-      let pos = sentinelStart;
-      for (let i = 0; i < items.length - 1; i++) {
-        pos += items[i].length; // item text
-        pos += 1;               //
-        boldRanges.push({ startIndex: pos, endIndex: pos + appendPerItem.length });
-        pos += appendPerItem.length; // appendPerItem text
-        pos += 1;               // \n separator between joined items
-      }
-    }
 
     await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${documentId}:batchUpdate`, {
       method: "POST",
@@ -239,15 +243,38 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items,
       }),
     });
 
-    if (boldRanges.length > 0) {
-      await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${documentId}:batchUpdate`, {
-        method: "POST",
-        body: JSON.stringify({
-          requests: boldRanges.map((range) => ({
-            updateTextStyle: { range, textStyle: { bold: true }, fields: "bold" },
-          })),
-        }),
-      });
+    if (appendPerItem) {
+      // Calculate the character ranges of each appendPerItem paragraph in the inserted text.
+      const appendRanges = [];
+      let pos = sentinelStart;
+      for (const item of expandedItems) {
+        if (item === appendPerItem) {
+          appendRanges.push({ startIndex: pos, endIndex: pos + item.length });
+        }
+        pos += item.length + 1; // +1 for the \n paragraph separator
+      }
+
+      if (appendRanges.length > 0) {
+        await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${documentId}:batchUpdate`, {
+          method: "POST",
+          body: JSON.stringify({
+            requests: appendRanges.flatMap((range) => [
+              // Remove list bullet so this paragraph gets no number
+              { deleteParagraphBullets: { range } },
+              // Bold the label text
+              { updateTextStyle: { range, textStyle: { bold: true }, fields: "bold" } },
+              // Apply template indentation if we captured it
+              ...(templateAppendStyle ? [{
+                updateParagraphStyle: {
+                  range,
+                  paragraphStyle: templateAppendStyle,
+                  fields: "indentFirstLine,indentStart,spaceAbove,spaceBelow",
+                },
+              }] : []),
+            ]),
+          }),
+        });
+      }
     }
   } // end for-loop over occurrences
 }
