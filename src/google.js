@@ -163,15 +163,6 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items,
   const replaced = sentinelResult?.replies?.[0]?.replaceAllText?.occurrencesChanged ?? 0;
   if (replaced === 0 || items.length === 0) return;
 
-  // Locate the sentinel's exact character index in the document body.
-  // Build an offset map across all text runs so we can find the sentinel
-  // even when Google Docs splits it across multiple text run boundaries.
-  // Walks both top-level paragraphs and table cells (tokens may live inside tables).
-  const doc = await googleRequest(
-    accessToken,
-    `${GOOGLE_DOCS_API}/documents/${documentId}`,
-  );
-
   function collectSpans(content) {
     const result = [];
     for (const el of content || []) {
@@ -187,27 +178,6 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items,
     return result;
   }
 
-  const spans = collectSpans(doc.body?.content);
-  console.log(`[sentinel] token=${token} spans=${spans.length} firstStart=${spans[0]?.start}`);
-
-  let combinedText = "";
-  const docIndices = [];
-  for (const span of spans) {
-    for (let i = 0; i < span.text.length; i++) {
-      docIndices.push(span.start + i);
-    }
-    combinedText += span.text;
-  }
-
-  const sentinelIdx = combinedText.indexOf(sentinel);
-  if (sentinelIdx === -1) {
-    const preview = combinedText.slice(0, 300).replace(/\n/g, "\\n");
-    throw new Error(`sentinel not found for token ${token} | spans=${spans.length} combinedLen=${combinedText.length} | preview: ${preview}`);
-  }
-
-  const sentinelStart = docIndices[sentinelIdx];
-  const sentinelEnd = docIndices[sentinelIdx + sentinel.length - 1] + 1;
-
   // Interleave appendPerItem (e.g. "ANSWER:") between items (not after the last —
   // the template provides the final label). Add "" after each label so the join
   // produces \n\n, giving a blank paragraph break before the next item.
@@ -216,6 +186,27 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items,
         i < items.length - 1 ? [item, appendPerItem, ""] : [item]
       )
     : [...items];
+
+  // Loop: the token may appear multiple times in the template (e.g. same block token
+  // used under several numbered RFPs). replaceAllText replaced ALL occurrences with
+  // the sentinel — process each one in turn until none remain.
+  for (let occurrence = 0; occurrence < replaced; occurrence++) {
+    const doc = await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${documentId}`);
+
+    let combinedText = "";
+    const docIndices = [];
+    for (const span of collectSpans(doc.body?.content)) {
+      for (let i = 0; i < span.text.length; i++) {
+        docIndices.push(span.start + i);
+      }
+      combinedText += span.text;
+    }
+
+    const sentinelIdx = combinedText.indexOf(sentinel);
+    if (sentinelIdx === -1) break;
+
+    const sentinelStart = docIndices[sentinelIdx];
+    const sentinelEnd = docIndices[sentinelIdx + sentinel.length - 1] + 1;
 
   // Pre-calculate document positions of appendPerItem paragraphs so we can
   // remove their list formatting (deleteParagraphBullets) after insertion.
@@ -261,6 +252,7 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items,
       }),
     });
   }
+  } // end for-loop over occurrences
 }
 
 // One-time migration: replaces hardcoded she/her/Ms. in template docs with pronoun tokens.
