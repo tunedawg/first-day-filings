@@ -166,19 +166,28 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items,
   // Locate the sentinel's exact character index in the document body.
   // Build an offset map across all text runs so we can find the sentinel
   // even when Google Docs splits it across multiple text run boundaries.
+  // Walks both top-level paragraphs and table cells (tokens may live inside tables).
   const doc = await googleRequest(
     accessToken,
-    `${GOOGLE_DOCS_API}/documents/${documentId}?fields=body(content(paragraph(elements(startIndex,endIndex,textRun(content)))))`,
+    `${GOOGLE_DOCS_API}/documents/${documentId}?fields=body(content(paragraph(elements(startIndex,endIndex,textRun(content))),table(tableRows(tableCells(content(paragraph(elements(startIndex,endIndex,textRun(content)))))))))`,
   );
 
-  const spans = [];
-  for (const bodyEl of doc.body?.content || []) {
-    for (const pe of bodyEl.paragraph?.elements || []) {
-      if (pe.textRun?.content) {
-        spans.push({ text: pe.textRun.content, start: pe.startIndex });
+  function collectSpans(content) {
+    const result = [];
+    for (const el of content || []) {
+      for (const pe of el.paragraph?.elements || []) {
+        if (pe.textRun?.content) result.push({ text: pe.textRun.content, start: pe.startIndex });
+      }
+      for (const row of el.table?.tableRows || []) {
+        for (const cell of row.tableCells || []) {
+          result.push(...collectSpans(cell.content));
+        }
       }
     }
+    return result;
   }
+
+  const spans = collectSpans(doc.body?.content);
 
   let combinedText = "";
   const docIndices = [];
@@ -190,15 +199,22 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items,
   }
 
   const sentinelIdx = combinedText.indexOf(sentinel);
-  if (sentinelIdx === -1) return;
+  if (sentinelIdx === -1) {
+    const preview = combinedText.slice(0, 300).replace(/\n/g, "\\n");
+    console.error(`[replaceTokenWithParagraphs] sentinel not found for token ${token}. sentinel=${sentinel} spans=${spans.length} combinedTextLength=${combinedText.length} preview="${preview}"`);
+    return;
+  }
 
   const sentinelStart = docIndices[sentinelIdx];
   const sentinelEnd = docIndices[sentinelIdx + sentinel.length - 1] + 1;
 
-  // Interleave appendPerItem (e.g. "Response:") after each item when requested.
-  // insertText with \n creates true paragraph breaks inheriting list formatting.
+  // Interleave appendPerItem (e.g. "ANSWER:") between items (not after the last —
+  // the template provides the final label). Add "" after each label so the join
+  // produces \n\n, giving a blank paragraph break before the next item.
   const expandedItems = appendPerItem
-    ? items.flatMap((item) => [item, appendPerItem])
+    ? items.flatMap((item, i) =>
+        i < items.length - 1 ? [item, appendPerItem, ""] : [item]
+      )
     : [...items];
 
   // Pre-calculate document positions of appendPerItem paragraphs so we can

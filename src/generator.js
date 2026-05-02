@@ -181,8 +181,8 @@ function buildTokenMap(intake) {
     "{{rfpSubjectListBlock}}": punctuateListItems(rfpFullSubjectList),
     "{{rfpEmailBoxSubjectListBlock}}": punctuateListItems(fullSubjectList),
     "{{corpRepIssueTopicsBlock}}": corpRepIssueTopics,
-    "{{rfpActorComplaintParagraphsBlock}}": { items: rfpActorComplaintParagraphs.filter(Boolean), appendPerItem: "Response:" },
-    "{{rfpPlaintiffCommunicationsBlock}}": { items: rfpPlaintiffCommunicationsParagraphs.filter(Boolean), appendPerItem: "Response:" },
+    "{{rfpActorComplaintParagraphsBlock}}": { items: rfpActorComplaintParagraphs.filter(Boolean), appendPerItem: "RESPONSE:" },
+    "{{rfpPlaintiffCommunicationsBlock}}": { items: rfpPlaintiffCommunicationsParagraphs.filter(Boolean), appendPerItem: "RESPONSE:" },
     "{{interrogatory3SubjectsBlock}}": punctuateListItems(fullSubjectList),
     "{{interrogatoryActorComplaintParagraphsBlock}}": { items: interrogatoryActorComplaintParagraphs.filter(Boolean), appendPerItem: "ANSWER:" },
   };
