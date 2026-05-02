@@ -263,14 +263,22 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items,
               { deleteParagraphBullets: { range } },
               // Bold the label text
               { updateTextStyle: { range, textStyle: { bold: true }, fields: "bold" } },
-              // Apply template indentation if we captured it
-              ...(templateAppendStyle ? [{
+              // Always add spacing above/below; also copy template indent if captured.
+              // Template likely uses blank paragraphs for spacing (spaceAbove=0 there),
+              // so we set explicit 12pt spacing to avoid a blank numbered list item.
+              {
                 updateParagraphStyle: {
                   range,
-                  paragraphStyle: templateAppendStyle,
-                  fields: "indentFirstLine,indentStart,spaceAbove,spaceBelow",
+                  paragraphStyle: {
+                    ...(templateAppendStyle || {}),
+                    spaceAbove: { magnitude: 12, unit: "PT" },
+                    spaceBelow: { magnitude: 12, unit: "PT" },
+                  },
+                  fields: templateAppendStyle
+                    ? "indentFirstLine,indentStart,spaceAbove,spaceBelow"
+                    : "spaceAbove,spaceBelow",
                 },
-              }] : []),
+              },
             ]),
           }),
         });
