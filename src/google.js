@@ -201,8 +201,7 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items,
   const sentinelIdx = combinedText.indexOf(sentinel);
   if (sentinelIdx === -1) {
     const preview = combinedText.slice(0, 300).replace(/\n/g, "\\n");
-    console.error(`[replaceTokenWithParagraphs] sentinel not found for token ${token}. sentinel=${sentinel} spans=${spans.length} combinedTextLength=${combinedText.length} preview="${preview}"`);
-    return;
+    throw new Error(`sentinel not found for token ${token} | spans=${spans.length} combinedLen=${combinedText.length} | preview: ${preview}`);
   }
 
   const sentinelStart = docIndices[sentinelIdx];
