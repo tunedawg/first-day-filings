@@ -178,14 +178,12 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items,
     return result;
   }
 
-  // Interleave appendPerItem (e.g. "ANSWER:") between items (not after the last —
-  // the template provides the final label). Add "" after each label so the join
-  // produces \n\n, giving a blank paragraph break before the next item.
-  const expandedItems = appendPerItem
-    ? items.flatMap((item, i) =>
-        i < items.length - 1 ? [item, appendPerItem, ""] : [item]
-      )
-    : [...items];
+  // Use  (soft line break) before appendPerItem so it stays in the same
+  // paragraph as the item text, preserving list indentation and numbering.
+  // Only added between items — template provides the final label.
+  const insertedText = appendPerItem
+    ? items.map((item, i) => i < items.length - 1 ? `${item}\u000B${appendPerItem}` : item).join('\n')
+    : items.join('\n');
 
   // Loop: the token may appear multiple times in the template (e.g. same block token
   // used under several numbered RFPs). replaceAllText replaced ALL occurrences with
@@ -208,50 +206,49 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items,
     const sentinelStart = docIndices[sentinelIdx];
     const sentinelEnd = docIndices[sentinelIdx + sentinel.length - 1] + 1;
 
-  // Pre-calculate document positions of appendPerItem paragraphs so we can
-  // remove their list formatting (deleteParagraphBullets) after insertion.
-  const appendRanges = [];
-  if (appendPerItem) {
-    let pos = sentinelStart;
-    for (const item of expandedItems) {
-      if (item === appendPerItem) {
-        appendRanges.push({ startIndex: pos, endIndex: pos + item.length });
+    // Calculate ranges for appendPerItem text so we can bold it.
+    // appendPerItem sits after a  within its item's paragraph.
+    const boldRanges = [];
+    if (appendPerItem) {
+      let pos = sentinelStart;
+      for (let i = 0; i < items.length - 1; i++) {
+        pos += items[i].length; // item text
+        pos += 1;               //
+        boldRanges.push({ startIndex: pos, endIndex: pos + appendPerItem.length });
+        pos += appendPerItem.length; // appendPerItem text
+        pos += 1;               // \n separator between joined items
       }
-      pos += item.length + 1; // +1 for the \n separator
     }
-  }
 
-  await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${documentId}:batchUpdate`, {
-    method: "POST",
-    body: JSON.stringify({
-      requests: [
-        {
-          deleteContentRange: {
-            range: { startIndex: sentinelStart, endIndex: sentinelEnd },
-          },
-        },
-        {
-          insertText: {
-            location: { index: sentinelStart },
-            text: expandedItems.join("\n"),
-          },
-        },
-      ],
-    }),
-  });
-
-  // Remove numbered-list formatting from appendPerItem paragraphs and bold them.
-  if (appendRanges.length > 0) {
     await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${documentId}:batchUpdate`, {
       method: "POST",
       body: JSON.stringify({
-        requests: appendRanges.flatMap((range) => [
-          { deleteParagraphBullets: { range } },
-          { updateTextStyle: { range, textStyle: { bold: true }, fields: "bold" } },
-        ]),
+        requests: [
+          {
+            deleteContentRange: {
+              range: { startIndex: sentinelStart, endIndex: sentinelEnd },
+            },
+          },
+          {
+            insertText: {
+              location: { index: sentinelStart },
+              text: insertedText,
+            },
+          },
+        ],
       }),
     });
-  }
+
+    if (boldRanges.length > 0) {
+      await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${documentId}:batchUpdate`, {
+        method: "POST",
+        body: JSON.stringify({
+          requests: boldRanges.map((range) => ({
+            updateTextStyle: { range, textStyle: { bold: true }, fields: "bold" },
+          })),
+        }),
+      });
+    }
   } // end for-loop over occurrences
 }
 
