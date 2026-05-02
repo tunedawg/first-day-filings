@@ -169,7 +169,7 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items,
   // Walks both top-level paragraphs and table cells (tokens may live inside tables).
   const doc = await googleRequest(
     accessToken,
-    `${GOOGLE_DOCS_API}/documents/${documentId}?fields=body(content(paragraph(elements(startIndex,endIndex,textRun(content))),table(tableRows(tableCells(content(paragraph(elements(startIndex,endIndex,textRun(content)))))))))`,
+    `${GOOGLE_DOCS_API}/documents/${documentId}`,
   );
 
   function collectSpans(content) {
@@ -188,6 +188,7 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items,
   }
 
   const spans = collectSpans(doc.body?.content);
+  console.log(`[sentinel] token=${token} spans=${spans.length} firstStart=${spans[0]?.start}`);
 
   let combinedText = "";
   const docIndices = [];
