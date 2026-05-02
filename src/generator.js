@@ -119,8 +119,8 @@ function buildTokenMap(intake) {
     return accumulator;
   }, {});
 
-  const keyPersons = splitLines(enrichedIntake.keyPersonsList);
-  const roleBasedPersons = splitLines(enrichedIntake.additionalRoleBasedPersons);
+  const keyPersons = splitLines(enrichedIntake.keyPersonsList).map(stripRoleDescription);
+  const roleBasedPersons = splitLines(enrichedIntake.additionalRoleBasedPersons).map(stripRoleDescription);
   const combinedSubjects = [...keyPersons, ...roleBasedPersons];
   const comparatorEntries = buildComparatorEntries(enrichedIntake);
   const decisionMakerEntries = buildDecisionMakerEntries(enrichedIntake);
@@ -409,11 +409,17 @@ function buildDefendantReference(intake) {
   );
 }
 
+function stripRoleDescription(entry) {
+  const idx = entry.indexOf(", ");
+  return idx !== -1 ? entry.slice(0, idx).trim() : entry;
+}
+
 function buildNamedActorList(intake, limit = 8) {
   const plaintiffName = normalizeValue(intake.plaintiffName).toLowerCase();
   const seen = new Set();
 
   return splitLines(intake.keyPersonsList)
+    .map(stripRoleDescription)
     .filter((name) => {
       const normalizedName = normalizeValue(name);
       if (!normalizedName) {

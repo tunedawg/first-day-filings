@@ -233,13 +233,15 @@ async function replaceTokenWithParagraphs(accessToken, documentId, token, items,
     }),
   });
 
-  // Remove numbered-list formatting from appendPerItem paragraphs so they
-  // appear as plain text (no auto-number) between the numbered request items.
+  // Remove numbered-list formatting from appendPerItem paragraphs and bold them.
   if (appendRanges.length > 0) {
     await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${documentId}:batchUpdate`, {
       method: "POST",
       body: JSON.stringify({
-        requests: appendRanges.map((range) => ({ deleteParagraphBullets: { range } })),
+        requests: appendRanges.flatMap((range) => [
+          { deleteParagraphBullets: { range } },
+          { updateTextStyle: { range, textStyle: { bold: true }, fields: "bold" } },
+        ]),
       }),
     });
   }
