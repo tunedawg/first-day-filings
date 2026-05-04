@@ -339,12 +339,66 @@ async function fixPronounTokensInDoc(accessToken, template) {
   }
 }
 
+async function exportGoogleDocAs(accessToken, docId, exportMimeType) {
+  if (!accessToken) throw new Error("Missing Google access token.");
+  const url = `${GOOGLE_DRIVE_API}/files/${encodeURIComponent(docId)}/export?mimeType=${encodeURIComponent(exportMimeType)}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Google export failed: ${res.status} ${body}`);
+  }
+  return Buffer.from(await res.arrayBuffer());
+}
+
+async function uploadFileToDrive(accessToken, name, mimeType, buffer, parentFolderId) {
+  if (!accessToken) throw new Error("Missing Google access token.");
+  const metadata = { name, mimeType };
+  if (parentFolderId) metadata.parents = [parentFolderId];
+
+  const boundary = `fdf_${Date.now()}`;
+  const metaPart = Buffer.from(
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`,
+    "utf8",
+  );
+  const dataPart = Buffer.from(`--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`, "utf8");
+  const closePart = Buffer.from(`\r\n--${boundary}--`, "utf8");
+  const body = Buffer.concat([metaPart, dataPart, buffer, closePart]);
+
+  const url = `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,webViewLink`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": `multipart/related; boundary="${boundary}"`,
+    },
+    body,
+  });
+  if (!res.ok) {
+    const errBody = await res.text();
+    throw new Error(`Drive upload failed: ${res.status} ${errBody}`);
+  }
+  return res.json();
+}
+
+async function deleteFile(accessToken, fileId) {
+  if (!accessToken) return;
+  try {
+    await fetch(`${GOOGLE_DRIVE_API}/files/${encodeURIComponent(fileId)}?supportsAllDrives=true`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  } catch (_) { /* best-effort cleanup */ }
+}
+
 module.exports = {
   copyGoogleDoc,
   createDriveFolder,
+  deleteFile,
+  exportGoogleDocAs,
   fixPronounTokensInDoc,
   getDriveFile,
   inspectTemplateFile,
   replaceDocTokens,
   replaceTokenWithParagraphs,
+  uploadFileToDrive,
 };

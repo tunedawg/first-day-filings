@@ -47,6 +47,7 @@ let templates = [];
 let extractedPayload = null;
 let authSession = null;
 let generationProgressTimer = null;
+let _generateFormat = "docs";
 const DRAFT_STORAGE_KEY = "first-day-filings:draft:v1";
 
 // ── Supabase case persistence (optional — gracefully no-ops if not logged in) ──
@@ -1593,7 +1594,7 @@ async function handleGenerateClick() {
       return;
     }
 
-    setStatus("Generating documents in Google Drive…", "busy");
+    setStatus(FORMAT_LABELS[_generateFormat].status, "busy");
     resultsNode.innerHTML = "";
     resultsNode.className = "results";
     setGenerateButtonsDisabled(true);
@@ -1609,6 +1610,7 @@ async function handleGenerateClick() {
         intake: collectIntake(),
         selectedTemplateIds: collectSelectedTemplates(),
         attorneys: _orgAttorneys,
+        format: _generateFormat,
       }),
     });
 
@@ -1687,6 +1689,27 @@ async function handleValidateTemplatesClick() {
     setTemplateValidationDisabled(!authSession?.signedIn);
   }
 }
+
+// ── Format tabs ──
+
+const FORMAT_LABELS = {
+  docs: { button: "Generate to Google Drive", status: "Generating documents in Google Drive…" },
+  pdf:  { button: "Generate as PDF",           status: "Generating PDF documents in Google Drive…" },
+  word: { button: "Generate as Word Doc",      status: "Generating Word documents in Google Drive…" },
+};
+
+document.querySelectorAll(".format-tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".format-tab").forEach((t) => {
+      t.classList.remove("is-active");
+      t.setAttribute("aria-selected", "false");
+    });
+    tab.classList.add("is-active");
+    tab.setAttribute("aria-selected", "true");
+    _generateFormat = tab.dataset.format || "docs";
+    generateButtons.forEach((btn) => { btn.textContent = FORMAT_LABELS[_generateFormat].button; });
+  });
+});
 
 generateButtons.forEach((button) => {
   button.addEventListener("click", handleGenerateClick);

@@ -15,7 +15,7 @@ const {
 const { extractCaseContext } = require("./extractor");
 const { getSupabaseAdmin, getUserFromRequest } = require("./supabaseClient");
 const { buildDocumentName, buildMatterFolderName, setAttorneyDirectory, validateSelections } = require("./generator");
-const { createDriveFolder, copyGoogleDoc, fixPronounTokensInDoc, inspectTemplateFile, replaceDocTokens, replaceTokenWithParagraphs } = require("./google");
+const { createDriveFolder, copyGoogleDoc, deleteFile, exportGoogleDocAs, fixPronounTokensInDoc, inspectTemplateFile, replaceDocTokens, replaceTokenWithParagraphs, uploadFileToDrive } = require("./google");
 const { getQuestionnaire, getTemplateRegistry } = require("./templateRegistry");
 
 const PORT = Number(process.env.PORT || 3000);
@@ -107,9 +107,15 @@ function collectRequestBody(request) {
   });
 }
 
+const EXPORT_FORMATS = {
+  pdf: { mimeType: "application/pdf", ext: ".pdf" },
+  word: { mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", ext: ".docx" },
+};
+
 async function handleGenerate(request, response, body) {
   setAttorneyDirectory(body.attorneys || []);
   const intake = body.intake || {};
+  const format = EXPORT_FORMATS[body.format] ? body.format : "docs";
   const selectedTemplateIds =
     Array.isArray(body.selectedTemplateIds) && body.selectedTemplateIds.length > 0
       ? body.selectedTemplateIds
@@ -138,19 +144,32 @@ async function handleGenerate(request, response, body) {
         const appendPerItem = Array.isArray(value) ? null : (value.appendPerItem || null);
         await replaceTokenWithParagraphs(accessToken, copiedDoc.id, token, items, appendPerItem);
       }
+
+      if (format !== "docs") {
+        const { mimeType, ext } = EXPORT_FORMATS[format];
+        const buffer = await exportGoogleDocAs(accessToken, copiedDoc.id, mimeType);
+        const exported = await uploadFileToDrive(accessToken, documentName + ext, mimeType, buffer, folder.id);
+        await deleteFile(accessToken, copiedDoc.id);
+        createdDocuments.push({
+          id: exported.id,
+          name: exported.name || documentName + ext,
+          url: `https://drive.google.com/file/d/${exported.id}/view`,
+          templateId: template.id,
+        });
+      } else {
+        createdDocuments.push({
+          id: copiedDoc.id,
+          name: copiedDoc.name || documentName,
+          url: `https://docs.google.com/document/d/${copiedDoc.id}/edit`,
+          templateId: template.id,
+        });
+      }
     } catch (error) {
       throw new Error(
         `Template "${template.title}" failed. ${error.message} ` +
           `(templateId=${template.googleTemplateDocId})`,
       );
     }
-
-    createdDocuments.push({
-      id: copiedDoc.id,
-      name: copiedDoc.name || documentName,
-      url: `https://docs.google.com/document/d/${copiedDoc.id}/edit`,
-      templateId: template.id,
-    });
   }
 
   sendJson(response, 200, {
