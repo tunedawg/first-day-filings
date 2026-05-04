@@ -13,16 +13,46 @@ const {
   getValidAccessToken,
 } = require("./auth");
 const { extractCaseContext } = require("./extractor");
-const { buildDocumentName, buildMatterFolderName, validateSelections } = require("./generator");
+const { getSupabaseAdmin, getUserFromRequest } = require("./supabaseClient");
+const { buildDocumentName, buildMatterFolderName, setAttorneyDirectory, validateSelections } = require("./generator");
 const { createDriveFolder, copyGoogleDoc, fixPronounTokensInDoc, inspectTemplateFile, replaceDocTokens, replaceTokenWithParagraphs } = require("./google");
 const { getQuestionnaire, getTemplateRegistry } = require("./templateRegistry");
 
 const PORT = Number(process.env.PORT || 3000);
 const publicDir = path.join(__dirname, "..", "public");
 
+// HTML pages that need per-page HTML files in /public; auth enforcement is client-side via nav.js.
+const PROTECTED_PATHS = new Set(["/dashboard", "/onboarding", "/settings/firm"]);
+
 function sendJson(response, statusCode, payload) {
   response.writeHead(statusCode, { "Content-Type": "application/json; charset=utf-8" });
   response.end(JSON.stringify(payload, null, 2));
+}
+
+function injectConfig(html, request) {
+  const proto = request.headers["x-forwarded-proto"] || "http";
+  const host = request.headers["x-forwarded-host"] || request.headers.host || `localhost:${PORT}`;
+  const siteUrl = `${proto}://${host}`;
+  return html
+    .replace(/\{\{SITE_URL\}\}/g, siteUrl)
+    .replace(/\{\{SUPABASE_URL\}\}/g, process.env.SUPABASE_URL || "")
+    .replace(/\{\{SUPABASE_ANON_KEY\}\}/g, process.env.SUPABASE_ANON_KEY || "");
+}
+
+function serveHtml(response, filePath, request) {
+  if (!fs.existsSync(filePath)) {
+    response.writeHead(404);
+    response.end("Not found");
+    return;
+  }
+  const html = injectConfig(fs.readFileSync(filePath, "utf8"), request);
+  response.writeHead(200, {
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    Pragma: "no-cache",
+    Expires: "0",
+  });
+  response.end(html);
 }
 
 function redirect(response, location) {
@@ -78,6 +108,7 @@ function collectRequestBody(request) {
 }
 
 async function handleGenerate(request, response, body) {
+  setAttorneyDirectory(body.attorneys || []);
   const intake = body.intake || {};
   const selectedTemplateIds =
     Array.isArray(body.selectedTemplateIds) && body.selectedTemplateIds.length > 0
@@ -174,6 +205,77 @@ async function handleValidateTemplates(request, response, body) {
   });
 }
 
+function slugify(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+}
+
+async function handleOnboarding(response, user, body) {
+  const { firm, profile, attorneys } = body;
+
+  if (!firm?.name) {
+    sendJson(response, 400, { ok: false, error: "Firm name is required." });
+    return;
+  }
+
+  const admin = getSupabaseAdmin();
+
+  // Check user doesn't already have a profile (idempotency guard).
+  const { data: existing } = await admin.from("profiles").select("organization_id").eq("id", user.id).maybeSingle();
+  if (existing?.organization_id) {
+    sendJson(response, 200, { ok: true, alreadyOnboarded: true });
+    return;
+  }
+
+  const slug = slugify(firm.name);
+
+  // Create organization.
+  const { data: org, error: orgErr } = await admin.from("organizations").insert({
+    name: firm.name,
+    slug,
+    phone: firm.phone || null,
+    address: firm.address || null,
+    state: firm.state || "Missouri",
+    practice_area: firm.practice_area || "Employment Litigation",
+  }).select("id").single();
+
+  if (orgErr) {
+    sendJson(response, 500, { ok: false, error: orgErr.message });
+    return;
+  }
+
+  // Create profile for the signing-up user.
+  const { error: profileErr } = await admin.from("profiles").upsert({
+    id: user.id,
+    organization_id: org.id,
+    full_name: profile?.full_name || user.user_metadata?.full_name || user.email,
+    role: "admin",
+  });
+
+  if (profileErr) {
+    sendJson(response, 500, { ok: false, error: profileErr.message });
+    return;
+  }
+
+  // Create attorney records.
+  const attorneyRows = (attorneys || []).filter((a) => a.full_name && a.bar_number).map((a) => ({
+    organization_id: org.id,
+    full_name: a.full_name,
+    bar_number: a.bar_number,
+    email: a.email || null,
+    role: a.role || "attorney",
+  }));
+
+  if (attorneyRows.length > 0) {
+    const { error: attErr } = await admin.from("attorneys").insert(attorneyRows);
+    if (attErr) {
+      sendJson(response, 500, { ok: false, error: attErr.message });
+      return;
+    }
+  }
+
+  sendJson(response, 200, { ok: true, organizationId: org.id });
+}
+
 const server = http.createServer(async (request, response) => {
   try {
     const requestUrl = new URL(request.url, `http://${request.headers.host || `localhost:${PORT}`}`);
@@ -255,18 +357,109 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === "GET" && requestUrl.pathname === "/api/org-users") {
+      const user = await getUserFromRequest(request);
+      if (!user) { sendJson(response, 401, { ok: false, error: "Unauthorized" }); return; }
+      const admin = getSupabaseAdmin();
+      const { data: profile } = await admin.from("profiles").select("organization_id, role").eq("id", user.id).maybeSingle();
+      if (!profile?.organization_id) { sendJson(response, 403, { ok: false, error: "No organization." }); return; }
+      const { data: profiles } = await admin.from("profiles").select("id, full_name, role, created_at").eq("organization_id", profile.organization_id).order("created_at");
+      const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 });
+      const emailMap = {};
+      (authUsers || []).forEach((u) => { emailMap[u.id] = u.email; });
+      const result = (profiles || []).map((p) => ({ ...p, email: emailMap[p.id] || null }));
+      sendJson(response, 200, { ok: true, users: result });
+      return;
+    }
+
+    if (request.method === "PATCH" && /^\/api\/org-users\/[^/]+$/.test(requestUrl.pathname)) {
+      const user = await getUserFromRequest(request);
+      if (!user) { sendJson(response, 401, { ok: false, error: "Unauthorized" }); return; }
+      const admin = getSupabaseAdmin();
+      const { data: myProfile } = await admin.from("profiles").select("organization_id, role").eq("id", user.id).maybeSingle();
+      if (!myProfile?.organization_id || myProfile.role !== "admin") { sendJson(response, 403, { ok: false, error: "Admin only." }); return; }
+      const targetId = requestUrl.pathname.split("/").pop();
+      const body = await collectRequestBody(request);
+      const { data: target } = await admin.from("profiles").select("organization_id").eq("id", targetId).maybeSingle();
+      if (!target || target.organization_id !== myProfile.organization_id) { sendJson(response, 404, { ok: false, error: "User not found in your organization." }); return; }
+      const { error } = await admin.from("profiles").update({ role: body.role }).eq("id", targetId);
+      if (error) { sendJson(response, 500, { ok: false, error: error.message }); return; }
+      sendJson(response, 200, { ok: true });
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/invite") {
+      const user = await getUserFromRequest(request);
+      if (!user) { sendJson(response, 401, { ok: false, error: "Unauthorized" }); return; }
+      const admin = getSupabaseAdmin();
+      const { data: myProfile } = await admin.from("profiles").select("organization_id, role").eq("id", user.id).maybeSingle();
+      if (!myProfile?.organization_id || myProfile.role !== "admin") { sendJson(response, 403, { ok: false, error: "Admin only." }); return; }
+      const body = await collectRequestBody(request);
+      if (!body.email) { sendJson(response, 400, { ok: false, error: "Email is required." }); return; }
+      const proto = request.headers["x-forwarded-proto"] || "http";
+      const host = request.headers["x-forwarded-host"] || request.headers.host || `localhost:${PORT}`;
+      const redirectTo = `${proto}://${host}/auth/callback`;
+      const { data: inviteData, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(body.email, { redirectTo });
+      if (inviteErr) { sendJson(response, 500, { ok: false, error: inviteErr.message }); return; }
+      const invitedUserId = inviteData.user.id;
+      await admin.from("profiles").upsert({
+        id: invitedUserId,
+        organization_id: myProfile.organization_id,
+        full_name: body.email.split("@")[0],
+        role: body.role || "attorney",
+      }, { onConflict: "id" });
+      sendJson(response, 200, { ok: true });
+      return;
+    }
+
+    if (request.method === "GET" && requestUrl.pathname === "/api/attorneys") {
+      const user = await getUserFromRequest(request);
+      if (!user) { sendJson(response, 401, { ok: false, error: "Unauthorized" }); return; }
+      const { data: profile } = await getSupabaseAdmin().from("profiles").select("organization_id").eq("id", user.id).maybeSingle();
+      if (!profile?.organization_id) { sendJson(response, 200, { ok: true, attorneys: [] }); return; }
+      const { data: attorneys } = await getSupabaseAdmin().from("attorneys").select("id, full_name, bar_number, email, role").eq("organization_id", profile.organization_id).eq("is_active", true).order("full_name");
+      sendJson(response, 200, { ok: true, attorneys: attorneys || [] });
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/onboarding") {
+      const user = await getUserFromRequest(request);
+      if (!user) { sendJson(response, 401, { ok: false, error: "Unauthorized" }); return; }
+      const body = await collectRequestBody(request);
+      await handleOnboarding(response, user, body);
+      return;
+    }
+
     if (request.method === "GET") {
-      const requestPath = requestUrl.pathname === "/" ? "/index.html" : requestUrl.pathname;
+      const { pathname } = requestUrl;
+
+      // Serve auth callback page (OAuth code exchange happens client-side via Supabase JS).
+      if (pathname === "/auth/callback") {
+        serveHtml(response, path.join(publicDir, "auth-callback.html"), request);
+        return;
+      }
+
+      // Serve login page.
+      if (pathname === "/login") {
+        serveHtml(response, path.join(publicDir, "login.html"), request);
+        return;
+      }
+
+      // Protected HTML pages — serve them; client-side nav.js will redirect if no session.
+      if (PROTECTED_PATHS.has(pathname)) {
+        const pageName = pathname.replace(/^\//, "").replace(/\//g, "-");
+        const htmlFile = path.join(publicDir, `${pageName}.html`);
+        serveHtml(response, htmlFile, request);
+        return;
+      }
+
+      // Main app (root).
+      const requestPath = pathname === "/" ? "/index.html" : pathname;
       const safePath = path.normalize(requestPath).replace(/^(\.\.[/\\])+/, "");
       const filePath = path.join(publicDir, safePath);
 
-      if (requestUrl.pathname === "/" && fs.existsSync(filePath)) {
-        const proto = request.headers["x-forwarded-proto"] || "http";
-        const host = request.headers["x-forwarded-host"] || request.headers.host || `localhost:${PORT}`;
-        const siteUrl = `${proto}://${host}`;
-        const html = fs.readFileSync(filePath, "utf8").replace(/\{\{SITE_URL\}\}/g, siteUrl);
-        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0", Pragma: "no-cache", Expires: "0" });
-        response.end(html);
+      if (path.extname(filePath) === ".html" || pathname === "/") {
+        serveHtml(response, filePath, request);
         return;
       }
 

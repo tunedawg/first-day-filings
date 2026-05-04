@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard — First Day Filings</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script>
+      window.__FDF_CONFIG__ = {
+        supabaseUrl: "{{SUPABASE_URL}}",
+        supabaseAnonKey: "{{SUPABASE_ANON_KEY}}",
+        siteUrl: "{{SITE_URL}}"
+      };
+    </script>
+    <script src="/dashboard.js" type="module"></script>
+    <style>
+      body { padding-top: 60px; }
+
+      .dash-shell {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 48px 28px 80px;
+      }
+
+      .dash-hero {
+        margin-bottom: 40px;
+      }
+
+      .dash-hero h1 {
+        font-family: var(--serif);
+        font-size: 2rem;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+      }
+
+      .dash-hero-sub {
+        color: var(--text2);
+        font-size: 0.9rem;
+        margin: 0;
+      }
+
+      .dash-actions {
+        margin-bottom: 36px;
+      }
+
+      .dash-new-case-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 22px;
+        border-radius: 10px;
+        border: none;
+        background: var(--accent);
+        color: #fff;
+        font: 600 0.9rem/1 var(--sans);
+        text-decoration: none;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+
+      .dash-new-case-btn:hover { background: #6d28d9; }
+
+      .dash-section-title {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--text3);
+        margin: 0 0 14px;
+      }
+
+      .dash-resume-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 18px;
+        border-radius: 10px;
+        background: rgba(124, 58, 237, 0.08);
+        border: 1px solid rgba(124, 58, 237, 0.2);
+        margin-bottom: 28px;
+      }
+
+      .dash-resume-text {
+        font-size: 0.88rem;
+        color: var(--text2);
+      }
+
+      .dash-resume-text strong { color: var(--text); }
+
+      .dash-resume-btn {
+        flex-shrink: 0;
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid rgba(124, 58, 237, 0.4);
+        background: rgba(124, 58, 237, 0.1);
+        color: var(--accent-hi);
+        font: 500 0.85rem/1 var(--sans);
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.15s;
+      }
+
+      .dash-resume-btn:hover { background: rgba(124, 58, 237, 0.2); }
+
+      /* Cases table */
+      .cases-table-wrap {
+        overflow-x: auto;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+      }
+
+      .cases-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+      }
+
+      .cases-table th {
+        padding: 11px 16px;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text3);
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+      }
+
+      .cases-table td {
+        padding: 13px 16px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+      }
+
+      .cases-table tr:last-child td { border-bottom: none; }
+
+      .cases-table tbody tr {
+        background: rgba(255,255,255,0.01);
+        transition: background 0.1s;
+      }
+
+      .cases-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+      .case-names { font-weight: 500; }
+      .case-vs { color: var(--text3); font-size: 0.78rem; margin-top: 2px; }
+
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font: 500 0.75rem/1 var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .status-badge-draft {
+        background: rgba(148, 163, 184, 0.1);
+        color: var(--text2);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+      }
+
+      .status-badge-generated {
+        background: rgba(34, 197, 94, 0.1);
+        color: var(--success);
+        border: 1px solid rgba(34, 197, 94, 0.2);
+      }
+
+      .status-badge-filed {
+        background: rgba(124, 58, 237, 0.1);
+        color: var(--accent-hi);
+        border: 1px solid rgba(124, 58, 237, 0.25);
+      }
+
+      .case-date { color: var(--text2); font-size: 0.82rem; white-space: nowrap; }
+
+      .case-action-link {
+        color: var(--accent-hi);
+        text-decoration: none;
+        font-size: 0.82rem;
+        font-weight: 500;
+      }
+
+      .case-action-link:hover { text-decoration: underline; }
+
+      .dash-empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text2);
+      }
+
+      .dash-empty-icon {
+        font-size: 2.5rem;
+        margin-bottom: 12px;
+        opacity: 0.4;
+      }
+
+      .dash-empty h3 {
+        font-family: var(--serif);
+        font-size: 1.3rem;
+        font-weight: 400;
+        margin: 0 0 8px;
+        color: var(--text);
+      }
+
+      .dash-empty p { margin: 0; font-size: 0.88rem; line-height: 1.6; }
+
+      .dash-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 20px;
+      }
+
+      .dash-page-btn {
+        padding: 6px 14px;
+        border-radius: 7px;
+        border: 1px solid var(--border);
+        background: none;
+        color: var(--text2);
+        font: 500 0.82rem/1 var(--sans);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+
+      .dash-page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-hi); }
+      .dash-page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+      .dash-page-info { color: var(--text3); font-size: 0.82rem; }
+
+      .dash-loading {
+        text-align: center;
+        padding: 48px;
+        color: var(--text3);
+        font-size: 0.9rem;
+      }
+
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <nav class="topbar" id="appNav"></nav>
+
+    <div class="dash-shell">
+      <div class="dash-hero">
+        <h1 id="dashGreeting">Dashboard</h1>
+        <p class="dash-hero-sub" id="dashFirmName"></p>
+      </div>
+
+      <div class="dash-actions">
+        <a href="/" class="dash-new-case-btn">
+          <svg viewBox="0 0 20 20" fill="none" width="16" height="16">
+            <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          New Case
+        </a>
+      </div>
+
+      <!-- Resume draft banner -->
+      <div id="resumeBanner" class="dash-resume-banner" hidden>
+        <div class="dash-resume-text">
+          <strong id="resumeCaseName">Untitled draft</strong> — you have an unsaved draft in progress.
+        </div>
+        <a href="/" class="dash-resume-btn">Resume →</a>
+      </div>
+
+      <p class="dash-section-title">Recent Cases</p>
+
+      <div id="dashLoading" class="dash-loading">Loading cases…</div>
+
+      <div id="dashContent" hidden>
+        <div class="cases-table-wrap" id="casesTableWrap">
+          <table class="cases-table">
+            <thead>
+              <tr>
+                <th>Case</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="casesTableBody"></tbody>
+          </table>
+        </div>
+
+        <div id="dashEmpty" class="dash-empty" hidden>
+          <div class="dash-empty-icon">⚖️</div>
+          <h3>No cases yet</h3>
+          <p>Start your first case by clicking <strong>New Case</strong> above.</p>
+        </div>
+
+        <div class="dash-pagination" id="dashPagination" hidden>
+          <button class="dash-page-btn" id="prevPageBtn" disabled>← Previous</button>
+          <span class="dash-page-info" id="pageInfo"></span>
+          <button class="dash-page-btn" id="nextPageBtn">Next →</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

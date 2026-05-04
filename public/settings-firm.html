@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Firm Settings — First Day Filings</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script>
+      window.__FDF_CONFIG__ = {
+        supabaseUrl: "{{SUPABASE_URL}}",
+        supabaseAnonKey: "{{SUPABASE_ANON_KEY}}",
+        siteUrl: "{{SITE_URL}}"
+      };
+    </script>
+    <script src="/settings-firm.js" type="module"></script>
+    <style>
+      body { padding-top: 60px; }
+
+      .settings-shell {
+        max-width: 700px;
+        margin: 0 auto;
+        padding: 48px 28px 80px;
+      }
+
+      .settings-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text2);
+        font-size: 0.85rem;
+        text-decoration: none;
+        margin-bottom: 28px;
+        transition: color 0.15s;
+      }
+
+      .settings-back:hover { color: var(--text); }
+
+      .settings-heading {
+        font-family: var(--serif);
+        font-size: 2rem;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        margin: 0 0 40px;
+      }
+
+      .settings-section {
+        margin-bottom: 48px;
+      }
+
+      .settings-section-title {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--text3);
+        margin: 0 0 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .sf-field { margin-bottom: 16px; }
+
+      .sf-label {
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 500;
+        color: var(--text2);
+        margin-bottom: 6px;
+      }
+
+      .sf-input {
+        display: block;
+        width: 100%;
+        padding: 10px 13px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,0.04);
+        color: var(--text);
+        font: 0.9rem/1.4 var(--sans);
+        outline: none;
+        transition: border-color 0.15s;
+      }
+
+      .sf-input:focus { border-color: var(--accent); }
+      .sf-input::placeholder { color: var(--text3); }
+      .sf-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+      select.sf-input {
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 36px;
+      }
+
+      .sf-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .sf-save-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      .sf-saved-msg {
+        font-size: 0.82rem;
+        color: var(--success);
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+
+      .sf-saved-msg.visible { opacity: 1; }
+
+      .sf-error-msg {
+        font-size: 0.82rem;
+        color: var(--error);
+      }
+
+      /* Attorneys table */
+      .attorneys-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 16px;
+      }
+
+      .attorneys-table th {
+        padding: 10px 14px;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text3);
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .attorneys-table td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+      }
+
+      .attorneys-table tr:last-child td { border-bottom: none; }
+
+      .att-name { font-weight: 500; font-size: 0.875rem; }
+      .att-meta { color: var(--text2); font-size: 0.78rem; margin-top: 2px; }
+
+      .att-role-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-weight: 500;
+        text-transform: capitalize;
+        background: rgba(124, 58, 237, 0.08);
+        color: var(--accent-hi);
+        border: 1px solid rgba(124, 58, 237, 0.15);
+      }
+
+      .att-deactivate-btn {
+        background: none;
+        border: 1px solid var(--border);
+        color: var(--text3);
+        font: 500 0.78rem/1 var(--sans);
+        padding: 5px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+
+      .att-deactivate-btn:hover {
+        border-color: rgba(248, 113, 113, 0.4);
+        color: var(--error);
+      }
+
+      .add-attorney-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px dashed rgba(124, 58, 237, 0.3);
+        background: rgba(124, 58, 237, 0.04);
+        color: var(--accent-hi);
+        font: 500 0.85rem/1 var(--sans);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+
+      .add-attorney-toggle:hover {
+        border-color: rgba(124, 58, 237, 0.5);
+        background: rgba(124, 58, 237, 0.1);
+      }
+
+      .add-attorney-panel {
+        margin-top: 16px;
+        padding: 16px;
+        border-radius: 10px;
+        background: rgba(124, 58, 237, 0.04);
+        border: 1px solid rgba(124, 58, 237, 0.15);
+      }
+
+      .add-attorney-panel .sf-field { margin-bottom: 12px; }
+
+      /* Admin-only notice */
+      .admin-only-notice {
+        padding: 14px 18px;
+        border-radius: 10px;
+        background: rgba(248, 113, 113, 0.06);
+        border: 1px solid rgba(248, 113, 113, 0.2);
+        color: var(--text2);
+        font-size: 0.875rem;
+        margin-bottom: 28px;
+      }
+
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <nav class="topbar" id="appNav"></nav>
+
+    <div class="settings-shell">
+      <a href="/dashboard" class="settings-back">← Dashboard</a>
+      <h1 class="settings-heading">Firm Settings</h1>
+
+      <div id="adminOnlyNotice" class="admin-only-notice" hidden>
+        Some sections are only editable by firm admins.
+      </div>
+
+      <!-- Firm Details -->
+      <div class="settings-section" id="firmSection">
+        <p class="settings-section-title">Firm Details</p>
+
+        <div class="sf-field">
+          <label class="sf-label" for="sfFirmName">Firm name</label>
+          <input class="sf-input" id="sfFirmName" type="text" />
+        </div>
+        <div class="sf-row">
+          <div class="sf-field">
+            <label class="sf-label" for="sfFirmPhone">Phone</label>
+            <input class="sf-input" id="sfFirmPhone" type="tel" />
+          </div>
+          <div class="sf-field">
+            <label class="sf-label" for="sfFirmState">State</label>
+            <select class="sf-input" id="sfFirmState">
+              <option value="Missouri">Missouri</option>
+              <option value="Illinois">Illinois</option>
+              <option value="Kansas">Kansas</option>
+              <option value="Arkansas">Arkansas</option>
+              <option value="Tennessee">Tennessee</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="sf-field">
+          <label class="sf-label" for="sfFirmAddress">Address</label>
+          <input class="sf-input" id="sfFirmAddress" type="text" />
+        </div>
+        <div class="sf-field">
+          <label class="sf-label" for="sfPracticeArea">Practice area</label>
+          <input class="sf-input" id="sfPracticeArea" type="text" />
+        </div>
+
+        <div class="sf-save-row">
+          <button class="action-primary" id="saveFirmBtn" type="button">Save changes</button>
+          <span class="sf-saved-msg" id="firmSavedMsg">Saved ✓</span>
+          <span class="sf-error-msg" id="firmErrorMsg"></span>
+        </div>
+      </div>
+
+      <!-- Attorneys -->
+      <div class="settings-section">
+        <p class="settings-section-title">Attorneys</p>
+
+        <table class="attorneys-table" id="attorneysTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Role</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="attorneysTableBody"></tbody>
+        </table>
+
+        <div id="attorneysEmpty" hidden style="color:var(--text3);font-size:0.875rem;margin-bottom:16px;">No active attorneys.</div>
+
+        <button class="add-attorney-toggle" id="addAttorneyToggle" type="button">+ Add attorney</button>
+
+        <div class="add-attorney-panel" id="addAttorneyPanel" hidden>
+          <div class="sf-row">
+            <div class="sf-field">
+              <label class="sf-label" for="newAttName">Full name</label>
+              <input class="sf-input" id="newAttName" type="text" placeholder="Jane Smith" />
+            </div>
+            <div class="sf-field">
+              <label class="sf-label" for="newAttBar">Bar number</label>
+              <input class="sf-input" id="newAttBar" type="text" placeholder="MO12345" />
+            </div>
+          </div>
+          <div class="sf-row">
+            <div class="sf-field">
+              <label class="sf-label" for="newAttEmail">Email</label>
+              <input class="sf-input" id="newAttEmail" type="email" placeholder="jane@firm.com" />
+            </div>
+            <div class="sf-field">
+              <label class="sf-label" for="newAttRole">Role</label>
+              <select class="sf-input" id="newAttRole">
+                <option value="attorney">Attorney</option>
+                <option value="paralegal">Paralegal</option>
+              </select>
+            </div>
+          </div>
+          <div class="sf-save-row">
+            <button class="action-primary" id="saveAttorneyBtn" type="button">Add attorney</button>
+            <button class="action-ghost" id="cancelAttorneyBtn" type="button">Cancel</button>
+            <span class="sf-error-msg" id="attErrorMsg"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users -->
+      <div class="settings-section">
+        <p class="settings-section-title">Users</p>
+        <p style="color:var(--text2);font-size:0.85rem;margin:0 0 16px;line-height:1.5;">People who can log in and use First Day Filings for your firm. Admins can manage attorneys, invite users, and edit firm settings.</p>
+
+        <table class="attorneys-table" id="usersTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody"></tbody>
+        </table>
+
+        <div id="usersEmpty" hidden style="color:var(--text3);font-size:0.875rem;margin-bottom:16px;">No users yet.</div>
+
+        <button class="add-attorney-toggle" id="inviteUserToggle" type="button">+ Invite user</button>
+
+        <div class="add-attorney-panel" id="inviteUserPanel" hidden>
+          <div class="sf-field">
+            <label class="sf-label" for="inviteEmail">Email address</label>
+            <input class="sf-input" id="inviteEmail" type="email" placeholder="jane@yourfirm.com" />
+          </div>
+          <div class="sf-field">
+            <label class="sf-label" for="inviteRole">Role</label>
+            <select class="sf-input" id="inviteRole">
+              <option value="attorney">Attorney</option>
+              <option value="paralegal">Paralegal</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div class="sf-save-row">
+            <button class="action-primary" id="sendInviteBtn" type="button">Send invite</button>
+            <button class="action-ghost" id="cancelInviteBtn" type="button">Cancel</button>
+            <span class="sf-saved-msg" id="inviteSavedMsg">Invite sent ✓</span>
+            <span class="sf-error-msg" id="inviteErrorMsg"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- My Profile -->
+      <div class="settings-section">
+        <p class="settings-section-title">My Profile</p>
+
+        <div class="sf-field">
+          <label class="sf-label" for="sfMyName">Full name</label>
+          <input class="sf-input" id="sfMyName" type="text" />
+        </div>
+        <div class="sf-field">
+          <label class="sf-label">Role</label>
+          <input class="sf-input" id="sfMyRole" type="text" disabled />
+        </div>
+        <div class="sf-field">
+          <label class="sf-label">Email</label>
+          <input class="sf-input" id="sfMyEmail" type="text" disabled />
+        </div>
+
+        <div class="sf-save-row">
+          <button class="action-primary" id="saveProfileBtn" type="button">Save changes</button>
+          <span class="sf-saved-msg" id="profileSavedMsg">Saved ✓</span>
+          <span class="sf-error-msg" id="profileErrorMsg"></span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -247,12 +247,31 @@ function toTitleCase(value) {
     .join(" ");
 }
 
+// Active directory is ATTORNEY_DIRECTORY by default; swapped per-request when DB attorneys are provided.
+let _activeDirectory = ATTORNEY_DIRECTORY;
+
+function setAttorneyDirectory(attorneys) {
+  if (!Array.isArray(attorneys) || attorneys.length === 0) {
+    _activeDirectory = ATTORNEY_DIRECTORY;
+    return;
+  }
+  const dir = {};
+  for (const a of attorneys) {
+    dir[a.id] = {
+      displayName: a.full_name,
+      rosterLine: `${a.full_name} (Mo. #${a.bar_number})`,
+      email: a.email || "",
+    };
+  }
+  _activeDirectory = dir;
+}
+
 function resolveSigningAttorneyName(attorneyId) {
-  return ATTORNEY_DIRECTORY[attorneyId]?.displayName || normalizeValue(attorneyId);
+  return _activeDirectory[attorneyId]?.displayName || normalizeValue(attorneyId);
 }
 
 function resolveSigningAttorneyEmail(attorneyId) {
-  return ATTORNEY_DIRECTORY[attorneyId]?.email || "";
+  return _activeDirectory[attorneyId]?.email || "";
 }
 
 function buildAttorneyForLine(intake) {
@@ -267,14 +286,14 @@ function buildAnAttorneyForLine(intake) {
 
 function buildAttorneyRoster(selectedAttorneyIds) {
   return ensureAttorneySelection(selectedAttorneyIds)
-    .map((attorneyId) => ATTORNEY_DIRECTORY[attorneyId]?.rosterLine)
+    .map((attorneyId) => _activeDirectory[attorneyId]?.rosterLine)
     .filter(Boolean)
     .join("\n");
 }
 
 function buildAttorneyEmails(selectedAttorneyIds) {
   return ensureAttorneySelection(selectedAttorneyIds)
-    .map((attorneyId) => ATTORNEY_DIRECTORY[attorneyId]?.email)
+    .map((attorneyId) => _activeDirectory[attorneyId]?.email)
     .filter(Boolean)
     .join("\n");
 }
@@ -394,7 +413,7 @@ function buildCorpRepTopicsBlock(intake) {
 
 function ensureAttorneySelection(selectedAttorneyIds) {
   if (Array.isArray(selectedAttorneyIds) && selectedAttorneyIds.length > 0) {
-    return selectedAttorneyIds.filter((attorneyId) => ATTORNEY_DIRECTORY[attorneyId]);
+    return selectedAttorneyIds.filter((attorneyId) => _activeDirectory[attorneyId]);
   }
 
   return [];
@@ -1270,5 +1289,6 @@ module.exports = {
   buildMatterFolderName,
   buildTokenMap,
   normalizeValue,
+  setAttorneyDirectory,
   validateSelections,
 };

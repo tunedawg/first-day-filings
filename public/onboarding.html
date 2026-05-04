@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Set Up Your Firm — First Day Filings</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script>
+      window.__FDF_CONFIG__ = {
+        supabaseUrl: "{{SUPABASE_URL}}",
+        supabaseAnonKey: "{{SUPABASE_ANON_KEY}}",
+        siteUrl: "{{SITE_URL}}"
+      };
+    </script>
+    <script src="/onboarding.js" type="module"></script>
+    <style>
+      .onboarding-shell {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 60px 20px 80px;
+      }
+
+      .onboarding-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: var(--accent-hi);
+        margin-bottom: 48px;
+      }
+
+      .onboarding-brand svg { width: 26px; height: 26px; }
+
+      .onboarding-brand-name {
+        color: var(--text);
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .onboarding-card {
+        width: 100%;
+        max-width: 560px;
+      }
+
+      .onboarding-progress {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        margin-bottom: 40px;
+      }
+
+      .ob-step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+      }
+
+      .ob-step-dot {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        background: var(--surface);
+        color: var(--text3);
+        font: 700 0.75rem/24px var(--mono);
+        text-align: center;
+        flex-shrink: 0;
+        transition: all 0.2s;
+      }
+
+      .ob-step.active .ob-step-dot {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.18);
+      }
+
+      .ob-step.done .ob-step-dot {
+        border-color: var(--green);
+        background: var(--green);
+        color: #fff;
+      }
+
+      .ob-step-label {
+        font-size: 0.8rem;
+        color: var(--text3);
+        font-weight: 500;
+        transition: color 0.2s;
+      }
+
+      .ob-step.active .ob-step-label { color: var(--text); }
+      .ob-step.done .ob-step-label { color: var(--text2); }
+
+      .ob-connector {
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+        margin: 0 8px;
+      }
+
+      .onboarding-heading {
+        font-family: var(--serif);
+        font-size: 2rem;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+      }
+
+      .onboarding-sub {
+        color: var(--text2);
+        font-size: 0.9rem;
+        margin: 0 0 32px;
+        line-height: 1.5;
+      }
+
+      .ob-field {
+        margin-bottom: 18px;
+      }
+
+      .ob-label {
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 500;
+        color: var(--text2);
+        margin-bottom: 6px;
+      }
+
+      .ob-label .ob-optional {
+        color: var(--text3);
+        font-weight: 400;
+        margin-left: 4px;
+      }
+
+      .ob-input {
+        display: block;
+        width: 100%;
+        padding: 11px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        font: 0.9rem/1.4 var(--sans);
+        outline: none;
+        transition: border-color 0.15s;
+      }
+
+      .ob-input:focus { border-color: var(--accent); }
+      .ob-input::placeholder { color: var(--text3); }
+
+      select.ob-input {
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 36px;
+      }
+
+      .ob-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .ob-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 32px;
+      }
+
+      .ob-error {
+        margin-bottom: 16px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: rgba(248, 113, 113, 0.1);
+        border: 1px solid rgba(248, 113, 113, 0.25);
+        color: var(--error);
+        font-size: 0.85rem;
+      }
+
+      /* Attorney list */
+      .attorney-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .attorney-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .attorney-card-name {
+        font-weight: 500;
+        font-size: 0.9rem;
+      }
+
+      .attorney-card-meta {
+        color: var(--text2);
+        font-size: 0.8rem;
+        margin-top: 2px;
+      }
+
+      .attorney-remove {
+        background: none;
+        border: none;
+        color: var(--text3);
+        font-size: 1.1rem;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 6px;
+        flex-shrink: 0;
+        transition: color 0.15s;
+      }
+
+      .attorney-remove:hover { color: var(--error); }
+
+      .add-attorney-form {
+        background: rgba(124, 58, 237, 0.04);
+        border: 1px dashed rgba(124, 58, 237, 0.25);
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 8px;
+      }
+
+      .add-attorney-form .ob-field { margin-bottom: 12px; }
+      .add-attorney-form .ob-field:last-of-type { margin-bottom: 0; }
+
+      .add-attorney-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .ob-add-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px dashed rgba(124, 58, 237, 0.35);
+        background: rgba(124, 58, 237, 0.06);
+        color: var(--accent-hi);
+        font: 500 0.85rem/1 var(--sans);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+
+      .ob-add-btn:hover {
+        border-color: rgba(124, 58, 237, 0.6);
+        background: rgba(124, 58, 237, 0.12);
+      }
+
+      /* Done step */
+      .done-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: rgba(34, 197, 94, 0.12);
+        border: 2px solid rgba(34, 197, 94, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+      }
+
+      .done-icon svg { width: 32px; height: 32px; color: var(--success); }
+
+      .done-heading {
+        font-family: var(--serif);
+        font-size: 2rem;
+        font-weight: 400;
+        text-align: center;
+        margin: 0 0 10px;
+      }
+
+      .done-sub {
+        color: var(--text2);
+        text-align: center;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin: 0 0 36px;
+      }
+
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div class="onboarding-shell">
+      <a href="/" class="onboarding-brand">
+        <svg viewBox="0 0 32 32" fill="none">
+          <path d="M9 5.5h10.5c3.6 0 5.5 1.8 5.5 5.2v13.1c0 2.9-1.8 4.7-4.8 4.7H9.8C6.8 28.5 5 26.7 5 23.8V10.2c0-3 1.9-4.7 4-4.7Z" fill="currentColor" opacity="0.18"/>
+          <path d="M12 4.5h8.8c3.1 0 4.7 1.6 4.7 4.6v12.4c0 3.3-1.8 5-5 5H11.2c-3 0-4.7-1.7-4.7-4.8V9.1c0-3 1.7-4.6 4.6-4.6Z" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M11 11h10M11 16h10M11 21h6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M20.5 4.8v3.7c0 1 .5 1.5 1.5 1.5h3.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <span class="onboarding-brand-name">First Day Filings</span>
+      </a>
+
+      <div class="onboarding-card">
+
+        <!-- Progress indicator -->
+        <div class="onboarding-progress" id="obProgress">
+          <div class="ob-step active" id="obDot1">
+            <div class="ob-step-dot">1</div>
+            <span class="ob-step-label">Your Firm</span>
+          </div>
+          <div class="ob-connector"></div>
+          <div class="ob-step" id="obDot2">
+            <div class="ob-step-dot">2</div>
+            <span class="ob-step-label">Attorneys</span>
+          </div>
+          <div class="ob-connector"></div>
+          <div class="ob-step" id="obDot3">
+            <div class="ob-step-dot">3</div>
+            <span class="ob-step-label">Done</span>
+          </div>
+        </div>
+
+        <!-- Step 1: Firm details -->
+        <div id="obStep1">
+          <h1 class="onboarding-heading">Set up your firm</h1>
+          <p class="onboarding-sub">This takes about two minutes. You can update everything later in Firm Settings.</p>
+
+          <div id="obStep1Error" class="ob-error" hidden></div>
+
+          <div class="ob-field">
+            <label class="ob-label" for="firmName">Firm name</label>
+            <input class="ob-input" id="firmName" type="text" placeholder="Keenan &amp; Bhatia, LLC" autocomplete="organization" />
+          </div>
+
+          <div class="ob-row">
+            <div class="ob-field">
+              <label class="ob-label" for="firmPhone">Phone <span class="ob-optional">(optional)</span></label>
+              <input class="ob-input" id="firmPhone" type="tel" placeholder="(314) 555-0100" />
+            </div>
+            <div class="ob-field">
+              <label class="ob-label" for="firmState">State</label>
+              <select class="ob-input" id="firmState">
+                <option value="Missouri" selected>Missouri</option>
+                <option value="Illinois">Illinois</option>
+                <option value="Kansas">Kansas</option>
+                <option value="Arkansas">Arkansas</option>
+                <option value="Tennessee">Tennessee</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="ob-field">
+            <label class="ob-label" for="firmAddress">Address <span class="ob-optional">(optional)</span></label>
+            <input class="ob-input" id="firmAddress" type="text" placeholder="1234 Main St, St. Louis, MO 63101" />
+          </div>
+
+          <div class="ob-field">
+            <label class="ob-label" for="yourName">Your name</label>
+            <input class="ob-input" id="yourName" type="text" placeholder="Jane Smith" autocomplete="name" />
+          </div>
+
+          <div class="ob-actions">
+            <button class="action-primary" id="obStep1Next" type="button">Continue →</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Attorneys -->
+        <div id="obStep2" hidden>
+          <h1 class="onboarding-heading">Add your attorneys</h1>
+          <p class="onboarding-sub">Add anyone who will be signing documents. You can add more later in Firm Settings.</p>
+
+          <div id="obStep2Error" class="ob-error" hidden></div>
+
+          <div class="attorney-list" id="attorneyList"></div>
+
+          <div class="add-attorney-form" id="addAttorneyForm">
+            <div class="ob-row">
+              <div class="ob-field">
+                <label class="ob-label" for="attName">Full name</label>
+                <input class="ob-input" id="attName" type="text" placeholder="Jane Smith" />
+              </div>
+              <div class="ob-field">
+                <label class="ob-label" for="attBar">Bar number</label>
+                <input class="ob-input" id="attBar" type="text" placeholder="MO12345" />
+              </div>
+            </div>
+            <div class="ob-row">
+              <div class="ob-field">
+                <label class="ob-label" for="attEmail">Email <span class="ob-optional">(optional)</span></label>
+                <input class="ob-input" id="attEmail" type="email" placeholder="jane@firm.com" />
+              </div>
+              <div class="ob-field">
+                <label class="ob-label" for="attRole">Role</label>
+                <select class="ob-input" id="attRole">
+                  <option value="attorney">Attorney</option>
+                  <option value="paralegal">Paralegal</option>
+                </select>
+              </div>
+            </div>
+            <div class="add-attorney-actions">
+              <button class="action-secondary" id="addAttorneyBtn" type="button">Add attorney</button>
+            </div>
+          </div>
+
+          <div class="ob-actions">
+            <button class="action-ghost" id="obStep2Back" type="button">← Back</button>
+            <button class="action-primary" id="obStep2Next" type="button">Finish Setup</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Done -->
+        <div id="obStep3" hidden>
+          <div class="done-icon">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M7 16l6 6 12-12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h1 class="done-heading">You're all set!</h1>
+          <p class="done-sub">Your firm is ready. Head to the dashboard to start your first case.</p>
+          <div style="text-align:center;">
+            <a href="/dashboard" class="action-primary" style="display:inline-block;text-decoration:none;">Go to Dashboard →</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </body>
+</html>

@@ -207,6 +207,16 @@ body {
   border-color: rgba(248, 113, 113, 0.4);
 }
 
+.topbar-user {
+  font-size: 0.82rem;
+  color: var(--text2);
+  padding: 0 4px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .step-head h2 {
   margin: 0 0 8px;
   font-family: var(--serif);
@@ -996,6 +1006,132 @@ body {
   transition: background 0.15s;
 }
 .action-danger:hover { background: #991b1b; }
+
+/* ── How-to modal ── */
+.how-to-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.how-to-backdrop[hidden] { display: none !important; }
+
+.how-to-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.how-to-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 28px 0;
+}
+
+.how-to-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.5rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.how-to-close {
+  background: none;
+  border: none;
+  color: var(--text2);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+.how-to-close:hover { color: var(--text); }
+
+.how-to-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 28px;
+}
+
+.how-to-step {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.how-to-step-num {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font: 700 0.85rem/32px var(--mono);
+  text-align: center;
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15);
+}
+
+.how-to-step-body h3 {
+  margin: 4px 0 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.how-to-step-body p {
+  margin: 0;
+  color: var(--text2);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.how-to-tips {
+  margin: 0 28px;
+  padding: 16px 18px;
+  background: rgba(124, 58, 237, 0.06);
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  border-radius: 10px;
+}
+
+.how-to-tips-title {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-hi);
+}
+
+.how-to-tips ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text2);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.how-to-tips li + li { margin-top: 4px; }
+
+.how-to-footer {
+  padding: 24px 28px;
+  display: flex;
+  justify-content: flex-end;
+}
 
 /* ── Responsive ── */
 @media (max-width: 640px) {

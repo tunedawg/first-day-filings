@@ -1,3 +1,6 @@
+import { init as initHowTo, open as openHowTo } from "/how-to.js";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const questionnaireRoot = document.querySelector("#questionnaireRoot");
 const generateButtons = Array.from(document.querySelectorAll("#generateButton"));
 const validateTemplatesButton = document.querySelector("#validateTemplatesButton");
@@ -46,6 +49,128 @@ let authSession = null;
 let generationProgressTimer = null;
 const DRAFT_STORAGE_KEY = "first-day-filings:draft:v1";
 
+// ── Supabase case persistence (optional — gracefully no-ops if not logged in) ──
+let _sb = null;
+let _sbProfile = null;
+let _activeCaseId = null;
+let _saveCaseTimer = null;
+
+let _orgAttorneys = [];
+
+async function initCasePersistence(sbClient, session) {
+  // Accept pre-initialized client+session from auth gate, or init fresh.
+  if (sbClient && session) {
+    _sb = sbClient;
+  } else {
+    const cfg = window.__FDF_CONFIG__;
+    if (!cfg?.supabaseUrl || !cfg?.supabaseAnonKey) return;
+    _sb = createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+    const { data: { session: s } } = await _sb.auth.getSession();
+    if (!s) return;
+    session = s;
+  }
+
+  const { data: profile } = await _sb.from("profiles").select("id, organization_id, full_name, role").eq("id", session.user.id).maybeSingle();
+  if (!profile?.organization_id) return;
+  _sbProfile = profile;
+
+  // Fetch org attorneys for questionnaire dropdown and generate request.
+  const token = session.access_token;
+  const res = await fetch("/api/attorneys", { headers: { Authorization: `Bearer ${token}` } });
+  if (res.ok) {
+    const data = await res.json();
+    if (data.attorneys?.length) {
+      _orgAttorneys = data.attorneys;
+      patchAttorneyOptions(data.attorneys);
+    }
+  }
+}
+
+function patchAttorneyOptions(attorneys) {
+  if (!questionnaire) return;
+  const section = questionnaire.sections.find((s) => s.id === "attorneys");
+  if (!section) return;
+
+  const signingField = section.fields.find((f) => f.id === "signingAttorney");
+  const rosterField = section.fields.find((f) => f.id === "includedAttorneys");
+
+  if (signingField) {
+    signingField.options = attorneys.map((a) => ({ value: a.id, label: a.full_name }));
+  }
+
+  if (rosterField) {
+    rosterField.options = attorneys.map((a) => ({
+      value: a.id,
+      label: a.full_name,
+      description: `Mo. #${a.bar_number}${a.email ? " · " + a.email : ""}`,
+      checked: true,
+    }));
+  }
+
+  // Re-render the attorneys section with updated options.
+  if (questionnaire) renderQuestionnaire(questionnaire);
+}
+
+async function ensureCase() {
+  if (!_sb || !_sbProfile) return;
+  if (_activeCaseId) return;
+  const intake = collectIntake();
+  const { data, error } = await _sb.from("cases").insert({
+    organization_id: _sbProfile.organization_id,
+    created_by: _sbProfile.id,
+    petitioner_name: intake.plaintiffName || null,
+    respondent_name: intake.defendantName || null,
+    intake_fields: intake,
+    status: "draft",
+  }).select("id").single();
+  if (!error && data) _activeCaseId = data.id;
+}
+
+function scheduleCaseSave() {
+  if (!_sb || !_sbProfile) return;
+  clearTimeout(_saveCaseTimer);
+  _saveCaseTimer = setTimeout(async () => {
+    if (!_activeCaseId) { await ensureCase(); return; }
+    const intake = collectIntake();
+    await _sb.from("cases").update({
+      petitioner_name: intake.plaintiffName || null,
+      respondent_name: intake.defendantName || null,
+      intake_fields: intake,
+    }).eq("id", _activeCaseId);
+  }, 2000);
+}
+
+async function markCaseGenerated(folderUrl) {
+  if (!_sb || !_activeCaseId) return;
+  await _sb.from("cases").update({ status: "generated", drive_folder_url: folderUrl }).eq("id", _activeCaseId);
+}
+
+function logEvent(action, metadata = {}) {
+  if (!_sb || !_sbProfile) return;
+  _sb.from("events").insert({
+    case_id: _activeCaseId || null,
+    user_id: _sbProfile.id,
+    action,
+    metadata,
+  }).then(() => {});
+}
+
+async function uploadPetitionFiles(files) {
+  if (!_sb || !_sbProfile) return;
+  // Ensure the case exists before uploading.
+  if (!_activeCaseId) await ensureCase();
+  if (!_activeCaseId) return;
+
+  const orgId = _sbProfile.organization_id;
+  for (const file of files) {
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const storagePath = `${orgId}/${_activeCaseId}/${safeName}`;
+    const { error: uploadErr } = await _sb.storage.from("petition-uploads").upload(storagePath, file, { upsert: true });
+    if (uploadErr) continue;
+    await _sb.from("uploads").insert({ case_id: _activeCaseId, storage_path: storagePath, original_filename: file.name });
+  }
+}
+
 function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -74,6 +199,7 @@ function saveDraft() {
   };
 
   window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+  scheduleCaseSave();
 }
 
 function setDraftUiValue(key, value) {
@@ -1289,7 +1415,9 @@ async function loadData() {
   questionnaire = await questionnaireResponse.json();
   templates = asArray((await templatesResponse.json()).documents);
   renderTemplateSelection();
-  renderQuestionnaire();
+  // Patch attorney options now if already fetched, otherwise patchAttorneyOptions will re-render.
+  if (_orgAttorneys.length) patchAttorneyOptions(_orgAttorneys);
+  else renderQuestionnaire();
   await loadAuthSession();
 }
 
@@ -1335,8 +1463,13 @@ if (extractButton) {
       setExtractionStatus("Extracting case information from your document…", "busy");
       extractionSummaryNode.hidden = true;
       extractionStatusNode?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const filesToUpload = Array.from(sourceFilesInput?.files || []);
       await extractFromFiles();
       setExtractionStatus("");
+      ensureCase().then(() => {
+        logEvent("extraction_complete", { fileCount: filesToUpload.length });
+        uploadPetitionFiles(filesToUpload);
+      });
     } catch (error) {
       extractedPayload = null;
       renderExtractionResults(null);
@@ -1369,6 +1502,7 @@ if (applyAndReviewButton) {
 if (skipToManualButton) {
   skipToManualButton.addEventListener("click", () => {
     showStepDetails();
+    ensureCase();
   });
 }
 
@@ -1474,6 +1608,7 @@ async function handleGenerateClick() {
       body: JSON.stringify({
         intake: collectIntake(),
         selectedTemplateIds: collectSelectedTemplates(),
+        attorneys: _orgAttorneys,
       }),
     });
 
@@ -1490,6 +1625,8 @@ async function handleGenerateClick() {
     setStatus("Documents created successfully.", "success");
     renderGenerationResults(payload);
     window.setTimeout(() => resultsNode?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+    markCaseGenerated(payload.folder?.url || null);
+    logEvent("documents_generated", { folderUrl: payload.folder?.url, documentCount: payload.documents?.length });
   } catch (error) {
     stopGenerationProgress(100);
     setStatus(error.message, "error");
@@ -1583,3 +1720,25 @@ loadData()
     setStatus(authSession?.error || "Google OAuth is not configured.", "error");
   })
   .catch((error) => setStatus(error.message, "error"));
+
+// Auth gate — redirect to /login if Supabase is configured and no session.
+(async () => {
+  const cfg = window.__FDF_CONFIG__;
+  if (!cfg?.supabaseUrl || !cfg?.supabaseAnonKey) return;
+  const sb = createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = "/login"; return; }
+
+  // How-to modal (needs session to persist dismissed state).
+  initHowTo({ supabase: sb, userId: session.user.id });
+  document.getElementById("helpButton")?.addEventListener("click", openHowTo);
+
+  // Case persistence + attorney options (reuses same client).
+  await initCasePersistence(sb, session);
+})();
+
+// Fallback: if Supabase not configured, still init how-to without persistence.
+if (!window.__FDF_CONFIG__?.supabaseUrl) {
+  initHowTo({});
+  document.getElementById("helpButton")?.addEventListener("click", openHowTo);
+}

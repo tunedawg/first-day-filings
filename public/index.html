@@ -25,6 +25,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
+    <script>
+      window.__FDF_CONFIG__ = {
+        supabaseUrl: "{{SUPABASE_URL}}",
+        supabaseAnonKey: "{{SUPABASE_ANON_KEY}}",
+        siteUrl: "{{SITE_URL}}"
+      };
+    </script>
     <script src="/app.js" type="module"></script>
   </head>
   <body>
@@ -41,6 +48,7 @@
         <span class="brand-name">First Day Filings</span>
       </a>
       <div class="topbar-right">
+        <button id="helpButton" class="topbar-clear-btn" type="button" title="How it works" aria-label="How it works">?</button>
         <button id="clearAllButton" class="topbar-clear-btn" type="button">Clear all fields</button>
         <button id="googleLoginButtonTop" class="auth-chip auth-chip-login" type="button">
           <span class="auth-chip-icon" aria-hidden="true">
