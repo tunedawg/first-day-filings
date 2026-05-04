@@ -18,9 +18,6 @@ const templateSelectionRoot = document.querySelector("#templateSelectionRoot");
 const authSummary = document.querySelector("#authSummary");
 const googleLoginButton = document.querySelector("#googleLoginButton");
 const googleLogoutButton = document.querySelector("#googleLogoutButton");
-const googleLoginButtonTop = document.querySelector("#googleLoginButtonTop");
-const googleLogoutButtonTop = document.querySelector("#googleLogoutButtonTop");
-const googleLoginButtonTopLabel = document.querySelector("#googleLoginButtonTopLabel");
 
 const signInNotice = document.querySelector("#signInNotice");
 const clearAllButton = document.querySelector("#clearAllButton");
@@ -357,31 +354,24 @@ function updateAuthUi() {
     if (authSummary) authSummary.textContent = "Google OAuth not configured";
     if (googleLoginButton) googleLoginButton.hidden = true;
     if (googleLogoutButton) googleLogoutButton.hidden = true;
-    if (googleLoginButtonTop) googleLoginButtonTop.hidden = true;
-    if (googleLogoutButtonTop) googleLogoutButtonTop.hidden = true;
     setGenerateButtonsDisabled(true);
     setTemplateValidationDisabled(true);
     return;
   }
 
   if (authSession.signedIn) {
-    if (authSummary) authSummary.textContent = `Signed in as ${authSession.user?.email || authSession.user?.name || "Google user"}`;
+    if (authSummary) authSummary.textContent = `Connected as ${authSession.user?.email || authSession.user?.name || "Google user"}`;
     if (googleLoginButton) googleLoginButton.hidden = true;
     if (googleLogoutButton) googleLogoutButton.hidden = false;
-    if (googleLoginButtonTop) googleLoginButtonTop.hidden = true;
-    if (googleLogoutButtonTop) googleLogoutButtonTop.hidden = false;
     if (signInNotice) signInNotice.hidden = true;
     setGenerateButtonsDisabled(false);
     setTemplateValidationDisabled(false);
     return;
   }
 
-  if (authSummary) authSummary.textContent = "Sign in with Google to generate docs";
+  if (authSummary) authSummary.textContent = "Connect Google Drive to generate documents";
   if (googleLoginButton) googleLoginButton.hidden = false;
   if (googleLogoutButton) googleLogoutButton.hidden = true;
-  if (googleLoginButtonTop) googleLoginButtonTop.hidden = false;
-  if (googleLogoutButtonTop) googleLogoutButtonTop.hidden = true;
-  if (googleLoginButtonTopLabel) googleLoginButtonTopLabel.textContent = "Connect Google Drive";
   if (signInNotice) signInNotice.hidden = false;
   setGenerateButtonsDisabled(true);
   setTemplateValidationDisabled(true);
@@ -1523,13 +1513,6 @@ if (googleLoginButton) {
   });
 }
 
-if (googleLoginButtonTop) {
-  googleLoginButtonTop.addEventListener("click", () => {
-    saveDraft();
-    window.location.href = "/auth/google";
-  });
-}
-
 async function signOutGoogle() {
   const response = await fetch("/auth/logout", {
     method: "POST",
@@ -1548,10 +1531,6 @@ async function signOutGoogle() {
 
 if (googleLogoutButton) {
   googleLogoutButton.addEventListener("click", signOutGoogle);
-}
-
-if (googleLogoutButtonTop) {
-  googleLogoutButtonTop.addEventListener("click", signOutGoogle);
 }
 
 if (clearAllButton) {
@@ -1744,6 +1723,70 @@ loadData()
   })
   .catch((error) => setStatus(error.message, "error"));
 
+// ── Main-page user bubble ──
+
+function renderMainUserBubble(sb, session, profile) {
+  const bubble = document.getElementById("userBubble");
+  if (!bubble) return;
+
+  const displayName = profile?.full_name || session.user?.user_metadata?.full_name || session.user?.email || "Account";
+  const initials = displayName.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const isAdmin = profile?.role === "admin";
+
+  document.getElementById("userBubbleAvatar").textContent = initials;
+  document.getElementById("userBubbleName").textContent = displayName;
+  if (!isAdmin) document.getElementById("userBubbleSettingsLink")?.remove();
+
+  bubble.hidden = false;
+
+  const trigger = document.getElementById("userBubbleTrigger");
+  const dropdown = document.getElementById("userBubbleDropdown");
+
+  trigger.addEventListener("click", () => {
+    const open = !dropdown.hidden;
+    dropdown.hidden = open;
+    trigger.setAttribute("aria-expanded", String(!open));
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!bubble.contains(e.target)) {
+      dropdown.hidden = true;
+      trigger.setAttribute("aria-expanded", "false");
+    }
+  }, { capture: true });
+
+  document.getElementById("userBubbleSignOut")?.addEventListener("click", async () => {
+    await sb.auth.signOut();
+    window.location.href = "/login";
+  });
+}
+
+function applyEmailOnlyMode() {
+  // Hide Google Docs tab and auto-select PDF.
+  document.querySelectorAll(".format-tab").forEach((tab) => {
+    if (tab.dataset.format === "docs") {
+      tab.hidden = true;
+    }
+    if (tab.dataset.format === "pdf") {
+      tab.classList.add("is-active");
+      tab.setAttribute("aria-selected", "true");
+    } else {
+      tab.classList.remove("is-active");
+      tab.setAttribute("aria-selected", "false");
+    }
+  });
+  _generateFormat = "pdf";
+  generateButtons.forEach((btn) => { btn.textContent = FORMAT_LABELS.pdf.button; });
+
+  // Hide the Drive auth row entirely.
+  const authRow = document.querySelector(".generate-auth-row");
+  if (authRow) authRow.hidden = true;
+  if (signInNotice) signInNotice.hidden = true;
+
+  // Enable generate buttons (they'll need Google Drive for PDF/Word too,
+  // but we leave that check in handleGenerateClick for now).
+}
+
 // Auth gate — redirect to /login if Supabase is configured and no session.
 (async () => {
   const cfg = window.__FDF_CONFIG__;
@@ -1758,6 +1801,15 @@ loadData()
 
   // Case persistence + attorney options (reuses same client).
   await initCasePersistence(sb, session);
+
+  // Populate the user bubble in the topbar.
+  renderMainUserBubble(sb, session, _sbProfile);
+
+  // Email/password users can't generate Google Docs — hide that tab.
+  const provider = session.user?.app_metadata?.provider;
+  if (provider && provider !== "google") {
+    applyEmailOnlyMode();
+  }
 })();
 
 // Fallback: if Supabase not configured, still init how-to without persistence.

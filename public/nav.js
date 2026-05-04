@@ -34,6 +34,7 @@ export function renderNav(profile, activePage = "") {
 
   const isAdmin = profile.role === "admin";
   const displayName = profile.full_name || "Account";
+  const initials = displayName.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
   nav.innerHTML = `
     <a href="/dashboard" class="brand">
@@ -49,11 +50,38 @@ export function renderNav(profile, activePage = "") {
     </a>
     <div class="topbar-right">
       <button id="navHelpBtn" class="topbar-clear-btn" type="button" title="Help" aria-label="Help">?</button>
-      ${isAdmin ? `<a href="/settings/firm" class="topbar-clear-btn" style="text-decoration:none;">Firm Settings</a>` : ""}
-      <span class="topbar-user">${escapeHtml(displayName)}</span>
-      <button id="navSignOutBtn" class="auth-chip auth-chip-logout" type="button">Sign out</button>
+      <div class="account-bubble" id="accountBubble">
+        <button class="account-trigger" id="accountTrigger" type="button" aria-haspopup="true" aria-expanded="false">
+          <span class="account-avatar">${escapeHtml(initials)}</span>
+          <span class="account-name">${escapeHtml(displayName)}</span>
+          <svg class="account-chevron" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <div class="account-dropdown" id="accountDropdown" hidden>
+          ${isAdmin ? `<a href="/settings/firm" class="account-dropdown-item">Firm Settings</a>` : ""}
+          <a href="/dashboard" class="account-dropdown-item">Dashboard</a>
+          <button id="navSignOutBtn" class="account-dropdown-item account-dropdown-signout" type="button">Sign out</button>
+        </div>
+      </div>
     </div>
   `;
+
+  const trigger = document.getElementById("accountTrigger");
+  const dropdown = document.getElementById("accountDropdown");
+
+  trigger.addEventListener("click", () => {
+    const open = !dropdown.hidden;
+    dropdown.hidden = open;
+    trigger.setAttribute("aria-expanded", String(!open));
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!document.getElementById("accountBubble")?.contains(e.target)) {
+      dropdown.hidden = true;
+      trigger.setAttribute("aria-expanded", "false");
+    }
+  }, { capture: true });
 
   document.getElementById("navSignOutBtn").addEventListener("click", async () => {
     await supabase.auth.signOut();

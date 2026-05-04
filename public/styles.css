@@ -217,6 +217,97 @@ body {
   white-space: nowrap;
 }
 
+/* ── Account bubble & dropdown ── */
+.account-bubble {
+  position: relative;
+}
+
+.account-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+  font: inherit;
+}
+
+.account-trigger:hover { background: rgba(255, 255, 255, 0.06); }
+
+.account-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font: 700 0.72rem/30px var(--sans);
+  text-align: center;
+  flex-shrink: 0;
+  letter-spacing: 0;
+}
+
+.account-name {
+  font-size: 0.84rem;
+  color: var(--text2);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--text3);
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.account-trigger[aria-expanded="true"] .account-chevron { transform: rotate(180deg); }
+
+.account-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  z-index: 200;
+}
+
+.account-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  color: var(--text2);
+  font: 0.87rem/1.2 var(--sans);
+  text-decoration: none;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.account-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+
+.account-dropdown-signout {
+  border-top: 1px solid var(--border);
+  color: var(--error);
+}
+
+.account-dropdown-signout:hover { background: rgba(248, 113, 113, 0.06); }
+
 .step-head h2 {
   margin: 0 0 8px;
   font-family: var(--serif);

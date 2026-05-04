@@ -70,6 +70,8 @@ function disableFirmFields() {
 
 // ── Attorneys ─────────────────────────────────────────────────────────────────
 
+let _attorneys = [];
+
 async function loadAttorneys() {
   const { data } = await supabase
     .from("attorneys")
@@ -78,10 +80,11 @@ async function loadAttorneys() {
     .eq("is_active", true)
     .order("full_name");
 
+  _attorneys = data || [];
   const tbody = document.getElementById("attorneysTableBody");
   const emptyEl = document.getElementById("attorneysEmpty");
 
-  if (!data?.length) {
+  if (!_attorneys.length) {
     document.getElementById("attorneysTable").hidden = true;
     emptyEl.hidden = false;
     return;
@@ -90,15 +93,18 @@ async function loadAttorneys() {
   document.getElementById("attorneysTable").hidden = false;
   emptyEl.hidden = true;
 
-  tbody.innerHTML = data.map((a) => `
-    <tr>
+  tbody.innerHTML = _attorneys.map((a) => `
+    <tr data-attorney-id="${esc(a.id)}">
       <td>
         <div class="att-name">${esc(a.full_name)}</div>
         <div class="att-meta">${esc(a.bar_number)}${a.email ? " · " + esc(a.email) : ""}</div>
       </td>
       <td><span class="att-role-badge">${esc(a.role)}</span></td>
-      <td style="text-align:right">
-        ${isAdmin() ? `<button class="att-deactivate-btn" data-id="${esc(a.id)}">Deactivate</button>` : ""}
+      <td style="text-align:right;white-space:nowrap;">
+        ${isAdmin() ? `
+          <button class="att-edit-btn" data-id="${esc(a.id)}" style="margin-right:6px;">Edit</button>
+          <button class="att-deactivate-btn" data-id="${esc(a.id)}">Deactivate</button>
+        ` : ""}
       </td>
     </tr>
   `).join("");
@@ -106,6 +112,76 @@ async function loadAttorneys() {
   tbody.querySelectorAll(".att-deactivate-btn").forEach((btn) => {
     btn.addEventListener("click", () => deactivateAttorney(btn.dataset.id));
   });
+
+  tbody.querySelectorAll(".att-edit-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const attorney = _attorneys.find((a) => a.id === btn.dataset.id);
+      if (attorney) enterAttorneyEditMode(btn.closest("tr"), attorney);
+    });
+  });
+}
+
+function enterAttorneyEditMode(row, attorney) {
+  row.innerHTML = `
+    <td colspan="3" class="att-edit-cell">
+      <div class="att-edit-form">
+        <div class="sf-row">
+          <div class="sf-field">
+            <label class="sf-label">Full name</label>
+            <input class="sf-input att-edit-name" type="text" value="${esc(attorney.full_name)}" />
+          </div>
+          <div class="sf-field">
+            <label class="sf-label">Bar number</label>
+            <input class="sf-input att-edit-bar" type="text" value="${esc(attorney.bar_number)}" placeholder="12345" />
+          </div>
+        </div>
+        <div class="sf-row">
+          <div class="sf-field">
+            <label class="sf-label">Email</label>
+            <input class="sf-input att-edit-email" type="email" value="${esc(attorney.email || "")}" placeholder="jane@firm.com" />
+          </div>
+          <div class="sf-field">
+            <label class="sf-label">Role</label>
+            <select class="sf-input att-edit-role">
+              <option value="attorney" ${attorney.role === "attorney" ? "selected" : ""}>Attorney</option>
+              <option value="paralegal" ${attorney.role === "paralegal" ? "selected" : ""}>Paralegal</option>
+            </select>
+          </div>
+        </div>
+        <div class="sf-save-row" style="margin-top:12px;">
+          <button class="action-primary att-save-edit-btn" type="button">Save</button>
+          <button class="action-ghost att-cancel-edit-btn" type="button">Cancel</button>
+          <span class="sf-error-msg att-edit-error"></span>
+        </div>
+      </div>
+    </td>
+  `;
+
+  row.querySelector(".att-save-edit-btn").addEventListener("click", () => saveAttorneyEdit(row, attorney.id));
+  row.querySelector(".att-cancel-edit-btn").addEventListener("click", () => loadAttorneys());
+}
+
+async function saveAttorneyEdit(row, id) {
+  const name = row.querySelector(".att-edit-name").value.trim();
+  const bar = row.querySelector(".att-edit-bar").value.trim();
+  const email = row.querySelector(".att-edit-email").value.trim();
+  const role = row.querySelector(".att-edit-role").value;
+  const errorEl = row.querySelector(".att-edit-error");
+
+  if (!name || !bar) { errorEl.textContent = "Name and bar number are required."; return; }
+
+  const btn = row.querySelector(".att-save-edit-btn");
+  btn.disabled = true;
+
+  const { error } = await supabase.from("attorneys").update({
+    full_name: name,
+    bar_number: bar,
+    email: email || null,
+    role,
+  }).eq("id", id).eq("organization_id", profile.organization_id);
+
+  if (error) { btn.disabled = false; errorEl.textContent = error.message; return; }
+  await loadAttorneys();
 }
 
 async function deactivateAttorney(id) {

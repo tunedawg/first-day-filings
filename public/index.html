@@ -50,17 +50,20 @@
       <div class="topbar-right">
         <button id="helpButton" class="topbar-clear-btn" type="button" title="How it works" aria-label="How it works">?</button>
         <button id="clearAllButton" class="topbar-clear-btn" type="button">Clear all fields</button>
-        <button id="googleLoginButtonTop" class="auth-chip auth-chip-login" type="button">
-          <span class="auth-chip-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M12 5.2 5.6 8.8v6.4L12 18.8l6.4-3.6V8.8L12 5.2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-              <path d="M5.6 8.8 12 12.4l6.4-3.6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-              <path d="M12 12.4v6.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <div class="account-bubble" id="userBubble" hidden>
+          <button class="account-trigger" id="userBubbleTrigger" type="button" aria-haspopup="true" aria-expanded="false">
+            <span class="account-avatar" id="userBubbleAvatar"></span>
+            <span class="account-name" id="userBubbleName"></span>
+            <svg class="account-chevron" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
-          </span>
-          <span id="googleLoginButtonTopLabel">Connect Google Drive</span>
-        </button>
-        <button id="googleLogoutButtonTop" class="auth-chip auth-chip-logout" type="button" hidden>Sign out</button>
+          </button>
+          <div class="account-dropdown" id="userBubbleDropdown" hidden>
+            <a href="/dashboard" class="account-dropdown-item">Dashboard</a>
+            <a href="/settings/firm" class="account-dropdown-item" id="userBubbleSettingsLink">Firm Settings</a>
+            <button id="userBubbleSignOut" class="account-dropdown-item account-dropdown-signout" type="button">Sign out</button>
+          </div>
+        </div>
       </div>
     </nav>
 
