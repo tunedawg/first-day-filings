@@ -9,7 +9,27 @@ const emailForm = document.getElementById("emailForm");
 const resetForm = document.getElementById("passwordResetForm");
 const emailInput = document.getElementById("emailInput");
 const passwordInput = document.getElementById("passwordInput");
+const confirmPasswordInput = document.getElementById("confirmPasswordInput");
+const confirmPasswordField = document.getElementById("confirmPasswordField");
 const resetEmailInput = document.getElementById("resetEmailInput");
+
+// ── Eye / password reveal ──────────────────────────────────────────────────────
+
+const EYE_OPEN = `<svg viewBox="0 0 20 20" fill="none" width="18" height="18" aria-hidden="true"><path d="M2 10s3.3-6 8-6 8 6 8 6-3.3 6-8 6-8-6-8-6z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.4"/></svg>`;
+const EYE_CLOSED = `<svg viewBox="0 0 20 20" fill="none" width="18" height="18" aria-hidden="true"><path d="M2 2l16 16" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M6.7 6.7A5.6 5.6 0 0 0 4 10s3.3 6 8 6c1.5 0 2.9-.5 4-1.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M10 4c4.7 0 8 6 8 6a12.3 12.3 0 0 1-2.3 3.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`;
+
+function initPasswordToggle(inputEl, btnEl) {
+  btnEl.innerHTML = EYE_OPEN;
+  btnEl.addEventListener("click", () => {
+    const isPassword = inputEl.type === "password";
+    inputEl.type = isPassword ? "text" : "password";
+    btnEl.innerHTML = isPassword ? EYE_CLOSED : EYE_OPEN;
+    btnEl.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+  });
+}
+
+initPasswordToggle(passwordInput, document.getElementById("passwordToggle"));
+initPasswordToggle(confirmPasswordInput, document.getElementById("confirmPasswordToggle"));
 
 function showError(msg) {
   errorEl.textContent = msg;
@@ -60,18 +80,21 @@ document.getElementById("googleSignInBtn").addEventListener("click", async () =>
 let isSignUp = false;
 const submitBtn = document.getElementById("emailSignInBtn");
 const toggleLink = document.getElementById("toggleSignUpLink");
-const passwordLabel = document.querySelector('label[for="passwordInput"]');
+const forgotLink = document.getElementById("forgotPasswordLink");
+const passwordLabel = document.getElementById("passwordLabel");
 
 toggleLink.addEventListener("click", () => {
   isSignUp = !isSignUp;
   submitBtn.textContent = isSignUp ? "Create account" : "Sign in";
   toggleLink.textContent = isSignUp ? "Sign in instead" : "Create one";
   passwordInput.autocomplete = isSignUp ? "new-password" : "current-password";
-  document.querySelector('label[for="passwordInput"]').textContent = isSignUp ? "Choose a password" : "Password";
+  passwordLabel.textContent = isSignUp ? "Choose a password" : "Password";
+  confirmPasswordField.hidden = !isSignUp;
+  forgotLink.hidden = isSignUp;
   clearMessages();
 });
 
-// Email sign-in
+// Email sign-in / sign-up submit
 submitBtn.addEventListener("click", async () => {
   clearMessages();
   const email = emailInput.value.trim();
@@ -80,6 +103,20 @@ submitBtn.addEventListener("click", async () => {
   if (!email || !password) {
     showError("Email and password are required.");
     return;
+  }
+
+  if (isSignUp) {
+    const confirm = confirmPasswordInput.value;
+    if (!confirm) {
+      showError("Please confirm your password.");
+      confirmPasswordInput.focus();
+      return;
+    }
+    if (password !== confirm) {
+      showError("Passwords don't match.");
+      confirmPasswordInput.focus();
+      return;
+    }
   }
 
   submitBtn.disabled = true;
@@ -152,7 +189,7 @@ document.getElementById("sendResetBtn").addEventListener("click", async () => {
 });
 
 // Enter key support
-[emailInput, passwordInput].forEach((el) => {
+[emailInput, passwordInput, confirmPasswordInput].forEach((el) => {
   el.addEventListener("keydown", (e) => {
     if (e.key === "Enter") document.getElementById("emailSignInBtn").click();
   });

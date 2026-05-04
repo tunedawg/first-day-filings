@@ -230,6 +230,19 @@
 
       .att-edit-cell { padding: 16px 14px; background: rgba(124,58,237,0.04); }
       .att-edit-form .sf-field { margin-bottom: 10px; }
+      .att-order-btns { display: inline-flex; gap: 2px; }
+      .att-order-btn {
+        background: none;
+        border: 1px solid var(--border);
+        color: var(--text3);
+        font: 500 0.8rem/1 var(--sans);
+        padding: 4px 7px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.12s;
+      }
+      .att-order-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-hi); }
+      .att-order-btn:disabled { opacity: 0.25; cursor: not-allowed; }
       [hidden] { display: none !important; }
     </style>
   </head>
@@ -288,6 +301,7 @@
       <!-- Attorneys -->
       <div class="settings-section">
         <p class="settings-section-title">Attorneys</p>
+        <p style="color:var(--text2);font-size:0.85rem;margin:0 0 16px;line-height:1.5;">Use the ↑ ↓ arrows to set the order attorneys appear in the signature block of generated documents.</p>
 
         <table class="attorneys-table" id="attorneysTable">
           <thead>

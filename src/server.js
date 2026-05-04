@@ -436,7 +436,7 @@ const server = http.createServer(async (request, response) => {
       if (!user) { sendJson(response, 401, { ok: false, error: "Unauthorized" }); return; }
       const { data: profile } = await getSupabaseAdmin().from("profiles").select("organization_id").eq("id", user.id).maybeSingle();
       if (!profile?.organization_id) { sendJson(response, 200, { ok: true, attorneys: [] }); return; }
-      const { data: attorneys } = await getSupabaseAdmin().from("attorneys").select("id, full_name, bar_number, email, role").eq("organization_id", profile.organization_id).eq("is_active", true).order("full_name");
+      const { data: attorneys } = await getSupabaseAdmin().from("attorneys").select("id, full_name, bar_number, email, role, sort_order").eq("organization_id", profile.organization_id).eq("is_active", true).order("sort_order", { ascending: true, nullsFirst: false }).order("full_name");
       sendJson(response, 200, { ok: true, attorneys: attorneys || [] });
       return;
     }

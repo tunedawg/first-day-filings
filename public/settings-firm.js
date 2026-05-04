@@ -75,12 +75,17 @@ let _attorneys = [];
 async function loadAttorneys() {
   const { data } = await supabase
     .from("attorneys")
-    .select("id, full_name, bar_number, email, role")
+    .select("id, full_name, bar_number, email, role, sort_order")
     .eq("organization_id", profile.organization_id)
     .eq("is_active", true)
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("full_name");
 
   _attorneys = data || [];
+  renderAttorneyRows();
+}
+
+function renderAttorneyRows() {
   const tbody = document.getElementById("attorneysTableBody");
   const emptyEl = document.getElementById("attorneysEmpty");
 
@@ -93,7 +98,9 @@ async function loadAttorneys() {
   document.getElementById("attorneysTable").hidden = false;
   emptyEl.hidden = true;
 
-  tbody.innerHTML = _attorneys.map((a) => `
+  const adminControls = isAdmin();
+
+  tbody.innerHTML = _attorneys.map((a, idx) => `
     <tr data-attorney-id="${esc(a.id)}">
       <td>
         <div class="att-name">${esc(a.full_name)}</div>
@@ -101,13 +108,21 @@ async function loadAttorneys() {
       </td>
       <td><span class="att-role-badge">${esc(a.role)}</span></td>
       <td style="text-align:right;white-space:nowrap;">
-        ${isAdmin() ? `
-          <button class="att-edit-btn" data-id="${esc(a.id)}" style="margin-right:6px;">Edit</button>
-          <button class="att-deactivate-btn" data-id="${esc(a.id)}">Deactivate</button>
+        ${adminControls ? `
+          <span class="att-order-btns" aria-label="Move in signature order">
+            <button class="att-order-btn" data-id="${esc(a.id)}" data-dir="up" title="Move up" ${idx === 0 ? "disabled" : ""}>↑</button>
+            <button class="att-order-btn" data-id="${esc(a.id)}" data-dir="down" title="Move down" ${idx === _attorneys.length - 1 ? "disabled" : ""}>↓</button>
+          </span>
+          <button class="att-edit-btn" data-id="${esc(a.id)}" style="margin-left:8px;">Edit</button>
+          <button class="att-deactivate-btn" data-id="${esc(a.id)}" style="margin-left:4px;">Deactivate</button>
         ` : ""}
       </td>
     </tr>
   `).join("");
+
+  tbody.querySelectorAll(".att-order-btn").forEach((btn) => {
+    btn.addEventListener("click", () => moveAttorney(btn.dataset.id, btn.dataset.dir));
+  });
 
   tbody.querySelectorAll(".att-deactivate-btn").forEach((btn) => {
     btn.addEventListener("click", () => deactivateAttorney(btn.dataset.id));
@@ -119,6 +134,24 @@ async function loadAttorneys() {
       if (attorney) enterAttorneyEditMode(btn.closest("tr"), attorney);
     });
   });
+}
+
+async function moveAttorney(id, direction) {
+  const idx = _attorneys.findIndex((a) => a.id === id);
+  const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+  if (targetIdx < 0 || targetIdx >= _attorneys.length) return;
+
+  // Swap in the in-memory array.
+  [_attorneys[idx], _attorneys[targetIdx]] = [_attorneys[targetIdx], _attorneys[idx]];
+
+  // Assign normalized sort_order values (0, 1, 2…) and persist.
+  _attorneys.forEach((a, i) => { a.sort_order = i; });
+  renderAttorneyRows();
+
+  for (const a of _attorneys) {
+    await supabase.from("attorneys").update({ sort_order: a.sort_order })
+      .eq("id", a.id).eq("organization_id", profile.organization_id);
+  }
 }
 
 function enterAttorneyEditMode(row, attorney) {

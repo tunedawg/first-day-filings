@@ -141,6 +141,35 @@
       .field-input:focus { border-color: var(--accent); }
       .field-input::placeholder { color: var(--text3); }
 
+      .password-field {
+        position: relative;
+        margin-bottom: 14px;
+      }
+
+      .password-field .field-input {
+        margin-bottom: 0;
+        padding-right: 44px;
+      }
+
+      .password-toggle {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--text3);
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        line-height: 0;
+        transition: color 0.15s;
+      }
+
+      .password-toggle:hover { color: var(--text2); }
+
       .login-submit {
         width: 100%;
         padding: 13px;
@@ -256,8 +285,19 @@
           <label class="field-label" for="emailInput">Email address</label>
           <input class="field-input" id="emailInput" type="email" placeholder="you@yourfirm.com" autocomplete="email" />
 
-          <label class="field-label" for="passwordInput">Password</label>
-          <input class="field-input" id="passwordInput" type="password" placeholder="••••••••" autocomplete="current-password" />
+          <label class="field-label" id="passwordLabel" for="passwordInput">Password</label>
+          <div class="password-field">
+            <input class="field-input" id="passwordInput" type="password" placeholder="••••••••" autocomplete="current-password" />
+            <button class="password-toggle" type="button" aria-label="Show password" tabindex="-1" id="passwordToggle"></button>
+          </div>
+
+          <div id="confirmPasswordField" hidden>
+            <label class="field-label" for="confirmPasswordInput">Confirm password</label>
+            <div class="password-field">
+              <input class="field-input" id="confirmPasswordInput" type="password" placeholder="••••••••" autocomplete="new-password" />
+              <button class="password-toggle" type="button" aria-label="Show password" tabindex="-1" id="confirmPasswordToggle"></button>
+            </div>
+          </div>
 
           <a class="forgot-link" id="forgotPasswordLink">Forgot password?</a>
 
