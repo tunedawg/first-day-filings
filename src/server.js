@@ -1,4 +1,5 @@
 try { require("dotenv").config({ path: require("node:path").join(__dirname, "..", ".env") }); } catch (_) {}
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const http = require("node:http");
@@ -9,6 +10,7 @@ const {
   destroySession,
   finalizeGoogleLogin,
   getOrCreateSession,
+  getServiceAccountToken,
   getSessionFromRequest,
   getValidAccessToken,
 } = require("./auth");
@@ -20,6 +22,16 @@ const { getQuestionnaire, getTemplateRegistry } = require("./templateRegistry");
 
 const PORT = Number(process.env.PORT || 3000);
 const publicDir = path.join(__dirname, "..", "public");
+
+// Temporary in-memory store for generated files (email-only users).
+// Each entry: { buffer, mimeType, filename, createdAt }. Expires after 1 hour.
+const pendingDownloads = new Map();
+setInterval(() => {
+  const cutoff = Date.now() - 60 * 60 * 1000;
+  for (const [key, entry] of pendingDownloads) {
+    if (entry.createdAt < cutoff) pendingDownloads.delete(key);
+  }
+}, 5 * 60 * 1000).unref();
 
 // HTML pages that need per-page HTML files in /public; auth enforcement is client-side via nav.js.
 const PROTECTED_PATHS = new Set(["/dashboard", "/onboarding", "/settings/firm"]);
@@ -127,8 +139,59 @@ async function handleGenerate(request, response, body) {
     return;
   }
 
+  // Try the user's personal Google session; fall back to server service account.
   const session = getSessionFromRequest(request);
-  const accessToken = await getValidAccessToken(session);
+  let accessToken;
+  let useServiceAccount = false;
+  try {
+    accessToken = await getValidAccessToken(session);
+  } catch {
+    accessToken = await getServiceAccountToken();
+    useServiceAccount = true;
+  }
+
+  // Service-account path: export files as buffers, serve via /api/download/:key.
+  if (useServiceAccount) {
+    if (format === "docs") {
+      sendJson(response, 400, { ok: false, issues: ["Google Docs output requires signing in with Google. Please select PDF or Word format."] });
+      return;
+    }
+    const { mimeType, ext } = EXPORT_FORMATS[format];
+    const matterName = buildMatterFolderName(intake);
+    const createdDocuments = [];
+
+    for (const template of selectedTemplates) {
+      const documentName = buildDocumentName(template, intake);
+      let copiedDoc;
+      try {
+        copiedDoc = await copyGoogleDoc(accessToken, template.googleTemplateDocId, documentName, null);
+        await replaceDocTokens(accessToken, copiedDoc.id, tokenMap);
+        for (const [token, value] of Object.entries(listTokens)) {
+          const items = Array.isArray(value) ? value : value.items;
+          const appendPerItem = Array.isArray(value) ? null : (value.appendPerItem || null);
+          await replaceTokenWithParagraphs(accessToken, copiedDoc.id, token, items, appendPerItem);
+        }
+        const buffer = await exportGoogleDocAs(accessToken, copiedDoc.id, mimeType);
+        await deleteFile(accessToken, copiedDoc.id).catch(() => {});
+
+        const key = crypto.randomUUID();
+        pendingDownloads.set(key, { buffer, mimeType, filename: documentName + ext, createdAt: Date.now() });
+        createdDocuments.push({ id: key, name: documentName + ext, url: `/api/download/${key}`, templateId: template.id });
+      } catch (error) {
+        if (copiedDoc?.id) await deleteFile(accessToken, copiedDoc.id).catch(() => {});
+        throw new Error(`Template "${template.title}" failed. ${error.message} (templateId=${template.googleTemplateDocId})`);
+      }
+    }
+
+    sendJson(response, 200, {
+      ok: true,
+      folder: { id: null, name: matterName, url: null },
+      documents: createdDocuments,
+    });
+    return;
+  }
+
+  // Google-user path: create Drive folder, generate docs in the user's Drive.
   const folder = await createDriveFolder(accessToken, buildMatterFolderName(intake), intake.parentFolderId);
   const createdDocuments = [];
 
@@ -350,6 +413,22 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "POST" && requestUrl.pathname === "/api/generate") {
       const body = await collectRequestBody(request);
       await handleGenerate(request, response, body);
+      return;
+    }
+
+    if (request.method === "GET" && requestUrl.pathname.startsWith("/api/download/")) {
+      const key = requestUrl.pathname.slice("/api/download/".length);
+      const entry = pendingDownloads.get(key);
+      if (!entry) { sendJson(response, 404, { ok: false, error: "Download not found or expired." }); return; }
+      pendingDownloads.delete(key);
+      const safeFilename = entry.filename.replace(/[^\w.\-]/g, "_");
+      response.writeHead(200, {
+        "Content-Type": entry.mimeType,
+        "Content-Disposition": `attachment; filename="${safeFilename}"`,
+        "Content-Length": entry.buffer.length,
+        "Cache-Control": "no-store",
+      });
+      response.end(entry.buffer);
       return;
     }
 

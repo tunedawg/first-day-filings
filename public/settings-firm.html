@@ -243,6 +243,33 @@
       }
       .att-order-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-hi); }
       .att-order-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+
+      .password-field-wrap {
+        position: relative;
+      }
+
+      .sf-password-input {
+        padding-right: 42px;
+      }
+
+      .sf-eye-btn {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        padding: 4px;
+        cursor: pointer;
+        color: var(--text3);
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        transition: color 0.15s;
+      }
+
+      .sf-eye-btn:hover { color: var(--text2); }
+
       [hidden] { display: none !important; }
     </style>
   </head>
@@ -414,6 +441,32 @@
           <button class="action-primary" id="saveProfileBtn" type="button">Save changes</button>
           <span class="sf-saved-msg" id="profileSavedMsg">Saved ✓</span>
           <span class="sf-error-msg" id="profileErrorMsg"></span>
+        </div>
+      </div>
+
+      <!-- Change Password (email/password accounts only) -->
+      <div class="settings-section" id="passwordSection" hidden>
+        <p class="settings-section-title">Change Password</p>
+
+        <div class="sf-field">
+          <label class="sf-label" for="sfNewPassword">New password</label>
+          <div class="password-field-wrap">
+            <input class="sf-input sf-password-input" id="sfNewPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters" />
+            <button class="sf-eye-btn" type="button" id="sfNewPasswordToggle" aria-label="Show password"></button>
+          </div>
+        </div>
+        <div class="sf-field">
+          <label class="sf-label" for="sfConfirmPassword">Confirm new password</label>
+          <div class="password-field-wrap">
+            <input class="sf-input sf-password-input" id="sfConfirmPassword" type="password" autocomplete="new-password" />
+            <button class="sf-eye-btn" type="button" id="sfConfirmPasswordToggle" aria-label="Show password"></button>
+          </div>
+        </div>
+
+        <div class="sf-save-row">
+          <button class="action-primary" id="savePasswordBtn" type="button">Update password</button>
+          <span class="sf-saved-msg" id="passwordSavedMsg">Password updated ✓</span>
+          <span class="sf-error-msg" id="passwordErrorMsg"></span>
         </div>
       </div>
     </div>

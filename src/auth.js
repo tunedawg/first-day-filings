@@ -2,6 +2,9 @@ const crypto = require("node:crypto");
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+
+let _serviceAccountToken = null;
+let _serviceAccountTokenExpiry = 0;
 const GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
 const GOOGLE_SCOPES = [
   "openid",
@@ -213,6 +216,46 @@ async function getValidAccessToken(session) {
   return session.auth.accessToken;
 }
 
+async function getServiceAccountToken() {
+  const json = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  if (!json) throw new Error("PDF/Word generation for non-Google accounts requires server configuration (GOOGLE_SERVICE_ACCOUNT_JSON). Contact your administrator.");
+
+  if (_serviceAccountToken && _serviceAccountTokenExpiry - Date.now() > 60 * 1000) {
+    return _serviceAccountToken;
+  }
+
+  let sa;
+  try { sa = JSON.parse(json); } catch { throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON."); }
+
+  const now = Math.floor(Date.now() / 1000);
+  const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString("base64url");
+  const claim = Buffer.from(JSON.stringify({
+    iss: sa.client_email,
+    scope: "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents",
+    aud: GOOGLE_TOKEN_URL,
+    exp: now + 3600,
+    iat: now,
+  })).toString("base64url");
+
+  const sign = crypto.createSign("RSA-SHA256");
+  sign.update(`${header}.${claim}`);
+  const sig = sign.sign(sa.private_key, "base64url");
+  const jwt = `${header}.${claim}.${sig}`;
+
+  const res = await fetch(GOOGLE_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: jwt }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`Service account auth failed: ${data.error_description || data.error || res.status}`);
+
+  _serviceAccountToken = data.access_token;
+  _serviceAccountTokenExpiry = Date.now() + (Number(data.expires_in) || 3600) * 1000;
+  return _serviceAccountToken;
+}
+
 function buildAuthSessionPayload(request) {
   try {
     getOAuthConfig();
@@ -249,6 +292,7 @@ module.exports = {
   destroySession,
   finalizeGoogleLogin,
   getOrCreateSession,
+  getServiceAccountToken,
   getSessionFromRequest,
   getValidAccessToken,
   getOAuthConfig,

@@ -23,6 +23,13 @@ async function boot() {
     document.getElementById("inviteUserToggle").hidden = true;
   }
 
+  // Show password section only for email/password accounts.
+  const provider = session?.user?.app_metadata?.provider;
+  if (provider && provider !== "google") {
+    document.getElementById("passwordSection").hidden = false;
+    initPasswordToggles();
+  }
+
   await Promise.all([loadOrg(), loadAttorneys(), loadUsers()]);
   populateProfile();
   bindEvents();
@@ -338,6 +345,47 @@ async function sendInvite() {
   await loadUsers();
 }
 
+// ── Change Password ───────────────────────────────────────────────────────────
+
+const EYE_OPEN = `<svg viewBox="0 0 20 20" fill="none" width="17" height="17" aria-hidden="true"><path d="M2 10s3.3-6 8-6 8 6 8 6-3.3 6-8 6-8-6-8-6z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.4"/></svg>`;
+const EYE_CLOSED = `<svg viewBox="0 0 20 20" fill="none" width="17" height="17" aria-hidden="true"><path d="M2 2l16 16" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M6.7 6.7A5.6 5.6 0 0 0 4 10s3.3 6 8 6c1.5 0 2.9-.5 4-1.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M10 4c4.7 0 8 6 8 6a12.3 12.3 0 0 1-2.3 3.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`;
+
+function initPasswordToggles() {
+  [["sfNewPassword", "sfNewPasswordToggle"], ["sfConfirmPassword", "sfConfirmPasswordToggle"]].forEach(([inputId, btnId]) => {
+    const input = document.getElementById(inputId);
+    const btn = document.getElementById(btnId);
+    if (!input || !btn) return;
+    btn.innerHTML = EYE_OPEN;
+    btn.addEventListener("click", () => {
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      btn.innerHTML = show ? EYE_CLOSED : EYE_OPEN;
+      btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
+    });
+  });
+}
+
+async function changePassword() {
+  const newPass = document.getElementById("sfNewPassword").value;
+  const confirm = document.getElementById("sfConfirmPassword").value;
+  clearMsg("passwordSavedMsg", "passwordErrorMsg");
+
+  if (!newPass || newPass.length < 6) { showMsg("passwordErrorMsg", "Password must be at least 6 characters."); return; }
+  if (newPass !== confirm) { showMsg("passwordErrorMsg", "Passwords don't match."); return; }
+
+  const btn = document.getElementById("savePasswordBtn");
+  btn.disabled = true;
+
+  const { error } = await supabase.auth.updateUser({ password: newPass });
+
+  btn.disabled = false;
+  if (error) { showMsg("passwordErrorMsg", error.message); return; }
+
+  document.getElementById("sfNewPassword").value = "";
+  document.getElementById("sfConfirmPassword").value = "";
+  flashMsg("passwordSavedMsg");
+}
+
 // ── My Profile ────────────────────────────────────────────────────────────────
 
 function populateProfile() {
@@ -368,6 +416,7 @@ async function saveProfile() {
 function bindEvents() {
   document.getElementById("saveFirmBtn").addEventListener("click", saveFirm);
   document.getElementById("saveProfileBtn").addEventListener("click", saveProfile);
+  document.getElementById("savePasswordBtn")?.addEventListener("click", changePassword);
 
   document.getElementById("addAttorneyToggle").addEventListener("click", () => {
     document.getElementById("addAttorneyPanel").hidden = false;

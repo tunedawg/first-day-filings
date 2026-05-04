@@ -244,6 +244,83 @@
         font-size: 0.9rem;
       }
 
+      .case-action-cell {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        white-space: nowrap;
+      }
+
+      .case-delete-btn {
+        background: none;
+        border: none;
+        padding: 4px 6px;
+        border-radius: 6px;
+        color: var(--text3);
+        cursor: pointer;
+        line-height: 1;
+        transition: color 0.15s, background 0.15s;
+        flex-shrink: 0;
+      }
+
+      .case-delete-btn:hover { color: var(--error); background: rgba(248,113,113,0.08); }
+
+      /* Confirm modal */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 200;
+        padding: 24px;
+      }
+
+      .modal-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 28px 28px 24px;
+        max-width: 380px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      }
+
+      .modal-title {
+        font-family: var(--serif);
+        font-size: 1.2rem;
+        font-weight: 400;
+        margin: 0 0 10px;
+      }
+
+      .modal-body {
+        color: var(--text2);
+        font-size: 0.88rem;
+        line-height: 1.55;
+        margin: 0 0 22px;
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
+      .modal-delete-btn {
+        padding: 9px 18px;
+        border-radius: 8px;
+        border: none;
+        background: var(--error);
+        color: #fff;
+        font: 600 0.875rem/1 var(--sans);
+        cursor: pointer;
+        transition: opacity 0.15s;
+      }
+
+      .modal-delete-btn:hover { opacity: 0.85; }
+      .modal-delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
       [hidden] { display: none !important; }
     </style>
   </head>
@@ -302,6 +379,17 @@
           <button class="dash-page-btn" id="prevPageBtn" disabled>← Previous</button>
           <span class="dash-page-info" id="pageInfo"></span>
           <button class="dash-page-btn" id="nextPageBtn">Next →</button>
+        </div>
+      </div>
+    </div>
+    <!-- Delete-case confirm modal -->
+    <div id="deleteModal" class="modal-backdrop" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+        <p class="modal-title" id="deleteModalTitle">Delete case?</p>
+        <p class="modal-body" id="deleteModalBody">This will permanently remove the case and all associated data. This cannot be undone.</p>
+        <div class="modal-actions">
+          <button class="action-ghost" id="deleteModalCancel">Cancel</button>
+          <button class="modal-delete-btn" id="deleteModalConfirm">Delete</button>
         </div>
       </div>
     </div>

@@ -45,6 +45,7 @@ let extractedPayload = null;
 let authSession = null;
 let generationProgressTimer = null;
 let _generateFormat = "docs";
+let _emailOnlyMode = false;
 const DRAFT_STORAGE_KEY = "first-day-filings:draft:v1";
 
 // ── Supabase case persistence (optional — gracefully no-ops if not logged in) ──
@@ -998,14 +999,23 @@ function renderGenerationResults(payload) {
   }
 
   resultsNode.className = "results success";
-  const folder = document.createElement("p");
-  folder.innerHTML = `Folder: <a href="${payload.folder.url}" target="_blank" rel="noreferrer">${payload.folder.name}</a>`;
-  resultsNode.appendChild(folder);
+  const folderEl = document.createElement("p");
+  if (payload.folder?.url) {
+    folderEl.innerHTML = `Folder: <a href="${payload.folder.url}" target="_blank" rel="noreferrer">${payload.folder.name}</a>`;
+  } else {
+    folderEl.textContent = `Generated: ${payload.folder?.name || "Documents ready"}`;
+  }
+  resultsNode.appendChild(folderEl);
 
   const list = document.createElement("ul");
   asArray(payload.documents).forEach((documentItem) => {
     const item = document.createElement("li");
-    item.innerHTML = `<a href="${documentItem.url}" target="_blank" rel="noreferrer">${documentItem.name}</a>`;
+    const isDownload = documentItem.url?.startsWith("/api/download/");
+    if (isDownload) {
+      item.innerHTML = `<a href="${documentItem.url}" download="${documentItem.name}">${documentItem.name}</a>`;
+    } else {
+      item.innerHTML = `<a href="${documentItem.url}" target="_blank" rel="noreferrer">${documentItem.name}</a>`;
+    }
     list.appendChild(item);
   });
   resultsNode.appendChild(list);
@@ -1563,7 +1573,7 @@ if (confirmModal) {
 
 async function handleGenerateClick() {
   try {
-    if (!authSession?.signedIn) {
+    if (!_emailOnlyMode && !authSession?.signedIn) {
       setStatus("Sign in with Google before generating documents.", "error");
       return;
     }
@@ -1573,7 +1583,7 @@ async function handleGenerateClick() {
       return;
     }
 
-    setStatus(FORMAT_LABELS[_generateFormat].status, "busy");
+    setStatus(_emailOnlyMode ? `Generating ${_generateFormat.toUpperCase()} documents…` : FORMAT_LABELS[_generateFormat].status, "busy");
     resultsNode.innerHTML = "";
     resultsNode.className = "results";
     setGenerateButtonsDisabled(true);
@@ -1614,8 +1624,8 @@ async function handleGenerateClick() {
     resultsNode.innerHTML = `<ul><li>${error.message}</li></ul>`;
     resultsNode.className = "results error";
   } finally {
-    setGenerateButtonsDisabled(!authSession?.signedIn);
-    setTemplateValidationDisabled(!authSession?.signedIn);
+    setGenerateButtonsDisabled(!_emailOnlyMode && !authSession?.signedIn);
+    setTemplateValidationDisabled(!_emailOnlyMode && !authSession?.signedIn);
   }
 }
 
@@ -1664,8 +1674,8 @@ async function handleValidateTemplatesClick() {
     resultsNode.innerHTML = `<ul><li>${error.message}</li></ul>`;
     resultsNode.className = "results error";
   } finally {
-    setGenerateButtonsDisabled(!authSession?.signedIn);
-    setTemplateValidationDisabled(!authSession?.signedIn);
+    setGenerateButtonsDisabled(!_emailOnlyMode && !authSession?.signedIn);
+    setTemplateValidationDisabled(!_emailOnlyMode && !authSession?.signedIn);
   }
 }
 
@@ -1709,7 +1719,7 @@ loadData()
       return;
     }
 
-    if (authSession?.signedIn) {
+    if (_emailOnlyMode || authSession?.signedIn) {
       setStatus("Ready to generate.", "success");
       return;
     }
@@ -1762,6 +1772,8 @@ function renderMainUserBubble(sb, session, profile) {
 }
 
 function applyEmailOnlyMode() {
+  _emailOnlyMode = true;
+
   // Hide Google Docs tab and auto-select PDF.
   document.querySelectorAll(".format-tab").forEach((tab) => {
     if (tab.dataset.format === "docs") {
@@ -1783,8 +1795,9 @@ function applyEmailOnlyMode() {
   if (authRow) authRow.hidden = true;
   if (signInNotice) signInNotice.hidden = true;
 
-  // Enable generate buttons (they'll need Google Drive for PDF/Word too,
-  // but we leave that check in handleGenerateClick for now).
+  // Enable generate buttons — service account handles the Google API access.
+  setGenerateButtonsDisabled(false);
+  setStatus("Ready to generate.", "success");
 }
 
 // Auth gate — redirect to /login if Supabase is configured and no session.
