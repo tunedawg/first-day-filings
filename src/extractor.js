@@ -9,7 +9,7 @@ const GEMINI_API =
 
 const EXTRACTION_PROMPT = `You are a legal assistant extracting structured intake data from Missouri state court employment litigation documents (petitions, charges of discrimination, EEOC charges, etc.).
 
-Analyze the uploaded document(s) carefully and extract all available information. Return ONLY a valid JSON object with the fields below. Omit any field you cannot determine from the document — do not guess.
+Analyze the uploaded document(s) carefully and extract all available information. Return ONLY a valid JSON object with the fields below. Omit any field you cannot determine from the document — do not guess. Never fabricate names or facts not present in the documents.
 
 FIELD REFERENCE:
 
@@ -59,6 +59,69 @@ keyPersonsList      — Non-plaintiff individuals named in the document who are 
                       one per line, up to 12. Include supervisors, HR personnel, decision-makers.
                       List the most important witnesses first (supervisors, decision-makers, HR).
 
+─── DECISION-MAKERS AND ACTORS ───────────────────────────────────────────────
+For each category below, set the "include" flag to "true" and populate the names list
+ONLY if the document actually names people in that role. One name per line.
+
+includeSupervisors          — "true" if any of plaintiff's supervisors are named in the document
+supervisors                 — Full names of plaintiff's direct supervisor(s) and their supervisors,
+                              one per line (most direct supervisor first)
+
+includeTerminationDecisionMakers — "true" if the document names who decided to terminate/discharge
+terminationDecisionMakers   — Full names of individuals who made or participated in the decision
+                              to terminate or discharge plaintiff, one per line
+
+includeDisciplineDecisionMakers — "true" if the document names who issued discipline or a PIP
+disciplineDecisionMakers    — Full names of individuals who issued written warnings, formal discipline,
+                              or placed plaintiff on a PIP, one per line
+
+includeHrParticipants       — "true" if HR personnel are named in the document
+hrParticipants              — Full names of HR staff or HR managers involved in any relevant
+                              employment decision or investigation, one per line
+
+includeComplaintRecipients  — "true" if the document names anyone who received a complaint or report
+complaintRecipients         — Full names of individuals who received an internal complaint, report,
+                              or charge from or about plaintiff, one per line
+
+includeAccommodationDecisionMakers — "true" only if disability/accommodation claims exist AND decision-makers are named
+accommodationDecisionMakers — Full names of individuals who denied, approved, or participated in
+                              accommodation decisions, one per line
+
+includeLeaveScheduleDecisionMakers — "true" if the document names who controlled leave or schedule
+leaveScheduleDecisionMakers — Full names of individuals who made decisions about plaintiff's leave,
+                              attendance, or schedule, one per line
+
+includeOtherActors          — "true" if there are other key named actors who don't fit above categories
+otherActors                 — Full names of other relevant individuals (e.g. co-workers who witnessed
+                              events, people who made discriminatory remarks), one per line
+
+─── COMPARATORS ──────────────────────────────────────────────────────────────
+Only populate comparator fields if the document explicitly names or describes individuals
+who were treated more favorably than plaintiff. Do not infer comparators — only extract
+what is stated. One name or description per line.
+
+includeSameDepartmentComparators — "true" if the document names or describes comparators in plaintiff's department
+sameDepartmentComparators   — Names or descriptions of employees in plaintiff's department
+                              who were treated more favorably, one per line
+
+includeSameRoleComparators  — "true" if the document names comparators with plaintiff's same job title or role
+sameRoleComparators         — Names or descriptions of employees with the same role treated more favorably
+
+includeSameSupervisorComparators — "true" if the document names comparators under the same supervisor
+sameSupervisorComparators   — Names or descriptions of employees under the same supervisor treated more favorably
+
+includeSameDecisionMakerComparators — "true" if the document names comparators affected by the same decision-maker
+sameDecisionMakerComparators — Names or descriptions of employees subject to the same decision-maker
+                              but treated more favorably
+
+includeReplacementComparators — "true" if the document names or describes who replaced plaintiff
+replacementComparators      — Names or descriptions of plaintiff's replacement or successor
+
+includeDisciplineComparators — "true" if the document names comparators who received different discipline
+disciplineComparators       — Names or descriptions of employees who committed similar conduct
+                              but received less severe or no discipline
+
+─── SUMMARY ──────────────────────────────────────────────────────────────────
 summary             — Array of 3-5 plain-English strings summarizing what you found,
                       e.g. ["Plaintiff: Abigael Almandinger", "Court: Jasper County Circuit Court", ...]
 
