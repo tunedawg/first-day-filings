@@ -798,25 +798,9 @@ function buildInterrogatoryActorComplaintParagraphs(intake) {
     return [];
   }
 
-  const claimKeys = getClaimKeys(intake);
-
-  // Build the per-complainant demographic field list based on active claims.
-  const demographicFields = ["identity"];
-  if (claimKeysInclude(claimKeys, [/\brace\b/])) demographicFields.push("race");
-  if (claimKeysInclude(claimKeys, [/\bcolor\b/])) demographicFields.push("color");
-  if (claimKeysInclude(claimKeys, [/\bage\b/])) demographicFields.push("age");
-  if (claimKeysInclude(claimKeys, [/\bsex\b/, /\bgender\b/])) demographicFields.push("sex");
-  if (claimKeysInclude(claimKeys, [/\bdisability\b/, /failure.to.accommodate/, /\bassociational\b/])) {
-    demographicFields.push("known disability status");
-  }
-  if (claimKeysInclude(claimKeys, [/workers.?comp/])) demographicFields.push("workplace injury history");
-  demographicFields.push("job title", "last known contact information");
-
-  const demographicPhrase = joinWithCommasAndAnd(demographicFields);
-
   return actors.map(
     (actor) =>
-      `Please identify all complaints, whether formal or informal, made by any employee against ${actor} from ${lookbackStart} to the present that involve allegations of any form of discrimination, retaliation, or other workplace misconduct. For each complaint, provide the ${demographicPhrase} of the person who made the complaint, a summary of the complaint and alleged conduct, to whom and when it was reported, the outcome or resolution, and whether any disciplinary action was taken.`,
+      `Please identify all complaints, whether formal or informal, made by any employee against ${actor} from ${lookbackStart} to the present that involve allegations of any form of discrimination, retaliation, or other workplace misconduct. For each complaint, provide the identity, job title, and last known contact information of the person who made the complaint, a summary of the complaint and alleged conduct, to whom and when it was reported, the outcome or resolution, and whether any disciplinary action was taken.`,
   );
 }
 
