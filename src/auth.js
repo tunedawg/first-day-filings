@@ -256,6 +256,21 @@ async function getServiceAccountToken() {
   return _serviceAccountToken;
 }
 
+function storeProviderToken(request, response, { accessToken, refreshToken, userEmail, userName }) {
+  const session = getOrCreateSession(request, response);
+  session.auth = {
+    accessToken,
+    refreshToken: refreshToken || "",
+    expiresAt: Date.now() + 3600 * 1000,
+    user: {
+      email: userEmail || "",
+      name: userName || userEmail || "Google User",
+      picture: "",
+    },
+  };
+  session.oauthState = null;
+}
+
 function buildAuthSessionPayload(request) {
   try {
     getOAuthConfig();
@@ -296,4 +311,5 @@ module.exports = {
   getSessionFromRequest,
   getValidAccessToken,
   getOAuthConfig,
+  storeProviderToken,
 };

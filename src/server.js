@@ -13,6 +13,7 @@ const {
   getServiceAccountToken,
   getSessionFromRequest,
   getValidAccessToken,
+  storeProviderToken,
 } = require("./auth");
 const { extractCaseContext } = require("./extractor");
 const { getSupabaseAdmin, getUserFromRequest } = require("./supabaseClient");
@@ -406,6 +407,19 @@ const server = http.createServer(async (request, response) => {
 
     if (request.method === "POST" && requestUrl.pathname === "/auth/logout") {
       destroySession(request, response);
+      sendJson(response, 200, { ok: true });
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/auth/google-token") {
+      const body = await collectRequestBody(request);
+      if (!body.accessToken) { sendJson(response, 400, { ok: false, error: "accessToken required" }); return; }
+      storeProviderToken(request, response, {
+        accessToken: body.accessToken,
+        refreshToken: body.refreshToken || "",
+        userEmail: body.userEmail || "",
+        userName: body.userName || "",
+      });
       sendJson(response, 200, { ok: true });
       return;
     }

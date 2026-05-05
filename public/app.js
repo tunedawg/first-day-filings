@@ -46,6 +46,7 @@ let authSession = null;
 let generationProgressTimer = null;
 let _generateFormat = "docs";
 let _emailOnlyMode = false;
+let _omnibusDeponentCount = 0;
 const DRAFT_STORAGE_KEY = "first-day-filings:draft:v1";
 
 // ── Supabase case persistence (optional — gracefully no-ops if not logged in) ──
@@ -235,6 +236,14 @@ function applyDraftToIntake() {
   const draft = loadDraft();
   const intake = asObject(draft.intake);
 
+  // Pre-create omnibus deponent cards to match the saved count.
+  const savedCount = Math.max(1, Math.min(8, Number(intake.omnibusDeponentCount || 1)));
+  if (savedCount > _omnibusDeponentCount) {
+    while (_omnibusDeponentCount < savedCount) omnibusCreateCard();
+    updateOmnibusRemoveButtons();
+    bindConditionalFields();
+  }
+
   Object.entries(intake).forEach(([key, value]) => {
     const timeField = questionnaireRoot.querySelector(`input[data-time-part="clock"][name="${key}"]`);
     if (timeField) {
@@ -277,6 +286,7 @@ function applyDraftToIntake() {
 
   updateConditionalFields();
   updateOmnibusLocationVisibility();
+  syncProtectiveOrderDefaults();
 }
 
 function setStatus(message, mode = "idle") {
@@ -367,6 +377,7 @@ function updateAuthUi() {
     if (signInNotice) signInNotice.hidden = true;
     setGenerateButtonsDisabled(false);
     setTemplateValidationDisabled(false);
+    setStatus("Ready to generate.", "success");
     return;
   }
 
@@ -376,6 +387,33 @@ function updateAuthUi() {
   if (signInNotice) signInNotice.hidden = false;
   setGenerateButtonsDisabled(true);
   setTemplateValidationDisabled(true);
+}
+
+function syncProtectiveOrderDefaults() {
+  const caseNumberField = questionnaireRoot.querySelector('[name="caseNumber"]');
+  const poCaseNumberField = questionnaireRoot.querySelector('[name="protectiveOrderActionCaseNumber"]');
+  const poCaptionField = questionnaireRoot.querySelector('[name="protectiveOrderActionCaption"]');
+
+  if (poCaseNumberField && !poCaseNumberField.value.trim() && caseNumberField?.value.trim()) {
+    poCaseNumberField.value = caseNumberField.value.toUpperCase();
+  }
+
+  if (poCaptionField && !poCaptionField.value.trim()) {
+    const plaintiffRaw = (questionnaireRoot.querySelector('[name="plaintiffName"]')?.value || "").trim();
+    const parts = plaintiffRaw.split(/\s+/).filter(Boolean);
+    const lastName = parts.length > 0
+      ? parts[parts.length - 1].toLowerCase().replace(/^\w/, (c) => c.toUpperCase())
+      : "";
+    const defShort = (
+      questionnaireRoot.querySelector('[name="collectiveDefendantShortName"]')?.value.trim() ||
+      questionnaireRoot.querySelector('[name="defendantReferenceName"]')?.value.trim() ||
+      questionnaireRoot.querySelector('[name="defendantName"]')?.value.trim() ||
+      ""
+    );
+    if (lastName && defShort) {
+      poCaptionField.value = `${lastName} v. ${defShort}`;
+    }
+  }
 }
 
 function createField(field) {
@@ -833,51 +871,140 @@ function buildGuidedFlow() {
 }
 
 function renderOmnibusFields(section, grid) {
-  const sectionFields = asArray(section?.fields);
-  const countField = sectionFields.find((field) => field.id === "omnibusDeponentCount");
-  const detailFields = sectionFields.filter((field) => field.id !== "omnibusDeponentCount");
-
-  if (!countField) {
-    return;
-  }
-
-  const countRow = document.createElement("div");
-  countRow.className = "omnibus-count-row";
-  countRow.appendChild(createField(countField));
-  grid.appendChild(countRow);
+  // Hidden input tracks the count for collectIntake() and the generator.
+  const countInput = document.createElement("input");
+  countInput.type = "hidden";
+  countInput.name = "omnibusDeponentCount";
+  countInput.value = "1";
+  grid.appendChild(countInput);
 
   const cardsContainer = document.createElement("div");
+  cardsContainer.id = "omnibusCardsContainer";
   cardsContainer.className = "omnibus-cards";
-
-  for (let index = 1; index <= 8; index += 1) {
-    const card = document.createElement("section");
-    card.className = "omnibus-card";
-    card.dataset.showIf = JSON.stringify({ field: "omnibusDeponentCount", op: "gte", value: index });
-
-    const cardTitle = document.createElement("h3");
-    cardTitle.className = "omnibus-card-title";
-    cardTitle.textContent = `Deponent ${index}`;
-    card.appendChild(cardTitle);
-
-    const cardGrid = document.createElement("div");
-    cardGrid.className = "omnibus-card-grid";
-    const cardFields = detailFields.filter((field) => field.id.startsWith(`omnibusDeponent${index}`));
-    const locationToggleField = cardFields.find((field) => field.id === `omnibusDeponent${index}InPerson`);
-    const locationField = cardFields.find((field) => field.id === `omnibusDeponent${index}Location`);
-
-    cardFields
-      .filter((field) => field.id !== `omnibusDeponent${index}InPerson` && field.id !== `omnibusDeponent${index}Location`)
-      .forEach((field) => cardGrid.appendChild(createField(field)));
-
-    if (locationToggleField && locationField) {
-      cardGrid.appendChild(createOmnibusLocationWorkflow(index, locationToggleField, locationField));
-    }
-
-    card.appendChild(cardGrid);
-    cardsContainer.appendChild(card);
-  }
-
   grid.appendChild(cardsContainer);
+
+  const addBtn = document.createElement("button");
+  addBtn.type = "button";
+  addBtn.className = "action-secondary action-sm omnibus-add-btn";
+  addBtn.textContent = "+ Add Deponent";
+  addBtn.addEventListener("click", omnibusAddDeponent);
+  grid.appendChild(addBtn);
+
+  // Start with one card. Inline creation here because the container isn't in
+  // the main document yet, so document.getElementById would return null.
+  _omnibusDeponentCount = 1;
+  cardsContainer.appendChild(createOmnibusCard(1));
+}
+
+function createOmnibusCard(index) {
+  const card = document.createElement("section");
+  card.className = "omnibus-card";
+  card.dataset.deponentIndex = String(index);
+
+  const header = document.createElement("div");
+  header.className = "omnibus-card-header";
+
+  const titleText = document.createElement("h3");
+  titleText.className = "omnibus-card-title";
+  titleText.textContent = `Deponent ${index}`;
+  header.appendChild(titleText);
+
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "action-secondary action-sm omnibus-remove-btn";
+  removeBtn.textContent = "Remove";
+  removeBtn.addEventListener("click", () => omnibusRemoveDeponent(card));
+  header.appendChild(removeBtn);
+
+  card.appendChild(header);
+
+  const cardGrid = document.createElement("div");
+  cardGrid.className = "omnibus-card-grid";
+
+  cardGrid.appendChild(createField({ id: `omnibusDeponent${index}Name`, label: "Name", type: "text", placeholder: "Deponent name" }));
+  cardGrid.appendChild(createField({ id: `omnibusDeponent${index}Date`, label: "Date", type: "date" }));
+  cardGrid.appendChild(createField({ id: `omnibusDeponent${index}Time`, label: "Time", type: "text", placeholder: "10:00 AM CT" }));
+
+  const toggleField = { id: `omnibusDeponent${index}InPerson`, label: "Not via Zoom (in-person)", type: "checkbox" };
+  const locationField = { id: `omnibusDeponent${index}Location`, label: "Location", type: "textarea", rows: 3, placeholder: "4600 Madison Ave. Ste. 810\nKansas City, MO 64112" };
+  cardGrid.appendChild(createOmnibusLocationWorkflow(index, toggleField, locationField));
+
+  card.appendChild(cardGrid);
+  return card;
+}
+
+// Creates a new card without triggering save/rebind (used during batch init/restore).
+function omnibusCreateCard() {
+  const container = document.getElementById("omnibusCardsContainer");
+  if (!container || _omnibusDeponentCount >= 8) return;
+  _omnibusDeponentCount++;
+  container.appendChild(createOmnibusCard(_omnibusDeponentCount));
+  const countInput = questionnaireRoot.querySelector('[name="omnibusDeponentCount"]');
+  if (countInput) countInput.value = String(_omnibusDeponentCount);
+  updateOmnibusAddButtonState();
+}
+
+function omnibusAddDeponent() {
+  if (_omnibusDeponentCount >= 8) return;
+  omnibusCreateCard();
+  updateOmnibusRemoveButtons();
+  bindConditionalFields();
+  saveDraft();
+}
+
+function omnibusRemoveDeponent(card) {
+  const container = document.getElementById("omnibusCardsContainer");
+  if (!container || container.children.length <= 1) return;
+
+  const removedIndex = Number(card.dataset.deponentIndex);
+  card.remove();
+  _omnibusDeponentCount--;
+
+  // Renumber cards after the removed one.
+  Array.from(container.querySelectorAll(".omnibus-card")).forEach((c, i) => {
+    const newIndex = i + 1;
+    const oldIndex = Number(c.dataset.deponentIndex);
+    if (oldIndex !== newIndex) renumberOmnibusCard(c, oldIndex, newIndex);
+  });
+
+  const countInput = questionnaireRoot.querySelector('[name="omnibusDeponentCount"]');
+  if (countInput) countInput.value = String(_omnibusDeponentCount);
+
+  updateOmnibusRemoveButtons();
+  updateOmnibusAddButtonState();
+  saveDraft();
+}
+
+function renumberOmnibusCard(card, oldIndex, newIndex) {
+  card.dataset.deponentIndex = String(newIndex);
+  const title = card.querySelector(".omnibus-card-title");
+  if (title) title.textContent = `Deponent ${newIndex}`;
+
+  card.querySelectorAll("[name]").forEach((el) => {
+    el.name = el.name.replace(new RegExp(`omnibusDeponent${oldIndex}`), `omnibusDeponent${newIndex}`);
+  });
+
+  card.querySelectorAll("[data-workflow-key]").forEach((el) => {
+    el.dataset.workflowKey = el.dataset.workflowKey.replace(
+      new RegExp(`omnibusLocation${oldIndex}`), `omnibusLocation${newIndex}`
+    );
+  });
+}
+
+function updateOmnibusRemoveButtons() {
+  const container = document.getElementById("omnibusCardsContainer");
+  if (!container) return;
+  const cards = container.querySelectorAll(".omnibus-card");
+  const onlyOne = cards.length === 1;
+  cards.forEach((card) => {
+    const btn = card.querySelector(".omnibus-remove-btn");
+    if (btn) btn.disabled = onlyOne;
+  });
+}
+
+function updateOmnibusAddButtonState() {
+  const addBtn = document.querySelector(".omnibus-add-btn");
+  if (addBtn) addBtn.disabled = _omnibusDeponentCount >= 8;
 }
 
 function createOmnibusLocationWorkflow(index, toggleField, locationField) {
@@ -1132,24 +1259,44 @@ function applySuggestedValues() {
   const rawKeyPersons = String(asObject(extractedPayload.suggestions).keyPersonsList || "");
   const keyPersonNames = rawKeyPersons.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
   if (keyPersonNames.length > 0) {
-    const deponentCount = Math.min(Math.max(keyPersonNames.length, 3), 6);
-    const countSelect = questionnaireRoot.querySelector('[name="omnibusDeponentCount"]');
-    if (countSelect) {
-      countSelect.value = String(deponentCount);
+    const deponentCount = Math.min(Math.max(keyPersonNames.length, 3), 8);
+    // Create extra cards as needed.
+    while (_omnibusDeponentCount < deponentCount) {
+      omnibusCreateCard();
     }
+    updateOmnibusRemoveButtons();
+    bindConditionalFields();
     for (let i = 1; i <= deponentCount; i += 1) {
       const nameField = questionnaireRoot.querySelector(`[name="omnibusDeponent${i}Name"]`);
-      if (nameField && keyPersonNames[i - 1]) {
-        nameField.value = keyPersonNames[i - 1];
-      }
+      if (nameField && keyPersonNames[i - 1]) nameField.value = keyPersonNames[i - 1];
     }
   }
 
   updateConditionalFields();
   updateOmnibusLocationVisibility();
+  syncProtectiveOrderDefaults();
 }
 
 function clearAllFields() {
+  // Reset omnibus to 1 card before clearing to avoid dangling field refs.
+  const omnibusContainer = document.getElementById("omnibusCardsContainer");
+  if (omnibusContainer) {
+    while (omnibusContainer.children.length > 1) {
+      omnibusContainer.lastChild.remove();
+    }
+    _omnibusDeponentCount = 1;
+    const firstCard = omnibusContainer.querySelector(".omnibus-card");
+    if (firstCard) {
+      firstCard.dataset.deponentIndex = "1";
+      const t = firstCard.querySelector(".omnibus-card-title");
+      if (t) t.textContent = "Deponent 1";
+    }
+    const countInput = questionnaireRoot.querySelector('[name="omnibusDeponentCount"]');
+    if (countInput) countInput.value = "1";
+    updateOmnibusRemoveButtons();
+    updateOmnibusAddButtonState();
+  }
+
   questionnaireRoot.querySelectorAll("input, textarea, select").forEach((field) => {
     if (field.type === "checkbox") {
       field.checked = false;
@@ -1232,6 +1379,8 @@ function resolveCheckboxGroupValues(fieldName, rawValue, checkboxNodes) {
   return [];
 }
 
+const PO_SYNC_FIELDS = new Set(["caseNumber", "plaintiffName", "collectiveDefendantShortName", "defendantReferenceName", "defendantName"]);
+
 function bindConditionalFields() {
   questionnaireRoot.querySelectorAll("input, select, textarea").forEach((field) => {
     field.addEventListener("change", updateConditionalFields);
@@ -1240,6 +1389,11 @@ function bindConditionalFields() {
     if (field.name) {
       field.addEventListener("change", saveDraft);
       field.addEventListener("input", saveDraft);
+    }
+
+    if (PO_SYNC_FIELDS.has(field.name)) {
+      field.addEventListener("input", syncProtectiveOrderDefaults);
+      field.addEventListener("change", syncProtectiveOrderDefaults);
     }
   });
 
@@ -1316,27 +1470,20 @@ function updateConditionalFields() {
 }
 
 function updateOmnibusLocationVisibility() {
-  for (let index = 1; index <= 8; index += 1) {
-    const inPersonField = questionnaireRoot.querySelector(`[name="omnibusDeponent${index}InPerson"]`);
-    const locationField = questionnaireRoot.querySelector(`[name="omnibusDeponent${index}Location"]`);
-
-    if (!inPersonField || !locationField) {
-      continue;
-    }
-
+  const container = document.getElementById("omnibusCardsContainer");
+  if (!container) return;
+  Array.from(container.querySelectorAll(".omnibus-card")).forEach((card) => {
+    const index = card.dataset.deponentIndex;
+    if (!index) return;
+    const inPersonField = card.querySelector(`[name="omnibusDeponent${index}InPerson"]`);
+    const locationField = card.querySelector(`[name="omnibusDeponent${index}Location"]`);
+    if (!inPersonField || !locationField) return;
     const locationWrapper = locationField.closest(".field");
     const shouldShowLocation = inPersonField.checked;
-
-    if (locationWrapper) {
-      locationWrapper.hidden = !shouldShowLocation;
-    }
-
+    if (locationWrapper) locationWrapper.hidden = !shouldShowLocation;
     locationField.disabled = !shouldShowLocation;
-
-    if (!shouldShowLocation) {
-      locationField.value = "";
-    }
-  }
+    if (!shouldShowLocation) locationField.value = "";
+  });
 }
 
 async function readFileAsBase64(file) {
@@ -1800,6 +1947,25 @@ function applyEmailOnlyMode() {
   setStatus("Ready to generate.", "success");
 }
 
+async function autoConnectGoogleDrive(session) {
+  const token = session.provider_token;
+  if (!token) return;
+  try {
+    await fetch("/api/auth/google-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        accessToken: token,
+        refreshToken: session.provider_refresh_token || "",
+        userEmail: session.user?.email || "",
+        userName: session.user?.user_metadata?.full_name || session.user?.email || "",
+      }),
+    });
+    // Reload session state so the Drive UI updates.
+    await loadAuthSession();
+  } catch {}
+}
+
 // Auth gate — redirect to /login if Supabase is configured and no session.
 (async () => {
   const cfg = window.__FDF_CONFIG__;
@@ -1818,10 +1984,13 @@ function applyEmailOnlyMode() {
   // Populate the user bubble in the topbar.
   renderMainUserBubble(sb, session, _sbProfile);
 
-  // Email/password users can't generate Google Docs — hide that tab.
+  // Email/password users get service-account generation; Google OAuth users
+  // auto-connect to Drive using the token Supabase already obtained.
   const provider = session.user?.app_metadata?.provider;
   if (provider && provider !== "google") {
     applyEmailOnlyMode();
+  } else if (provider === "google") {
+    await autoConnectGoogleDrive(session);
   }
 })();
 
