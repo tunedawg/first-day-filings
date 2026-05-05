@@ -46,6 +46,7 @@ let authSession = null;
 let generationProgressTimer = null;
 let _generateFormat = "docs";
 let _emailOnlyMode = false;
+let _driveAutoConnectPending = false;
 let _omnibusDeponentCount = 0;
 const DRAFT_STORAGE_KEY = "first-day-filings:draft:v1";
 
@@ -380,6 +381,8 @@ function updateAuthUi() {
     setStatus("Ready to generate.", "success");
     return;
   }
+
+  if (_driveAutoConnectPending) return;
 
   if (authSummary) authSummary.textContent = "Connect Google Drive to generate documents";
   if (googleLoginButton) googleLoginButton.hidden = false;
@@ -1871,6 +1874,8 @@ loadData()
       return;
     }
 
+    if (_driveAutoConnectPending) return;
+
     if (authSession?.configured) {
       setStatus("Sign in with Google, then generate.", "idle");
       return;
@@ -1983,9 +1988,14 @@ async function autoConnectGoogleDrive(session) {
 (async () => {
   const cfg = window.__FDF_CONFIG__;
   if (!cfg?.supabaseUrl || !cfg?.supabaseAnonKey) return;
+
+  // Set before any await so loadAuthSession (called from loadData) doesn't
+  // show the sign-in notice while Drive auto-connect is still in flight.
+  _driveAutoConnectPending = true;
+
   const sb = createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) { window.location.href = "/login"; return; }
+  if (!session) { _driveAutoConnectPending = false; window.location.href = "/login"; return; }
 
   // How-to modal (needs session to persist dismissed state).
   initHowTo({ supabase: sb, userId: session.user.id });
@@ -2001,9 +2011,13 @@ async function autoConnectGoogleDrive(session) {
   // auto-connect to Drive using the token Supabase already obtained.
   const provider = session.user?.app_metadata?.provider;
   if (provider && provider !== "google") {
+    _driveAutoConnectPending = false;
     applyEmailOnlyMode();
   } else if (provider === "google") {
     await autoConnectGoogleDrive(session);
+    _driveAutoConnectPending = false;
+  } else {
+    _driveAutoConnectPending = false;
   }
 })();
 

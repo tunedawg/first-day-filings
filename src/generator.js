@@ -208,6 +208,7 @@ function buildTokenMap(intake) {
     "{{rogComplainantDemoCommaAnd}}": buildRogComplainantDemoCommaAnd(enrichedIntake),
     "{{rogComplainantProfileDemographics}}": buildRogComplainantProfileDemographics(enrichedIntake),
     "{{rogComplaintScopeOrPhrase}}": buildRogComplaintScopeOrPhrase(enrichedIntake),
+    "{{rogAdverseActionComparatorPhrase}}": buildRogAdverseActionComparatorPhrase(enrichedIntake),
     "{{employmentDateRange}}": `${buildLookbackStart(enrichedIntake)} to the present`,
     "{{adverseActionsBlock}}": renderNumberedList(enrichedIntake.adverseActions),
     "{{complaintTypesBlock}}": renderNumberedList(enrichedIntake.complaintTypes),
@@ -781,6 +782,25 @@ function buildRogComplaintScopeOrPhrase(intake) {
   if (hasWorkersComp) categories.push("workers' compensation retaliation");
   if (hasWhistleblower) categories.push("violations of RSMo 105.055");
   return joinWithCommasAndAnd(categories.length > 0 ? categories : ["discrimination or retaliation"]);
+}
+
+// Generates a phrase describing the adverse actions in this case for use in comparator rogs,
+// e.g. "termination", "formal discipline or placement on a Performance Improvement Plan".
+// Falls back to "adverse employment action" when no actions are recorded.
+function buildRogAdverseActionComparatorPhrase(intake) {
+  const NOUN = {
+    termination: "termination",
+    discipline: "formal discipline",
+    pip: "placement on a Performance Improvement Plan",
+    schedule_reduction: "schedule reduction",
+    denial_of_accommodation: "denial of accommodation",
+  };
+  const actionKeys = Array.isArray(intake.adverseActions)
+    ? intake.adverseActions
+    : splitLines(intake.adverseActions);
+  const phrases = actionKeys.map((k) => NOUN[k]).filter(Boolean);
+  if (normalizeValue(intake.adverseActionsOther)) phrases.push(normalizeValue(intake.adverseActionsOther));
+  return joinWithCommasAndAnd(phrases.length > 0 ? phrases : ["adverse employment action"]);
 }
 
 function normalizeAdverseActions(intake) {
