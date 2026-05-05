@@ -204,6 +204,11 @@ function buildTokenMap(intake) {
     "{{retaliationActivitiesBlock}}": renderNumberedList(enrichedIntake.retaliationActivities),
     "{{interrogatoryProtectedStatusFields}}": buildInterrogatoryProtectedStatusFields(enrichedIntake),
     "{{interrogatoryComplaintTypes}}": buildInterrogatoryComplaintTypes(enrichedIntake),
+    "{{rogPersonDemographicComma}}": buildRogPersonDemographicComma(enrichedIntake),
+    "{{rogComplainantDemoCommaAnd}}": buildRogComplainantDemoCommaAnd(enrichedIntake),
+    "{{rogComplainantProfileDemographics}}": buildRogComplainantProfileDemographics(enrichedIntake),
+    "{{rogComplaintScopeOrPhrase}}": buildRogComplaintScopeOrPhrase(enrichedIntake),
+    "{{employmentDateRange}}": `${buildLookbackStart(enrichedIntake)} to the present`,
     "{{adverseActionsBlock}}": renderNumberedList(enrichedIntake.adverseActions),
     "{{complaintTypesBlock}}": renderNumberedList(enrichedIntake.complaintTypes),
     "{{comparatorGroupsBlock}}": renderNumberedEntries(comparatorEntries),
@@ -724,6 +729,58 @@ function buildInterrogatoryComplaintTypes(intake) {
   }
 
   return joinWithCommasAndAnd(complaintTypes.length > 0 ? complaintTypes : ["discrimination or retaliation"]);
+}
+
+// Generates "race, age, known disability status, " (with trailing ", ") for insertion into a
+// comma-separated field list. Returns "" when no demographic claims are active.
+function buildRogPersonDemographicComma(intake) {
+  const claimKeys = getClaimKeys(intake);
+  const fields = [];
+  if (claimKeysInclude(claimKeys, [/\brace\b/, /\bcolor\b/])) fields.push("race");
+  if (claimKeysInclude(claimKeys, [/\bage\b/])) fields.push("age");
+  if (claimKeysInclude(claimKeys, [/\bdisability\b/, /failure.to.accommodate/, /\bassociational\b/])) fields.push("known disability status");
+  return fields.length > 0 ? fields.join(", ") + ", " : "";
+}
+
+// Generates ", race, age, known disability status, and" or " and" (no demographics) for use
+// inside the phrase "the identity{{rogComplainantDemoCommaAnd}} contact information".
+function buildRogComplainantDemoCommaAnd(intake) {
+  const claimKeys = getClaimKeys(intake);
+  const fields = [];
+  if (claimKeysInclude(claimKeys, [/\brace\b/, /\bcolor\b/])) fields.push("race");
+  if (claimKeysInclude(claimKeys, [/\bage\b/])) fields.push("age");
+  if (claimKeysInclude(claimKeys, [/\bdisability\b/, /failure.to.accommodate/, /\bassociational\b/])) fields.push("known disability status");
+  return fields.length > 0 ? ", " + fields.join(", ") + ", and" : " and";
+}
+
+// Generates the demographic profile fields for the "all complainants" rog (rog 4).
+// Returns "race, age, known disability status, whether they have ever had a workplace injury, "
+// (only the relevant fields) with trailing ", ", or "" if none apply.
+function buildRogComplainantProfileDemographics(intake) {
+  const claimKeys = getClaimKeys(intake);
+  const fields = [];
+  if (claimKeysInclude(claimKeys, [/\brace\b/, /\bcolor\b/])) fields.push("race");
+  if (claimKeysInclude(claimKeys, [/\bage\b/])) fields.push("age");
+  if (claimKeysInclude(claimKeys, [/\bdisability\b/, /failure.to.accommodate/, /\bassociational\b/])) fields.push("known disability status");
+  if (claimKeysInclude(claimKeys, [/workers.?comp/])) fields.push("whether they have ever had a workplace injury");
+  return fields.length > 0 ? fields.join(", ") + ", " : "";
+}
+
+// Generates the complaint scope phrase for "reported any form of X to Defendant".
+// E.g., "discrimination or retaliation", "workers' compensation retaliation",
+// "discrimination, retaliation, or violations of RSMo 105.055".
+function buildRogComplaintScopeOrPhrase(intake) {
+  const claimKeys = getClaimKeys(intake);
+  const categories = [];
+  const hasDiscrim = claimKeysInclude(claimKeys, [/\brace\b/, /\bcolor\b/, /\bage\b/, /\bsex\b/, /\bgender\b/, /\bdisability\b/, /failure.to.accommodate/, /\bassociational\b/]);
+  const hasRetaliation = claimKeysInclude(claimKeys, [/\bretaliation\b/]);
+  const hasWorkersComp = claimKeysInclude(claimKeys, [/workers.?comp/]);
+  const hasWhistleblower = claimKeysInclude(claimKeys, [/\bwhistleblower\b/, /rsmo_105_055/]);
+  if (hasDiscrim) categories.push("discrimination");
+  if (hasRetaliation) categories.push("retaliation");
+  if (hasWorkersComp) categories.push("workers' compensation retaliation");
+  if (hasWhistleblower) categories.push("violations of RSMo 105.055");
+  return joinWithCommasAndAnd(categories.length > 0 ? categories : ["discrimination or retaliation"]);
 }
 
 function normalizeAdverseActions(intake) {
