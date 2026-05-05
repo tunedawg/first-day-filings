@@ -1949,19 +1949,32 @@ function applyEmailOnlyMode() {
 
 async function autoConnectGoogleDrive(session) {
   const token = session.provider_token;
-  if (!token) return;
+  const refreshToken = session.provider_refresh_token;
+  const userEmail = session.user?.email || "";
+  const userName = session.user?.user_metadata?.full_name || userEmail;
+
   try {
-    await fetch("/api/auth/google-token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        accessToken: token,
-        refreshToken: session.provider_refresh_token || "",
-        userEmail: session.user?.email || "",
-        userName: session.user?.user_metadata?.full_name || session.user?.email || "",
-      }),
-    });
-    // Reload session state so the Drive UI updates.
+    if (token) {
+      // Fresh login — store refresh token in user_metadata so future page loads can use it.
+      if (refreshToken && _sb) {
+        await _sb.auth.updateUser({ data: { google_refresh_token: refreshToken } }).catch(() => {});
+      }
+      await fetch("/api/auth/google-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken: token, refreshToken: refreshToken || "", userEmail, userName }),
+      });
+    } else {
+      // provider_token not available (session was refreshed by Supabase) — use stored refresh token.
+      const storedRefreshToken = session.user?.user_metadata?.google_refresh_token;
+      if (!storedRefreshToken) return;
+      const res = await fetch("/api/auth/google-refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: storedRefreshToken, userEmail, userName }),
+      });
+      if (!res.ok) return;
+    }
     await loadAuthSession();
   } catch {}
 }

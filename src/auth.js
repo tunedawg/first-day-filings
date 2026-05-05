@@ -311,5 +311,6 @@ module.exports = {
   getSessionFromRequest,
   getValidAccessToken,
   getOAuthConfig,
+  refreshAccessToken,
   storeProviderToken,
 };

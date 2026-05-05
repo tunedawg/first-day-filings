@@ -13,6 +13,7 @@ const {
   getServiceAccountToken,
   getSessionFromRequest,
   getValidAccessToken,
+  refreshAccessToken,
   storeProviderToken,
 } = require("./auth");
 const { extractCaseContext } = require("./extractor");
@@ -421,6 +422,24 @@ const server = http.createServer(async (request, response) => {
         userName: body.userName || "",
       });
       sendJson(response, 200, { ok: true });
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/auth/google-refresh") {
+      const body = await collectRequestBody(request);
+      if (!body.refreshToken) { sendJson(response, 400, { ok: false, error: "refreshToken required" }); return; }
+      try {
+        const refreshed = await refreshAccessToken(body.refreshToken);
+        storeProviderToken(request, response, {
+          accessToken: refreshed.access_token,
+          refreshToken: body.refreshToken,
+          userEmail: body.userEmail || "",
+          userName: body.userName || "",
+        });
+        sendJson(response, 200, { ok: true });
+      } catch (e) {
+        sendJson(response, 400, { ok: false, error: e.message });
+      }
       return;
     }
 
