@@ -207,6 +207,8 @@ function buildTokenMap(intake) {
     "{{rogPersonDemographicComma}}": buildRogPersonDemographicComma(enrichedIntake),
     "{{rogComplainantDemoCommaAnd}}": buildRogComplainantDemoCommaAnd(enrichedIntake),
     "{{rogComplainantProfileDemographics}}": buildRogComplainantProfileDemographics(enrichedIntake),
+    "{{captionDefendantName}}": buildCaptionDefendantName(enrichedIntake),
+    "{{captionDefendantLabel}}": buildCaptionDefendantLabel(enrichedIntake),
     "{{rogComplaintScopeOrPhrase}}": buildRogComplaintScopeOrPhrase(enrichedIntake),
     "{{rogAdverseActionComparatorPhrase}}": buildRogAdverseActionComparatorPhrase(enrichedIntake),
     "{{employmentDateRange}}": `${buildLookbackStart(enrichedIntake)} to the present`,
@@ -479,6 +481,18 @@ function buildPrimaryActor(intake) {
 
 function buildDefendantPartyLabel(intake) {
   return splitLines(intake.allDefendants).length > 1 ? "Defendants" : "Defendant";
+}
+
+// "First Defendant, et al." for multiple defendants; plain name for one.
+function buildCaptionDefendantName(intake) {
+  const defendants = splitLines(intake.allDefendants).map(toTitleCase);
+  if (defendants.length === 0) return toTitleCase(normalizeValue(intake.defendantName));
+  return defendants.length === 1 ? defendants[0] : `${defendants[0]}, et al.`;
+}
+
+// "Defendants." or "Defendant." (with period) for the caption party label line.
+function buildCaptionDefendantLabel(intake) {
+  return buildDefendantPartyLabel(intake) + ".";
 }
 
 function buildCorpRepActorNames(intake) {
