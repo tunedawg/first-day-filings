@@ -484,9 +484,10 @@ function buildDefendantPartyLabel(intake) {
 }
 
 // "First Defendant, et al." for multiple defendants; plain name for one.
+// Preserves the case as entered in the intake (e.g. all-caps caption names).
 function buildCaptionDefendantName(intake) {
-  const defendants = splitLines(intake.allDefendants).map(toTitleCase);
-  if (defendants.length === 0) return toTitleCase(normalizeValue(intake.defendantName));
+  const defendants = splitLines(intake.allDefendants).filter(Boolean);
+  if (defendants.length === 0) return normalizeValue(intake.defendantName);
   return defendants.length === 1 ? defendants[0] : `${defendants[0]}, et al.`;
 }
 
