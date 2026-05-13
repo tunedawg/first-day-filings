@@ -437,18 +437,55 @@ async function formatPetitionDoc(accessToken, docId) {
   const paras = _collectParas(doc.body?.content || []);
   const requests = [];
 
+  // Pre-scan: find signature block start by locating the /s/ line (guaranteed
+  // to exist) then walking backwards to the earliest anchor paragraph.
+  let sigBlockStart = -1;
+  {
+    const slashsIdx = paras.findIndex(p => p.text.startsWith("/s/ "));
+    if (slashsIdx >= 0) {
+      sigBlockStart = slashsIdx;
+      for (let j = slashsIdx - 1; j >= Math.max(0, slashsIdx - 6); j--) {
+        const t = paras[j].text.trim();
+        if (!t) continue; // skip blank lines
+        if (/^respectfully submitted/i.test(t) || /^keenan/i.test(t)) {
+          sigBlockStart = j; // extend signature block start upward
+        } else {
+          break;
+        }
+      }
+    }
+  }
+
   let inServeBlock = false;
   let inCountsSection = false;
   let inPrayerSection = false;
-  let sigBlockStart = -1;
 
   for (let i = 0; i < paras.length; i++) {
-    const { text, startIndex, endIndex, inTable } = paras[i];
+    const { text, startIndex, endIndex } = paras[i];
     const tEnd = endIndex - 1; // exclude the trailing \n from text-style ranges
 
     if (!text.trim()) { inServeBlock = false; continue; }
 
-    // ── COUNT I / II / III … → bold + underline + center, start double-spacing ─
+    // ── Signature block (right-align everything from sigBlockStart onward) ────
+    if (sigBlockStart >= 0 && i >= sigBlockStart) {
+      requests.push(_ps(startIndex, endIndex, { alignment: "END" }));
+      if (text.startsWith("/s/ ")) {
+        requests.push(_ps(startIndex, endIndex, {
+          borderTop: {
+            color: { color: { rgbColor: { red: 0, green: 0, blue: 0 } } },
+            width: { magnitude: 0.5, unit: "PT" },
+            padding: { magnitude: 4, unit: "PT" },
+            dashStyle: "SOLID",
+          },
+        }));
+      }
+      if (/^Attorneys for Plaintiff/.test(text)) {
+        requests.push(_ts(startIndex, tEnd, { italic: true }));
+      }
+      continue;
+    }
+
+    // ── COUNT I / II / III … → bold + underline + center ─────────────────────
     if (/^COUNT\s+[IVXLCDM]+$/.test(text)) {
       requests.push(_ts(startIndex, tEnd, { bold: true, underline: true }));
       requests.push(_ps(startIndex, endIndex, { alignment: "CENTER" }));
@@ -478,8 +515,12 @@ async function formatPetitionDoc(accessToken, docId) {
       continue;
     }
 
-    // ── Serve label + address lines → 1.15 spacing + indent, no extra gaps ───
-    if (inServeBlock) {
+    // ── Serve label + address lines → indent 0.5in, 1.15 spacing, no gaps ────
+    // Detect both via inServeBlock state AND by explicit "Serve at:"/"Serve RA:"
+    // pattern so a blank line between defendant name and label doesn't break it.
+    const isServeLabel = /^Serve (at|RA):/i.test(text);
+    if (inServeBlock || isServeLabel) {
+      if (isServeLabel) inServeBlock = true;
       requests.push(_ts(startIndex, tEnd, { bold: false }));
       requests.push(_ps(startIndex, endIndex, {
         lineSpacing: 115,
@@ -500,7 +541,6 @@ async function formatPetitionDoc(accessToken, docId) {
 
     // ── Numbered body paragraphs (facts, count bodies, prayer items) ──────────
     if (/^\d+[\.\t]/.test(text)) {
-      // Remove list auto-numbering (prevents the "1. 1." double-number bug)
       requests.push({ deleteParagraphBullets: { range: { startIndex, endIndex } } });
       const numStyle = {
         alignment: "START",
@@ -514,36 +554,10 @@ async function formatPetitionDoc(accessToken, docId) {
       continue;
     }
 
-    // ── Jury demand body ("… respectfully demands a jury trial …") ───────────
+    // ── Jury demand body paragraph ────────────────────────────────────────────
     if (/respectfully demands a jury trial/.test(text)) {
       requests.push(_ps(startIndex, endIndex, { alignment: "START", lineSpacing: 200 }));
       continue;
-    }
-
-    // ── Signature block anchor ────────────────────────────────────────────────
-    if (text === "Respectfully submitted," || text === "KEENAN & BHATIA, LLC") {
-      sigBlockStart = i;
-    }
-
-    if (sigBlockStart >= 0 && i >= sigBlockStart) {
-      requests.push(_ps(startIndex, endIndex, { alignment: "END" }));
-      // Add a top border on the /s/ line to create the signature rule
-      if (text.startsWith("/s/ ")) {
-        requests.push(_ps(startIndex, endIndex, {
-          borderTop: {
-            color: { color: { rgbColor: { red: 0, green: 0, blue: 0 } } },
-            width: { magnitude: 0.5, unit: "PT" },
-            padding: { magnitude: 4, unit: "PT" },
-            dashStyle: "SOLID",
-          },
-        }));
-      }
-    }
-
-    // ── "Attorneys for Plaintiff …" → italic + right-align ───────────────────
-    if (/^Attorneys for Plaintiff/.test(text)) {
-      requests.push(_ts(startIndex, tEnd, { italic: true }));
-      requests.push(_ps(startIndex, endIndex, { alignment: "END" }));
     }
   }
 
