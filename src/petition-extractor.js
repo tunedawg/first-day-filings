@@ -115,23 +115,37 @@ Return ONLY the JSON object. No markdown fences. No explanation. No extra text.`
 
 // Walk the JSON character by character so we can safely escape literal control
 // chars that Gemini sometimes emits inside string values despite being asked not to.
+// Handles all U+0000–U+001F control chars plus U+2028/U+2029 (line/paragraph separators).
 function sanitizeJsonString(text) {
   let out = "";
   let inString = false;
   let i = 0;
   while (i < text.length) {
+    const cp = text.codePointAt(i);
     const ch = text[i];
     if (inString) {
       if (ch === "\\") {
+        // Already-escaped sequence — copy both chars and skip ahead.
         out += ch + (text[i + 1] ?? "");
         i += 2;
         continue;
       }
-      if (ch === '"') { inString = false; out += ch; }
-      else if (ch === "\n") out += "\\n";
-      else if (ch === "\r") out += "\\r";
-      else if (ch === "\t") out += "\\t";
-      else out += ch;
+      if (ch === '"') {
+        inString = false;
+        out += ch;
+      } else if (cp < 0x20) {
+        // All C0 control characters must be escaped in JSON strings.
+        if (cp === 0x09) out += "\\t";
+        else if (cp === 0x0a) out += "\\n";
+        else if (cp === 0x0d) out += "\\r";
+        else out += `\\u${cp.toString(16).padStart(4, "0")}`;
+      } else if (cp === 0x2028) {
+        out += "\\u2028"; // Unicode Line Separator — illegal bare in JSON
+      } else if (cp === 0x2029) {
+        out += "\\u2029"; // Unicode Paragraph Separator — illegal bare in JSON
+      } else {
+        out += ch;
+      }
     } else {
       if (ch === '"') inString = true;
       out += ch;
