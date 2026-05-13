@@ -479,6 +479,7 @@ async function formatPetitionDoc(accessToken, docId) {
 
     // ── Serve label + address lines → 1.15 spacing + indent, no extra gaps ───
     if (inServeBlock) {
+      requests.push(_ts(startIndex, tEnd, { bold: false }));
       requests.push(_ps(startIndex, endIndex, {
         lineSpacing: 115,
         spaceAbove: { magnitude: 0, unit: "PT" },
@@ -502,8 +503,8 @@ async function formatPetitionDoc(accessToken, docId) {
       requests.push({ deleteParagraphBullets: { range: { startIndex, endIndex } } });
       const numStyle = {
         alignment: "START",
-        indentStart: { magnitude: 36, unit: "PT" },
-        indentFirstLine: { magnitude: 0, unit: "PT" },
+        indentFirstLine: { magnitude: 36, unit: "PT" },
+        indentStart: { magnitude: 0, unit: "PT" },
       };
       if (inCountsSection || inPrayerSection) numStyle.lineSpacing = 200;
       requests.push(_ps(startIndex, endIndex, numStyle));
