@@ -390,12 +390,168 @@ async function deleteFile(accessToken, fileId) {
   } catch (_) { /* best-effort cleanup */ }
 }
 
+// ── Post-generation petition formatting ───────────────────────────────────────
+// Applies rich formatting that replaceAllText cannot: bold defendant names,
+// indent addresses, underline COUNT I/II, center count headers, double-space
+// counts/prayer, right-align signature, italic attorney-for line, remove
+// double list bullets.
+
+function _collectParas(content, inTable = false) {
+  const out = [];
+  for (const el of content || []) {
+    if (el.paragraph) {
+      const text = (el.paragraph.elements || []).map((e) => e.textRun?.content || "").join("").replace(/\n$/, "");
+      out.push({ text, startIndex: el.startIndex, endIndex: el.endIndex, inTable });
+    }
+    for (const row of el.table?.tableRows || []) {
+      for (const cell of row.tableCells || []) {
+        out.push(..._collectParas(cell.content, true));
+      }
+    }
+  }
+  return out;
+}
+
+function _ts(startIndex, endIndex, style) {
+  return { updateTextStyle: { range: { startIndex, endIndex }, textStyle: style, fields: Object.keys(style).join(",") } };
+}
+
+function _ps(startIndex, endIndex, style) {
+  return { updateParagraphStyle: { range: { startIndex, endIndex }, paragraphStyle: style, fields: Object.keys(style).join(",") } };
+}
+
+function _isCountSubHeader(text) {
+  if (/^VIOLATION OF THE/.test(text)) return true;
+  if (/^DISCRIMINATION FOR EXERCISE/.test(text)) return true;
+  if (/^PUBLIC EMPLOYEE WHISTLEBLOWER/.test(text)) return true;
+  if (/^RSMo\s/.test(text)) return true;
+  if (/^(RACE|COLOR|SEX|AGE|DISABILITY) DISCRIMINATION$/.test(text)) return true;
+  if (/^RETALIATION$/.test(text)) return true;
+  if (/^WHISTLEBLOWER'?S? PROTECTION/.test(text)) return true;
+  if (/^\(Against All Defendants\)/.test(text)) return true;
+  return false;
+}
+
+async function formatPetitionDoc(accessToken, docId) {
+  const doc = await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${docId}`);
+  const paras = _collectParas(doc.body?.content || []);
+  const requests = [];
+
+  let inServeBlock = false;
+  let inCountsSection = false;
+  let inPrayerSection = false;
+  let sigBlockStart = -1;
+
+  for (let i = 0; i < paras.length; i++) {
+    const { text, startIndex, endIndex, inTable } = paras[i];
+    const tEnd = endIndex - 1; // exclude the trailing \n from text-style ranges
+
+    if (!text.trim()) { inServeBlock = false; continue; }
+
+    // ── COUNT I / II / III … → underline + center, start double-spacing ──────
+    if (/^COUNT\s+[IVXLCDM]+$/.test(text)) {
+      requests.push(_ts(startIndex, tEnd, { underline: true }));
+      requests.push(_ps(startIndex, endIndex, { alignment: "CENTER" }));
+      inCountsSection = true;
+      inServeBlock = false;
+      continue;
+    }
+
+    // ── Count sub-headers (VIOLATION OF…, RSMo…, (Against All Defendants)) ───
+    if (_isCountSubHeader(text)) {
+      requests.push(_ps(startIndex, endIndex, { alignment: "CENTER" }));
+      continue;
+    }
+
+    // ── DEMAND FOR A JURY TRIAL ───────────────────────────────────────────────
+    if (text === "DEMAND FOR A JURY TRIAL") {
+      requests.push(_ps(startIndex, endIndex, { alignment: "CENTER", lineSpacing: 200 }));
+      continue;
+    }
+
+    // ── Defendant caption names: ALL CAPS ending with semicolon ──────────────
+    if (/^[A-Z][A-Z0-9\s,.'&()/#-]+;$/.test(text)) {
+      requests.push(_ts(startIndex, tEnd, { bold: true }));
+      inServeBlock = true;
+      continue;
+    }
+
+    // ── Serve label + address lines → 1.15 spacing + indent ─────────────────
+    if (inServeBlock) {
+      requests.push(_ps(startIndex, endIndex, {
+        lineSpacing: 115,
+        indentStart: { magnitude: 36, unit: "PT" },
+        indentFirstLine: { magnitude: 0, unit: "PT" },
+      }));
+      continue;
+    }
+
+    // ── Prayer intro line ─────────────────────────────────────────────────────
+    if (/^Plaintiff respectfully prays/.test(text)) {
+      inPrayerSection = true;
+      requests.push(_ps(startIndex, endIndex, { lineSpacing: 200 }));
+      continue;
+    }
+
+    // ── Numbered body paragraphs (facts, count bodies, prayer items) ──────────
+    if (/^\d+[\.\t]/.test(text)) {
+      // Remove list auto-numbering (prevents the "1. 1." double-number bug)
+      requests.push({ deleteParagraphBullets: { range: { startIndex, endIndex } } });
+      requests.push(_ps(startIndex, endIndex, { alignment: "START" }));
+      if (inCountsSection || inPrayerSection) {
+        requests.push(_ps(startIndex, endIndex, { lineSpacing: 200 }));
+      }
+      inServeBlock = false;
+      continue;
+    }
+
+    // ── Jury demand body ("… respectfully demands a jury trial …") ───────────
+    if (/respectfully demands a jury trial/.test(text)) {
+      requests.push(_ps(startIndex, endIndex, { alignment: "START", lineSpacing: 200 }));
+      continue;
+    }
+
+    // ── Signature block anchor ────────────────────────────────────────────────
+    if (text === "KEENAN & BHATIA, LLC") {
+      sigBlockStart = i;
+    }
+
+    if (sigBlockStart >= 0 && i >= sigBlockStart) {
+      requests.push(_ps(startIndex, endIndex, { alignment: "END" }));
+      // Add a top border on the /s/ line to create the signature rule
+      if (text.startsWith("/s/ ")) {
+        requests.push(_ps(startIndex, endIndex, {
+          borderTop: {
+            color: { color: { rgbColor: { red: 0, green: 0, blue: 0 } } },
+            width: { magnitude: 0.5, unit: "PT" },
+            padding: { magnitude: 4, unit: "PT" },
+            dashStyle: "SOLID",
+          },
+        }));
+      }
+    }
+
+    // ── "Attorneys for Plaintiff …" → italic + right-align ───────────────────
+    if (/^Attorneys for Plaintiff/.test(text)) {
+      requests.push(_ts(startIndex, tEnd, { italic: true }));
+      requests.push(_ps(startIndex, endIndex, { alignment: "END" }));
+    }
+  }
+
+  if (requests.length === 0) return;
+  await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${docId}:batchUpdate`, {
+    method: "POST",
+    body: JSON.stringify({ requests }),
+  });
+}
+
 module.exports = {
   copyGoogleDoc,
   createDriveFolder,
   deleteFile,
   exportGoogleDocAs,
   fixPronounTokensInDoc,
+  formatPetitionDoc,
   getDriveFile,
   inspectTemplateFile,
   replaceDocTokens,
