@@ -466,6 +466,7 @@ async function formatPetitionDoc(accessToken, docId) {
 
     // ── DEMAND FOR A JURY TRIAL ───────────────────────────────────────────────
     if (text === "DEMAND FOR A JURY TRIAL") {
+      requests.push(_ts(startIndex, tEnd, { bold: true }));
       requests.push(_ps(startIndex, endIndex, { alignment: "CENTER", lineSpacing: 200 }));
       continue;
     }
@@ -506,7 +507,8 @@ async function formatPetitionDoc(accessToken, docId) {
         indentFirstLine: { magnitude: 36, unit: "PT" },
         indentStart: { magnitude: 0, unit: "PT" },
       };
-      if (inCountsSection || inPrayerSection) numStyle.lineSpacing = 200;
+      if (inCountsSection) numStyle.lineSpacing = 200;
+      else if (inPrayerSection) numStyle.lineSpacing = 115;
       requests.push(_ps(startIndex, endIndex, numStyle));
       inServeBlock = false;
       continue;
