@@ -150,8 +150,13 @@ async function handleGenerate(request, response, body) {
   try {
     accessToken = await getValidAccessToken(session);
   } catch {
-    accessToken = await getServiceAccountToken();
-    useServiceAccount = true;
+    try {
+      accessToken = await getServiceAccountToken();
+      useServiceAccount = true;
+    } catch {
+      sendJson(response, 401, { ok: false, issues: ["Google Drive is not connected. Please sign in with Google Drive and try again."] });
+      return;
+    }
   }
 
   // Service-account path: export files as buffers, serve via /api/download/:key.
@@ -521,9 +526,14 @@ const server = http.createServer(async (request, response) => {
       let useServiceAccount = false;
       try {
         accessToken = await getValidAccessToken(session);
-      } catch {
-        accessToken = await getServiceAccountToken();
-        useServiceAccount = true;
+      } catch (sessionErr) {
+        try {
+          accessToken = await getServiceAccountToken();
+          useServiceAccount = true;
+        } catch {
+          sendJson(response, 401, { ok: false, error: "Google Drive is not connected. Please sign in with Google Drive and try again." });
+          return;
+        }
       }
 
       const tokenMap = buildPetitionTokenMap(intake);
