@@ -34,8 +34,14 @@ function buildCourtHeader(court = {}) {
 
 function buildDefendantsCaption(defendants = []) {
   return defendants.map((d, i) => {
-    const sep = i < defendants.length - 1 ? "\n\n" : "";
-    return `${d.captionName};\n${d.serveLabel || "Serve at:"}\n${d.serveAddress || "[SERVICE ADDRESS]"}${sep}`;
+    const sep = i < defendants.length - 1 ? "\n\t)\n" : "";
+    const addressLines = (d.serveAddress || "[SERVICE ADDRESS]").split("\n");
+    const lines = [
+      `${d.captionName};`,
+      d.serveLabel || "Serve at:",
+      ...addressLines,
+    ];
+    return lines.map(l => `${l}\t)`).join("\n") + sep;
   }).join("");
 }
 
