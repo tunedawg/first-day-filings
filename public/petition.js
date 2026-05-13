@@ -53,15 +53,36 @@ async function autoConnectGoogleDrive() {
   if (!_sb || !cfg?.supabaseUrl) return;
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) return;
-  const refreshToken = session.user?.user_metadata?.google_refresh_token;
-  if (!refreshToken) return;
+
+  const userEmail = session.user?.email || "";
+  const userName = session.user?.user_metadata?.full_name || userEmail;
+  const accessToken = session.provider_token;
+  const refreshToken = session.provider_refresh_token;
+  const storedRefreshToken = session.user?.user_metadata?.google_refresh_token;
+
   try {
-    await fetch("/api/auth/google-refresh", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken, userEmail: session.user.email, userName: session.user.user_metadata?.name || "" }),
-    });
-    setAuthState(true, session.user.email);
+    if (accessToken) {
+      // Fresh login — access token is still available. Save refresh token for future loads.
+      if (refreshToken) {
+        await _sb.auth.updateUser({ data: { google_refresh_token: refreshToken } }).catch(() => {});
+      }
+      const res = await fetch("/api/auth/google-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken, refreshToken: refreshToken || "", userEmail, userName }),
+      });
+      if (res.ok) setAuthState(true, userEmail);
+    } else {
+      // Subsequent load — use stored refresh token.
+      const rt = refreshToken || storedRefreshToken;
+      if (!rt) return;
+      const res = await fetch("/api/auth/google-refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: rt, userEmail, userName }),
+      });
+      if (res.ok) setAuthState(true, userEmail);
+    }
   } catch (_) { /* silent */ }
 }
 
