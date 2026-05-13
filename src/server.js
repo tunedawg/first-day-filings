@@ -521,18 +521,29 @@ const server = http.createServer(async (request, response) => {
         return;
       }
 
-      const session = getSessionFromRequest(request);
       let accessToken;
       let useServiceAccount = false;
-      try {
-        accessToken = await getValidAccessToken(session);
-      } catch (sessionErr) {
+      // Prefer a refresh token sent directly in the body (avoids in-memory session issues).
+      if (intake._googleRefreshToken) {
         try {
-          accessToken = await getServiceAccountToken();
-          useServiceAccount = true;
+          const refreshed = await refreshAccessToken(intake._googleRefreshToken);
+          accessToken = refreshed.access_token;
         } catch {
-          sendJson(response, 401, { ok: false, error: "Google Drive is not connected. Please sign in with Google Drive and try again." });
+          sendJson(response, 401, { ok: false, error: "Google Drive token is invalid. Please disconnect and reconnect Google Drive." });
           return;
+        }
+      } else {
+        const session = getSessionFromRequest(request);
+        try {
+          accessToken = await getValidAccessToken(session);
+        } catch {
+          try {
+            accessToken = await getServiceAccountToken();
+            useServiceAccount = true;
+          } catch {
+            sendJson(response, 401, { ok: false, error: "Google Drive is not connected. Please sign in with Google Drive and try again." });
+            return;
+          }
         }
       }
 
