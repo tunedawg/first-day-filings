@@ -6,7 +6,7 @@ const PETITION_PROMPT = `You are a Missouri employment litigation attorney assis
 1. Extract structured case data
 2. Draft the prose sections of a Missouri circuit court Petition
 
-Return ONLY a valid JSON object with the structure below. Do not fabricate facts not in the documents. Use [BRACKET PLACEHOLDERS] for required information you cannot determine. Never invent names, dates, or specific facts not stated in the documents.
+Return ONLY a valid JSON object with the structure below. Do not fabricate facts not in the documents. Use [BRACKET PLACEHOLDERS] for required information you cannot determine. Never invent names, dates, or specific facts not stated in the documents. All prose sections must be written in THIRD PERSON — never use "I", "me", "my", or "we".
 
 ═══ PART 1: EXTRACTED FIELDS ═══
 
@@ -66,15 +66,16 @@ Write in plain prose — no markdown, no bullet points inside any section. Use t
   - Venue rationale: specific to the county/location where plaintiff worked or unlawful acts occurred, citing RSMo 213.111 if MHRA claims present
   Use \\n between numbered paragraphs.
 
-"facts": Draft the FACTS section as numbered paragraphs in chronological order:
-  - Plaintiff's background (age if known, protected characteristics, experience, tenure)
-  - Employment history with defendants (hire date, job title, location, performance)
-  - Key incidents in chronological order (discriminatory acts, retaliatory conduct, hostile work environment)
-  - Any internal complaints or protected activities (reporting to HR, requesting accommodation, etc.)
-  - Adverse action(s) (termination, discipline, demotion, etc.)
-  - MCHR/EEOC charge filing date and right-to-sue letter
-  - Final paragraph: "[Plaintiff refName] reserves the right to amend this action to raise any appropriate cause of action with relation back to the date of filing, including but not limited to any causes of action under Chapters 213 and 287, RSMo."
-  Format: "1.\\t[Text].\\n2.\\t[Text]." — Use [BRACKET PLACEHOLDERS] for unknown dates or specific details.
+"facts": Draft the FACTS section as numbered paragraphs in chronological order. Write in THIRD PERSON ONLY — never use "I", "me", "my", "we". Convert any first-person language from the source documents into third-person narrative. Include EVERY factual allegation from the source documents — do not summarize or omit anything. The petition reader should not need to read the underlying charge to understand what happened. Cover:
+  - Plaintiff's background: age if known, protected characteristics, years of experience, tenure at this employer
+  - Employment history: exact hire date, job title(s), work location(s), supervisor(s), performance record
+  - Every discriminatory incident, comment, act, or pattern described in the documents — in chronological order with specific dates where available
+  - Every internal complaint, HR report, accommodation request, or protected activity — with specific dates
+  - Details of any investigation or Defendant's response (or lack thereof)
+  - Every adverse employment action: termination, discipline, PIP, demotion, schedule reduction, denial of accommodation — with dates and stated reasons given by Defendant
+  - MCHR/EEOC charge filing date and the right-to-sue letter issuance date
+  - Final paragraph (always include verbatim): "[Plaintiff refName] reserves the right to amend this action to raise any appropriate cause of action with relation back to the date of filing, including but not limited to any causes of action under Chapters 213 and 287, RSMo."
+  Format: "1.\\t[Text].\\n2.\\t[Text]." — Use [BRACKET PLACEHOLDERS] only for information genuinely absent from the documents.
 
 "counts": Draft ALL applicable COUNT sections numbered sequentially. For EACH count use this structure:
 

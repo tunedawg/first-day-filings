@@ -37,6 +37,7 @@ const addDefendantBtn = document.getElementById("addDefendantBtn");
 // ── State ─────────────────────────────────────────────────────────────────────
 let selectedFiles = [];
 let defendants = [];
+let _draftFacts = "";
 let authSession = null;
 let _sb = null;
 let _progressTimer = null;
@@ -236,9 +237,9 @@ function populateForm(fields) {
   });
 
   // AI-drafted sections
+  _draftFacts = fields.facts || "";
   setField("pPartiesSection", fields.partiesSection || "");
   setField("pJurisdictionVenue", fields.jurisdictionVenue || "");
-  setField("pFacts", fields.facts || "");
   setField("pCounts", fields.counts || "");
   setField("pPrayer", fields.prayer || "");
 
@@ -399,7 +400,7 @@ function collectIntake() {
     selectedAttorneys,
     partiesSection: document.getElementById("pPartiesSection")?.value || "",
     jurisdictionVenue: document.getElementById("pJurisdictionVenue")?.value || "",
-    facts: document.getElementById("pFacts")?.value || "",
+    facts: _draftFacts,
     counts: document.getElementById("pCounts")?.value || "",
     prayer: document.getElementById("pPrayer")?.value || "",
     documentName: document.getElementById("pDocumentName")?.value.trim() || "Petition",

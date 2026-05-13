@@ -59,6 +59,15 @@ function buildSignatureBlock(intake) {
 
 const PRONOUN_TO_POSSESSIVE = { he: "his", she: "her", they: "their" };
 
+function formatLongDate(raw) {
+  if (!raw) return "";
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw.trim());
+  if (!match) return raw;
+  const [, y, m, d] = match;
+  return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" })
+    .format(new Date(Date.UTC(+y, +m - 1, +d)));
+}
+
 function buildPetitionTokenMap(intake) {
   const court = intake.court || {};
   const plaintiff = intake.plaintiff || {};
@@ -79,7 +88,7 @@ function buildPetitionTokenMap(intake) {
     "{{petitionFacts}}":              intake.facts || "",
     "{{petitionCounts}}":             intake.counts || "",
     "{{petitionPrayerItems}}":        intake.prayer || "",
-    "{{petitionFilingDate}}":         intake.filingDate || "",
+    "{{petitionFilingDate}}":         formatLongDate(intake.filingDate) || intake.filingDate || "",
     "{{petitionSignatureBlock}}":     buildSignatureBlock(intake),
     "{{petitionAttorneyForLine}}":    `Attorneys for Plaintiff ${plaintiff.fullName || "[Plaintiff Name]"}`,
   };
