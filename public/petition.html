@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Petition Drafter — First Day Filings</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script>
+      window.__FDF_CONFIG__ = {
+        supabaseUrl: "{{SUPABASE_URL}}",
+        supabaseAnonKey: "{{SUPABASE_ANON_KEY}}",
+        siteUrl: "{{SITE_URL}}"
+      };
+    </script>
+    <script src="/petition.js" type="module"></script>
+  </head>
+  <body>
+    <nav class="topbar">
+      <a href="/" class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none">
+            <path d="M9 5.5h10.5c3.6 0 5.5 1.8 5.5 5.2v13.1c0 2.9-1.8 4.7-4.8 4.7H9.8C6.8 28.5 5 26.7 5 23.8V10.2c0-3 1.9-4.7 4-4.7Z" fill="currentColor" opacity="0.18"/>
+            <path d="M12 4.5h8.8c3.1 0 4.7 1.6 4.7 4.6v12.4c0 3.3-1.8 5-5 5H11.2c-3 0-4.7-1.7-4.7-4.8V9.1c0-3 1.7-4.6 4.6-4.6Z" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M11 11h10M11 16h10M11 21h6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M20.5 4.8v3.7c0 1 .5 1.5 1.5 1.5h3.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="brand-name">First Day Filings</span>
+      </a>
+      <nav class="topbar-tool-nav" aria-label="Tool switcher">
+        <a href="/petition" class="topbar-tool-link topbar-tool-link--active" aria-current="page">Petition Drafter</a>
+        <a href="/" class="topbar-tool-link">First Day Filings</a>
+      </nav>
+      <div class="topbar-right">
+        <div class="account-bubble" id="userBubble" hidden>
+          <button class="account-trigger" id="userBubbleTrigger" type="button" aria-haspopup="true" aria-expanded="false">
+            <span class="account-avatar" id="userBubbleAvatar"></span>
+            <span class="account-name" id="userBubbleName"></span>
+            <svg class="account-chevron" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <div class="account-dropdown" id="userBubbleDropdown" hidden>
+            <a href="/dashboard" class="account-dropdown-item">Dashboard</a>
+            <a href="/settings/firm" class="account-dropdown-item">Firm Settings</a>
+            <button id="userBubbleSignOut" class="account-dropdown-item account-dropdown-signout" type="button">Sign out</button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="wizard">
+      <div class="wizard-hero">
+        <p class="hero-kicker">Missouri employment litigation · petition drafting</p>
+        <h1>Petition Drafter</h1>
+        <p class="hero-sub">Upload an EEOC charge, right-to-sue letter, or intake notes and AI drafts the petition — facts, counts, parties, and all.</p>
+      </div>
+
+      <div class="wizard-track">
+
+        <!-- Step 1: Upload -->
+        <div class="wizard-step" id="stepUpload">
+          <div class="step-aside">
+            <div class="step-badge">1</div>
+            <div class="step-connector" aria-hidden="true"></div>
+          </div>
+          <div class="step-body">
+            <div class="step-head">
+              <h2>Upload Documents</h2>
+              <p>Drop the EEOC charge, right-to-sue letter, intake notes, or a prior petition draft. AI extracts the case facts and drafts the petition.</p>
+            </div>
+
+            <div class="upload-zone" id="uploadZone">
+              <div class="upload-zone-inner">
+                <svg class="upload-icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                  <path d="M24 8v20M16 16l8-8 8 8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M8 34v4a2 2 0 002 2h28a2 2 0 002-2v-4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+                <div class="upload-zone-text">
+                  <strong id="uploadZoneLabel">Drop files here, or click to browse</strong>
+                  <span>PDF or DOCX · up to 5 files</span>
+                </div>
+              </div>
+              <input type="file" id="sourceFiles" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple hidden />
+            </div>
+
+            <div class="upload-file-list" id="uploadFileList" hidden></div>
+
+            <div id="extractionStatus" hidden>
+              <div class="status-row">
+                <span class="spinner" aria-hidden="true"></span>
+                <span id="extractionStatusText">Analyzing documents and drafting petition…</span>
+              </div>
+            </div>
+
+            <div id="extractionSummary" hidden>
+              <p class="extraction-summary-title" id="extractionSummaryTitle"></p>
+              <ul class="extraction-summary-list" id="extractionSummaryList"></ul>
+            </div>
+
+            <div id="extractionError" class="status error" hidden></div>
+
+            <div class="step-actions">
+              <button type="button" id="extractButton" class="action-primary" disabled>Draft Petition</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Review Draft -->
+        <div class="wizard-step wizard-step--locked" id="stepReview" aria-disabled="true">
+          <div class="step-aside">
+            <div class="step-badge">2</div>
+            <div class="step-connector" aria-hidden="true"></div>
+          </div>
+          <div class="step-body">
+            <div class="step-head">
+              <h2>Review &amp; Edit Draft</h2>
+              <p>Review the extracted case details and AI-drafted petition sections. Edit as needed before generating.</p>
+            </div>
+
+            <div id="petitionForm" hidden>
+
+              <!-- Case Info -->
+              <div class="questionnaire">
+                <div class="panel">
+                  <div class="panel-header">
+                    <h2>Case Details</h2>
+                  </div>
+                  <div class="field-grid">
+                    <div class="field">
+                      <label class="field-label" for="pCourtCounty">Court / County</label>
+                      <input type="text" id="pCourtCounty" placeholder="e.g., Jackson, Buchanan, St. Louis County" class="input-uppercase" />
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="pCourtDivision">Division <span class="field-optional">optional</span></label>
+                      <input type="text" id="pCourtDivision" placeholder="e.g., AT KANSAS CITY" class="input-uppercase" />
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="pCaseType">Case Type <span class="field-optional">optional</span></label>
+                      <input type="text" id="pCaseType" placeholder="e.g., Other Miscellaneous" />
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="pFilingDate">Filing Date</label>
+                      <input type="text" id="pFilingDate" placeholder="e.g., May 12, 2026" />
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="pFirmOffice">Firm Office</label>
+                      <select id="pFirmOffice">
+                        <option value="kc">Kansas City — 4600 Madison Ave., Ste. 810</option>
+                        <option value="stl">St. Louis — 4625 Lindell Blvd, Ste. 200</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="pCollectiveRef">Collective Defendant Name</label>
+                      <input type="text" id="pCollectiveRef" placeholder="e.g., Walmart, Mosaic, MCC" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Plaintiff -->
+                <div class="panel">
+                  <div class="panel-header">
+                    <h2>Plaintiff</h2>
+                  </div>
+                  <div class="field-grid">
+                    <div class="field">
+                      <label class="field-label" for="pPlaintiffCaptionName">Caption Name (ALL CAPS)</label>
+                      <input type="text" id="pPlaintiffCaptionName" placeholder="e.g., GARRY LIESS" class="input-uppercase" />
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="pPlaintiffFullName">Full Name (Title Case)</label>
+                      <input type="text" id="pPlaintiffFullName" placeholder="e.g., Garry Liess" />
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="pPlaintiffRefName">Reference Name</label>
+                      <input type="text" id="pPlaintiffRefName" placeholder="e.g., Mr. Liess" />
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="pPlaintiffPronoun">Pronouns</label>
+                      <select id="pPlaintiffPronoun">
+                        <option value="she">She / Her / Hers</option>
+                        <option value="he">He / Him / His</option>
+                        <option value="they">They / Them / Their</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Defendants -->
+                <div class="panel">
+                  <div class="panel-header">
+                    <h2>Defendants</h2>
+                    <p>One card per named defendant entity. Include the registered agent address for service.</p>
+                  </div>
+                  <div id="defendantCards" class="petition-defendant-list"></div>
+                  <button type="button" id="addDefendantBtn" class="petition-add-card-btn">+ Add Defendant</button>
+                </div>
+
+                <!-- Claims -->
+                <div class="panel">
+                  <div class="panel-header">
+                    <h2>Claims</h2>
+                    <p>Select all applicable claim types. The counts section will reflect your selection.</p>
+                  </div>
+                  <div class="petition-claims-grid" id="claimsGrid">
+                    <label class="petition-claim-option"><input type="checkbox" value="workers_comp" /> Workers' Comp Retaliation (RSMo 287.780)</label>
+                    <label class="petition-claim-option"><input type="checkbox" value="race" /> Race Discrimination (MHRA)</label>
+                    <label class="petition-claim-option"><input type="checkbox" value="color" /> Color Discrimination (MHRA)</label>
+                    <label class="petition-claim-option"><input type="checkbox" value="sex" /> Sex Discrimination (MHRA)</label>
+                    <label class="petition-claim-option"><input type="checkbox" value="age" /> Age Discrimination (MHRA)</label>
+                    <label class="petition-claim-option"><input type="checkbox" value="disability" /> Disability Discrimination (MHRA)</label>
+                    <label class="petition-claim-option"><input type="checkbox" value="retaliation" /> Retaliation (MHRA)</label>
+                    <label class="petition-claim-option"><input type="checkbox" value="whistleblower" /> Whistleblower (RSMo 285.575)</label>
+                    <label class="petition-claim-option"><input type="checkbox" value="rsmo_105_055" /> Public Whistleblower (RSMo 105.055)</label>
+                  </div>
+                </div>
+
+                <!-- Attorneys -->
+                <div class="panel">
+                  <div class="panel-header">
+                    <h2>Attorneys</h2>
+                  </div>
+                  <div class="field-grid">
+                    <div class="field">
+                      <label class="field-label" for="pSigningAttorney">Signing Attorney</label>
+                      <select id="pSigningAttorney">
+                        <option value="edward_keenan">Edward (E.E.) Keenan</option>
+                        <option value="sonal_bhatia">Sonal Bhatia</option>
+                        <option value="jr_montgomery">JR Montgomery</option>
+                        <option value="aaron_hadlow">Aaron Hadlow</option>
+                        <option value="hilary_orzick">Hilary J. Orzick</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="petition-attorney-roster" id="pAttorneyRoster">
+                    <p class="field-label" style="margin: 14px 0 8px;">Include in signature block</p>
+                    <label class="petition-claim-option"><input type="checkbox" value="edward_keenan" checked /> Edward (E.E.) Keenan (Mo. #62993)</label>
+                    <label class="petition-claim-option"><input type="checkbox" value="sonal_bhatia" checked /> Sonal Bhatia (Mo. #67519)</label>
+                    <label class="petition-claim-option"><input type="checkbox" value="jr_montgomery" checked /> JR Montgomery (Mo. #68281)</label>
+                    <label class="petition-claim-option"><input type="checkbox" value="aaron_hadlow" checked /> Aaron Hadlow (Mo. #70987)</label>
+                    <label class="petition-claim-option"><input type="checkbox" value="hilary_orzick" /> Hilary J. Orzick (Mo. #78359)</label>
+                  </div>
+                </div>
+
+                <!-- Parties Section -->
+                <div class="panel">
+                  <div class="panel-header">
+                    <h2>Parties Section</h2>
+                    <p>AI-drafted. Review and edit before generating.</p>
+                  </div>
+                  <div class="field">
+                    <textarea id="pPartiesSection" class="petition-prose-area" rows="10" placeholder="AI will draft the PARTIES section here after extraction…"></textarea>
+                  </div>
+                </div>
+
+                <!-- Jurisdiction & Venue -->
+                <div class="panel">
+                  <div class="panel-header">
+                    <h2>Jurisdiction &amp; Venue</h2>
+                    <p>AI-drafted. Review and edit before generating.</p>
+                  </div>
+                  <div class="field">
+                    <textarea id="pJurisdictionVenue" class="petition-prose-area" rows="8" placeholder="AI will draft the JURISDICTION &amp; VENUE section here after extraction…"></textarea>
+                  </div>
+                </div>
+
+                <!-- Facts -->
+                <div class="panel">
+                  <div class="panel-header">
+                    <h2>Facts</h2>
+                    <p>AI-drafted numbered paragraphs. Add, edit, or reorder as needed. This is the heart of the petition.</p>
+                  </div>
+                  <div class="field">
+                    <textarea id="pFacts" class="petition-prose-area petition-prose-area--tall" rows="24" placeholder="AI will draft the numbered FACTS paragraphs here after extraction…"></textarea>
+                  </div>
+                </div>
+
+                <!-- Counts -->
+                <div class="panel">
+                  <div class="panel-header">
+                    <h2>Counts</h2>
+                    <p>AI-drafted counts for each selected claim. Includes jury demand. Edit claim-specific language as needed.</p>
+                  </div>
+                  <div class="field">
+                    <textarea id="pCounts" class="petition-prose-area petition-prose-area--tall" rows="24" placeholder="AI will draft all COUNT sections here after extraction…"></textarea>
+                  </div>
+                </div>
+
+                <!-- Prayer -->
+                <div class="panel">
+                  <div class="panel-header">
+                    <h2>Prayer for Relief</h2>
+                    <p>AI-drafted standard prayer. Edit as needed.</p>
+                  </div>
+                  <div class="field">
+                    <textarea id="pPrayer" class="petition-prose-area" rows="10" placeholder="AI will draft the PRAYER section here after extraction…"></textarea>
+                  </div>
+                </div>
+
+              </div><!-- /.questionnaire -->
+
+              <div class="step-actions" style="margin-top: 24px;">
+                <button type="button" id="continueToGenerateBtn" class="action-primary">Continue to Generate →</button>
+              </div>
+            </div><!-- /#petitionForm -->
+          </div>
+        </div>
+
+        <!-- Step 3: Generate -->
+        <div class="wizard-step wizard-step--locked" id="stepGenerate" aria-disabled="true">
+          <div class="step-aside">
+            <div class="step-badge">3</div>
+          </div>
+          <div class="step-body">
+            <div class="step-head">
+              <h2>Generate to Google Drive</h2>
+              <p>Connect your Google account and generate the petition as a Google Doc for final review and editing.</p>
+            </div>
+
+            <div id="driveAuthSection">
+              <div id="authSummary" hidden>
+                <div class="auth-chip" id="authChipConnected">
+                  <svg class="auth-chip-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M6.5 10.5l2.5 2.5 4.5-4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span id="authChipLabel">Google Drive connected</span>
+                  <button id="googleLogoutButton" class="auth-chip-logout" type="button" title="Disconnect Google Drive">×</button>
+                </div>
+              </div>
+              <div id="signInNotice">
+                <p class="sign-in-notice-text">Connect Google Drive to generate the petition directly as a Google Doc.</p>
+                <button id="googleLoginButton" type="button" class="action-secondary">
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" width="18" height="18">
+                    <path d="M19.6 10.23c0-.68-.06-1.36-.18-2H10v3.77h5.4a4.63 4.63 0 01-2 3.04v2.52h3.24c1.9-1.74 3-4.3 3-7.33z" fill="#4285F4"/>
+                    <path d="M10 20c2.7 0 4.97-.89 6.63-2.44l-3.24-2.52c-.9.6-2.05.95-3.39.95-2.6 0-4.8-1.75-5.59-4.11H1.07v2.6A10 10 0 0010 20z" fill="#34A853"/>
+                    <path d="M4.41 11.88A5.96 5.96 0 014.1 10c0-.65.11-1.28.31-1.88V5.52H1.07A10 10 0 000 10c0 1.61.39 3.14 1.07 4.48l3.34-2.6z" fill="#FBBC04"/>
+                    <path d="M10 3.96c1.47 0 2.79.51 3.83 1.5l2.86-2.86C14.96.99 12.7 0 10 0A10 10 0 001.07 5.52l3.34 2.6C5.2 5.71 7.4 3.96 10 3.96z" fill="#EA4335"/>
+                  </svg>
+                  Connect Google Drive
+                </button>
+              </div>
+            </div>
+
+            <div id="generateSection" hidden>
+              <div class="questionnaire" style="margin-top: 16px;">
+                <div class="panel">
+                  <div class="panel-header">
+                    <h2>Output</h2>
+                  </div>
+                  <div class="field-grid">
+                    <div class="field" style="grid-column: 1 / -1;">
+                      <label class="field-label" for="pDocumentName">Document Name in Google Drive</label>
+                      <input type="text" id="pDocumentName" placeholder="e.g., Liess_Walmart - Petition" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="templateWarning" class="sign-in-notice" hidden>
+                Google Doc template not configured. Add your petition template doc ID to <code>templates/petition-registry.json</code> before generating.
+              </div>
+
+              <div id="statusBanner" class="status" hidden></div>
+
+              <div id="generationProgress" hidden>
+                <div class="generation-progress">
+                  <div class="generation-progress-bar" id="generationProgressBar" style="width: 0%"></div>
+                </div>
+                <p class="progress-label" id="generationProgressLabel">Generating…</p>
+              </div>
+
+              <div id="results" hidden></div>
+
+              <div class="step-actions" style="margin-top: 20px;">
+                <button type="button" id="generateButton" class="action-primary action-generate">Generate Petition →</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div><!-- /.wizard-track -->
+    </main>
+  </body>
+</html>

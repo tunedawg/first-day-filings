@@ -1,0 +1,23 @@
+{
+  "googleTemplateDocId": "1JPRXdZcJ20rD6eSKmBLDf7Js041szeqmtsfRCB8kd1I",
+  "title": "Missouri Circuit Court Petition",
+  "description": "Employment litigation petition with AI-drafted facts and counts.",
+  "tokens": [
+    "{{petitionCourtHeader}}",
+    "{{petitionPlaintiffCaptionName}}",
+    "{{petitionFirmCareOf}}",
+    "{{petitionDefendantsCaption}}",
+    "{{petitionCaseTypeLabel}}",
+    "{{petitionPlaintiffFullName}}",
+    "{{petitionIntroGenderClause}}",
+    "{{petitionPlaintiffRef}}",
+    "{{petitionPartiesSection}}",
+    "{{petitionJurisdictionVenue}}",
+    "{{petitionFacts}}",
+    "{{petitionCounts}}",
+    "{{petitionPrayerItems}}",
+    "{{petitionFilingDate}}",
+    "{{petitionSignatureBlock}}",
+    "{{petitionAttorneyForLine}}"
+  ]
+}

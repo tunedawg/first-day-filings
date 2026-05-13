@@ -21,6 +21,8 @@ const { getSupabaseAdmin, getUserFromRequest } = require("./supabaseClient");
 const { buildDocumentName, buildMatterFolderName, setAttorneyDirectory, validateSelections } = require("./generator");
 const { createDriveFolder, copyGoogleDoc, deleteFile, exportGoogleDocAs, fixPronounTokensInDoc, inspectTemplateFile, replaceDocTokens, replaceTokenWithParagraphs, uploadFileToDrive } = require("./google");
 const { getQuestionnaire, getTemplateRegistry } = require("./templateRegistry");
+const { extractPetitionContext } = require("./petition-extractor");
+const { buildPetitionTokenMap, buildPetitionDocumentName, getPetitionRegistry } = require("./petition-generator");
 
 const PORT = Number(process.env.PORT || 3000);
 const publicDir = path.join(__dirname, "..", "public");
@@ -36,7 +38,7 @@ setInterval(() => {
 }, 5 * 60 * 1000).unref();
 
 // HTML pages that need per-page HTML files in /public; auth enforcement is client-side via nav.js.
-const PROTECTED_PATHS = new Set(["/dashboard", "/onboarding", "/settings/firm"]);
+const PROTECTED_PATHS = new Set(["/dashboard", "/onboarding", "/settings/firm", "/petition"]);
 
 function sendJson(response, statusCode, payload) {
   response.writeHead(statusCode, { "Content-Type": "application/json; charset=utf-8" });
@@ -485,6 +487,66 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "POST" && requestUrl.pathname === "/api/extract") {
       const body = await collectRequestBody(request);
       await handleExtract(response, body);
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/petition/extract") {
+      const body = await collectRequestBody(request);
+      const payload = await extractPetitionContext(body.files || []);
+      sendJson(response, 200, payload);
+      return;
+    }
+
+    if (request.method === "GET" && requestUrl.pathname === "/api/petition/template-id") {
+      try {
+        const registry = getPetitionRegistry();
+        sendJson(response, 200, { ok: true, templateDocId: registry.googleTemplateDocId });
+      } catch (e) {
+        sendJson(response, 500, { ok: false, error: e.message });
+      }
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/petition/generate") {
+      const intake = await collectRequestBody(request);
+      const registry = getPetitionRegistry();
+      const templateDocId = registry.googleTemplateDocId;
+      if (!templateDocId || templateDocId === "REPLACE_WITH_YOUR_PETITION_TEMPLATE_DOC_ID") {
+        sendJson(response, 400, { ok: false, error: "Petition template doc ID not configured. Update templates/petition-registry.json." });
+        return;
+      }
+
+      const session = getSessionFromRequest(request);
+      let accessToken;
+      let useServiceAccount = false;
+      try {
+        accessToken = await getValidAccessToken(session);
+      } catch {
+        accessToken = await getServiceAccountToken();
+        useServiceAccount = true;
+      }
+
+      const tokenMap = buildPetitionTokenMap(intake);
+      const documentName = intake.documentName || buildPetitionDocumentName(intake);
+      let copiedDoc;
+      try {
+        copiedDoc = await copyGoogleDoc(accessToken, templateDocId, documentName, null);
+        await replaceDocTokens(accessToken, copiedDoc.id, tokenMap);
+      } catch (e) {
+        if (copiedDoc?.id) await deleteFile(accessToken, copiedDoc.id).catch(() => {});
+        sendJson(response, 500, { ok: false, error: e.message });
+        return;
+      }
+
+      if (useServiceAccount) {
+        const buffer = await exportGoogleDocAs(accessToken, copiedDoc.id, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        await deleteFile(accessToken, copiedDoc.id).catch(() => {});
+        const key = crypto.randomUUID();
+        pendingDownloads.set(key, { buffer, mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", filename: `${documentName}.docx`, createdAt: Date.now() });
+        sendJson(response, 200, { ok: true, documents: [{ name: documentName, downloadKey: key }] });
+      } else {
+        sendJson(response, 200, { ok: true, documents: [{ name: documentName, url: copiedDoc.webViewLink }] });
+      }
       return;
     }
 

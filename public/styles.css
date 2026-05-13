@@ -66,6 +66,133 @@ body {
   letter-spacing: -0.02em;
 }
 
+/* ── Tool nav (page switcher) ── */
+.topbar-tool-nav {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  margin-left: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.topbar-tool-link {
+  color: var(--text2);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  padding: 5px 11px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.topbar-tool-link:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+
+.topbar-tool-link--active {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.11);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), 0 1px 0 rgba(255,255,255,0.06) inset;
+}
+
+/* ── Petition form ── */
+.petition-defendant-list { display: grid; gap: 14px; margin-bottom: 14px; }
+
+.petition-defendant-card {
+  border: 1px solid rgba(124, 58, 237, 0.16);
+  border-radius: 10px;
+  padding: 16px;
+  background: rgba(124, 58, 237, 0.03);
+}
+
+.petition-defendant-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.petition-defendant-card-label {
+  font: 500 0.75rem/1 var(--mono);
+  color: var(--paper-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.petition-remove-card-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--paper-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.petition-remove-card-btn:hover { color: var(--error); background: rgba(248, 113, 113, 0.08); }
+
+.petition-add-card-btn {
+  background: none;
+  border: 1px dashed rgba(124, 58, 237, 0.3);
+  border-radius: 8px;
+  color: var(--accent);
+  font: 500 0.85rem var(--sans);
+  padding: 9px 16px;
+  cursor: pointer;
+  width: 100%;
+  transition: border-color 0.15s, background 0.15s;
+}
+.petition-add-card-btn:hover { border-color: var(--accent); background: var(--accent-dim); }
+
+.petition-claims-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.petition-claim-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.86rem;
+  color: var(--paper-text);
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.petition-claim-option input[type="checkbox"] { margin-top: 2px; flex-shrink: 0; accent-color: var(--accent); }
+
+.petition-attorney-roster { display: grid; gap: 6px; }
+
+.petition-prose-area {
+  width: 100%;
+  min-height: 160px;
+  resize: vertical;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: var(--paper-text);
+  background: #fff;
+  border: 1px solid rgba(124, 58, 237, 0.16);
+  border-radius: 8px;
+  padding: 12px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.petition-prose-area:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1); }
+.petition-prose-area--tall { min-height: 420px; }
+
+.field-optional {
+  font: 400 0.65rem/1 var(--sans);
+  color: var(--paper-muted);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 4px;
+}
+
 .topbar-right {
   display: flex;
   align-items: center;
@@ -99,7 +226,20 @@ body {
   background: rgba(124, 58, 237, 0.18);
 }
 
-.auth-chip-icon svg { width: 15px; height: 15px; }
+.auth-chip-icon { width: 15px; height: 15px; flex-shrink: 0; }
+
+.auth-chip-logout {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 2px;
+  margin-left: 4px;
+  transition: color 0.15s;
+}
+.auth-chip-logout:hover { color: var(--error); }
 
 /* ── Wizard shell ── */
 .wizard {
@@ -952,74 +1092,125 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 7px;
   border-radius: 10px;
-  padding: 12px 20px;
-  font: 500 0.9rem/1 var(--sans);
+  padding: 11px 22px;
+  font: 600 0.875rem/1 var(--sans);
+  letter-spacing: -0.01em;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, border-color 0.12s ease;
   text-decoration: none;
   white-space: nowrap;
+  user-select: none;
 }
 
 .action-primary {
-  background: linear-gradient(180deg, #8b5cf6, #7c3aed);
+  background: linear-gradient(160deg, #9d6ef8 0%, #7c3aed 55%, #6d28d9 100%);
   color: #fff;
-  border: 0;
-  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 4px 12px rgba(109, 40, 217, 0.35),
+    0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .action-primary:hover {
-  background: linear-gradient(180deg, #9f75f7, #8b5cf6);
-  box-shadow: 0 6px 22px rgba(124, 58, 237, 0.42);
+  background: linear-gradient(160deg, #a97bf9 0%, #8b5cf6 55%, #7c3aed 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 6px 18px rgba(109, 40, 217, 0.45),
+    0 2px 4px rgba(0, 0, 0, 0.18);
   transform: translateY(-1px);
 }
 
+.action-primary:active {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 2px 6px rgba(109, 40, 217, 0.3);
+}
+
 .action-generate {
-  background: linear-gradient(180deg, #22c55e, #16a34a) !important;
-  box-shadow: 0 4px 16px rgba(22, 163, 74, 0.3) !important;
+  background: linear-gradient(160deg, #34d978 0%, #16a34a 55%, #15803d 100%) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.2) inset,
+    0 4px 12px rgba(22, 163, 74, 0.35),
+    0 1px 3px rgba(0, 0, 0, 0.18) !important;
   min-width: 240px;
 }
 
 .action-generate:hover {
-  background: linear-gradient(180deg, #34d979, #22c55e) !important;
-  box-shadow: 0 6px 22px rgba(22, 163, 74, 0.42) !important;
+  background: linear-gradient(160deg, #4ade80 0%, #22c55e 55%, #16a34a 100%) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 6px 18px rgba(22, 163, 74, 0.45),
+    0 2px 4px rgba(0, 0, 0, 0.16) !important;
+}
+
+.action-generate:active {
+  transform: translateY(0) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.14) inset,
+    0 2px 6px rgba(22, 163, 74, 0.3) !important;
 }
 
 .action-secondary {
-  background: #fff;
+  background: linear-gradient(160deg, #ffffff 0%, #f9f7ff 100%);
   color: var(--paper-text);
-  border: 1px solid rgba(124, 58, 237, 0.2);
+  border: 1px solid rgba(109, 40, 217, 0.22);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 2px 6px rgba(109, 40, 217, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .action-secondary:hover {
-  border-color: rgba(124, 58, 237, 0.38);
-  background: rgba(124, 58, 237, 0.04);
+  border-color: rgba(109, 40, 217, 0.38);
+  background: linear-gradient(160deg, #f5f0ff 0%, #ede9fe 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 3px 10px rgba(109, 40, 217, 0.14),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.action-secondary:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(109, 40, 217, 0.1);
 }
 
 .action-ghost {
   background: transparent;
   color: var(--paper-muted);
-  border: 1px solid rgba(124, 58, 237, 0.14);
+  border: 1px solid rgba(109, 40, 217, 0.16);
+  box-shadow: none;
 }
 
 .action-ghost:hover {
   color: var(--paper-text);
-  border-color: rgba(124, 58, 237, 0.26);
+  border-color: rgba(109, 40, 217, 0.28);
+  background: rgba(109, 40, 217, 0.04);
+}
+
+.action-ghost:active {
+  background: rgba(109, 40, 217, 0.07);
 }
 
 .action-sm {
-  padding: 8px 14px;
+  padding: 7px 13px;
   font-size: 0.8rem;
+  border-radius: 8px;
 }
 
 .action-primary:disabled,
 .action-secondary:disabled,
 .action-ghost:disabled {
-  opacity: 0.48;
+  opacity: 0.45;
   cursor: not-allowed;
   transform: none !important;
   box-shadow: none !important;
+  filter: saturate(0.6);
 }
 
 /* ── Results ── */
