@@ -32,17 +32,21 @@ function buildCourtHeader(court = {}) {
   return header;
 }
 
+// TAB_STOP_PT must match the formatPetitionDoc tab stop used for caption paragraphs.
+const CAPTION_TAB_STOP_PT = 288; // 4 inches — right edge of the left caption column
+
 function buildDefendantsCaption(defendants = []) {
   return defendants.map((d, i) => {
-    const sep = i < defendants.length - 1 ? "\n\t)\n" : "";
     const addressLines = (d.serveAddress || "[SERVICE ADDRESS]").split("\n");
     const lines = [
-      `${d.captionName};`,
-      d.serveLabel || "Serve at:",
-      ...addressLines,
+      `${d.captionName};\t)`,
+      `${d.serveLabel || "Serve at:"}\t)`,
+      ...addressLines.map(l => `${l}\t)`),
     ];
-    return lines.map(l => `${l}\t)`).join("\n") + sep;
-  }).join("");
+    // Blank ) line between defendants keeps the column continuous.
+    if (i < defendants.length - 1) lines.push("\t)");
+    return lines.join("\n");
+  }).join("\n");
 }
 
 function buildSignatureBlock(intake) {

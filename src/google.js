@@ -437,6 +437,16 @@ async function formatPetitionDoc(accessToken, docId) {
   const paras = _collectParas(doc.body?.content || []);
   const requests = [];
 
+  // Pre-pass: set a fixed tab stop on every caption paragraph that ends with \t)
+  // so all ) land at exactly 288pt (4") regardless of the preceding text length.
+  for (const { text, startIndex, endIndex } of paras) {
+    if (text.endsWith("\t)")) {
+      requests.push(_ps(startIndex, endIndex, {
+        tabStops: [{ alignment: "LEFT", offset: { magnitude: 288, unit: "PT" } }],
+      }));
+    }
+  }
+
   // Pre-scan: find signature block start by locating the /s/ line (guaranteed
   // to exist) then walking backwards to the earliest anchor paragraph.
   let sigBlockStart = -1;
