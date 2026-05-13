@@ -30,7 +30,6 @@ const generationProgress = document.getElementById("generationProgress");
 const generationProgressBar = document.getElementById("generationProgressBar");
 const generationProgressLabel = document.getElementById("generationProgressLabel");
 const resultsNode = document.getElementById("results");
-const templateWarning = document.getElementById("templateWarning");
 const defendantCards = document.getElementById("defendantCards");
 const addDefendantBtn = document.getElementById("addDefendantBtn");
 
@@ -335,12 +334,6 @@ function resetStep(step) {
 generateButton.addEventListener("click", runGenerate);
 
 async function runGenerate() {
-  const templateDocId = await getPetitionTemplateDocId();
-  if (!templateDocId || templateDocId === "REPLACE_WITH_YOUR_PETITION_TEMPLATE_DOC_ID") {
-    templateWarning.hidden = false;
-    return;
-  }
-
   generateButton.disabled = true;
   statusBanner.hidden = true;
   resultsNode.hidden = true;
@@ -365,14 +358,6 @@ async function runGenerate() {
   }
 }
 
-async function getPetitionTemplateDocId() {
-  try {
-    const res = await fetch("/api/petition/template-id");
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.templateDocId || null;
-  } catch (_) { return null; }
-}
 
 function collectIntake() {
   const claims = Array.from(document.querySelectorAll("#claimsGrid input[type='checkbox']:checked")).map((cb) => cb.value);
