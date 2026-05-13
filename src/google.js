@@ -448,9 +448,9 @@ async function formatPetitionDoc(accessToken, docId) {
 
     if (!text.trim()) { inServeBlock = false; continue; }
 
-    // ── COUNT I / II / III … → underline + center, start double-spacing ──────
+    // ── COUNT I / II / III … → bold + underline + center, start double-spacing ─
     if (/^COUNT\s+[IVXLCDM]+$/.test(text)) {
-      requests.push(_ts(startIndex, tEnd, { underline: true }));
+      requests.push(_ts(startIndex, tEnd, { bold: true, underline: true }));
       requests.push(_ps(startIndex, endIndex, { alignment: "CENTER" }));
       inCountsSection = true;
       inServeBlock = false;
@@ -459,6 +459,7 @@ async function formatPetitionDoc(accessToken, docId) {
 
     // ── Count sub-headers (VIOLATION OF…, RSMo…, (Against All Defendants)) ───
     if (_isCountSubHeader(text)) {
+      requests.push(_ts(startIndex, tEnd, { bold: true }));
       requests.push(_ps(startIndex, endIndex, { alignment: "CENTER" }));
       continue;
     }
@@ -476,10 +477,12 @@ async function formatPetitionDoc(accessToken, docId) {
       continue;
     }
 
-    // ── Serve label + address lines → 1.15 spacing + indent ─────────────────
+    // ── Serve label + address lines → 1.15 spacing + indent, no extra gaps ───
     if (inServeBlock) {
       requests.push(_ps(startIndex, endIndex, {
         lineSpacing: 115,
+        spaceAbove: { magnitude: 0, unit: "PT" },
+        spaceBelow: { magnitude: 0, unit: "PT" },
         indentStart: { magnitude: 36, unit: "PT" },
         indentFirstLine: { magnitude: 0, unit: "PT" },
       }));
@@ -497,10 +500,13 @@ async function formatPetitionDoc(accessToken, docId) {
     if (/^\d+[\.\t]/.test(text)) {
       // Remove list auto-numbering (prevents the "1. 1." double-number bug)
       requests.push({ deleteParagraphBullets: { range: { startIndex, endIndex } } });
-      requests.push(_ps(startIndex, endIndex, { alignment: "START" }));
-      if (inCountsSection || inPrayerSection) {
-        requests.push(_ps(startIndex, endIndex, { lineSpacing: 200 }));
-      }
+      const numStyle = {
+        alignment: "START",
+        indentStart: { magnitude: 36, unit: "PT" },
+        indentFirstLine: { magnitude: 0, unit: "PT" },
+      };
+      if (inCountsSection || inPrayerSection) numStyle.lineSpacing = 200;
+      requests.push(_ps(startIndex, endIndex, numStyle));
       inServeBlock = false;
       continue;
     }
@@ -512,7 +518,7 @@ async function formatPetitionDoc(accessToken, docId) {
     }
 
     // ── Signature block anchor ────────────────────────────────────────────────
-    if (text === "KEENAN & BHATIA, LLC") {
+    if (text === "Respectfully submitted," || text === "KEENAN & BHATIA, LLC") {
       sigBlockStart = i;
     }
 
