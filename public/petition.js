@@ -71,7 +71,7 @@ async function autoConnectGoogleDrive() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ accessToken, refreshToken: refreshToken || "", userEmail, userName }),
       });
-      if (res.ok) setAuthState(true, userEmail);
+      if (!res.ok) return;
     } else {
       // Subsequent load — use stored refresh token.
       const rt = refreshToken || storedRefreshToken;
@@ -81,8 +81,12 @@ async function autoConnectGoogleDrive() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken: rt, userEmail, userName }),
       });
-      if (res.ok) setAuthState(true, userEmail);
+      if (!res.ok) return;
     }
+    // Verify the server actually recognizes the session cookie before showing "connected".
+    const check = await fetch("/api/auth/session");
+    const { signedIn } = await check.json();
+    if (signedIn) setAuthState(true, userEmail);
   } catch (_) { /* silent */ }
 }
 
