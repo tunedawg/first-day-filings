@@ -111,6 +111,34 @@ Write in plain prose — no markdown, no bullet points inside any section. Use t
 
 Return ONLY the JSON object. No markdown fences. No explanation. No extra text.`;
 
+// Walk the JSON character by character so we can safely escape literal control
+// chars that Gemini sometimes emits inside string values despite being asked not to.
+function sanitizeJsonString(text) {
+  let out = "";
+  let inString = false;
+  let i = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    if (inString) {
+      if (ch === "\\") {
+        out += ch + (text[i + 1] ?? "");
+        i += 2;
+        continue;
+      }
+      if (ch === '"') { inString = false; out += ch; }
+      else if (ch === "\n") out += "\\n";
+      else if (ch === "\r") out += "\\r";
+      else if (ch === "\t") out += "\\t";
+      else out += ch;
+    } else {
+      if (ch === '"') inString = true;
+      out += ch;
+    }
+    i++;
+  }
+  return out;
+}
+
 async function extractPetitionContext(files) {
   if (!Array.isArray(files) || files.length === 0) {
     throw new Error("Upload at least one document (EEOC charge, right-to-sue letter, intake notes, etc.).");
@@ -154,9 +182,15 @@ async function extractPetitionContext(files) {
   if (!rawText) throw new Error("Gemini returned an empty response.");
 
   const jsonText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
-  const extracted = JSON.parse(jsonText);
-  const { summary = [], ...fields } = extracted;
 
+  let extracted;
+  try {
+    extracted = JSON.parse(jsonText);
+  } catch (_) {
+    extracted = JSON.parse(sanitizeJsonString(jsonText));
+  }
+
+  const { summary = [], ...fields } = extracted;
   return { ok: true, summary, fields, documents: files.map((f) => ({ name: f.name })) };
 }
 
