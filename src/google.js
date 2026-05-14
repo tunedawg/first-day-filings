@@ -535,6 +535,7 @@ async function formatPetitionDoc(accessToken, docId) {
     // ── Prayer intro line ─────────────────────────────────────────────────────
     if (/^Plaintiff respectfully prays/.test(text)) {
       inPrayerSection = true;
+      inCountsSection = false;
       requests.push(_ps(startIndex, endIndex, { lineSpacing: 200 }));
       continue;
     }
