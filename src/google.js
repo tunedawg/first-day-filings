@@ -440,6 +440,7 @@ async function formatPetitionDoc(accessToken, docId) {
   let inServeBlock = false;
   let inCountsSection = false;
   let inPrayerSection = false;
+  let inFirmCareOf = 0; // countdown: lines of care-of address remaining
 
   for (let i = 0; i < paras.length; i++) {
     const { text, startIndex, endIndex } = paras[i];
@@ -447,10 +448,22 @@ async function formatPetitionDoc(accessToken, docId) {
 
     if (!text.trim()) { inServeBlock = false; continue; }
 
-    // ── COUNT I / II / III … → bold + underline + center ─────────────────────
+    // ── Firm care-of address (caption plaintiff service address) → compact ────
+    if (/^c\/o /i.test(text) || inFirmCareOf > 0) {
+      if (/^c\/o /i.test(text)) inFirmCareOf = 2; else inFirmCareOf--;
+      requests.push(_ps(startIndex, endIndex, {
+        lineSpacing: 115,
+        spaceAbove: { magnitude: 0, unit: "PT" },
+        spaceBelow: { magnitude: 0, unit: "PT" },
+      }));
+      continue;
+    }
+
+    // ── COUNT I / II / III … → bold + underline + center + single-spaced ─────
     if (/^COUNT\s+[IVXLCDM]+$/.test(text)) {
       requests.push(_ts(startIndex, tEnd, { bold: true, underline: true }));
-      requests.push(_ps(startIndex, endIndex, { alignment: "CENTER" }));
+      requests.push(_ps(startIndex, endIndex, { alignment: "CENTER", lineSpacing: 115,
+        spaceAbove: { magnitude: 0, unit: "PT" }, spaceBelow: { magnitude: 0, unit: "PT" } }));
       inCountsSection = true;
       inServeBlock = false;
       continue;
@@ -459,21 +472,28 @@ async function formatPetitionDoc(accessToken, docId) {
     // ── Count sub-headers (VIOLATION OF…, RSMo…, (Against All Defendants)) ───
     if (_isCountSubHeader(text)) {
       requests.push(_ts(startIndex, tEnd, { bold: true }));
-      requests.push(_ps(startIndex, endIndex, { alignment: "CENTER" }));
+      requests.push(_ps(startIndex, endIndex, { alignment: "CENTER", lineSpacing: 115,
+        spaceAbove: { magnitude: 0, unit: "PT" }, spaceBelow: { magnitude: 0, unit: "PT" } }));
       continue;
     }
 
     // ── DEMAND FOR A JURY TRIAL ───────────────────────────────────────────────
     if (text === "DEMAND FOR A JURY TRIAL") {
       requests.push(_ts(startIndex, tEnd, { bold: true, underline: true }));
-      requests.push(_ps(startIndex, endIndex, { alignment: "CENTER", lineSpacing: 200 }));
+      requests.push(_ps(startIndex, endIndex, { alignment: "CENTER", lineSpacing: 115 }));
       continue;
     }
 
     // ── PRAYER FOR RELIEF heading ─────────────────────────────────────────────
     if (text === "PRAYER FOR RELIEF") {
       requests.push(_ts(startIndex, tEnd, { bold: true, underline: true }));
-      requests.push(_ps(startIndex, endIndex, { alignment: "CENTER" }));
+      requests.push(_ps(startIndex, endIndex, { alignment: "CENTER", lineSpacing: 115 }));
+      continue;
+    }
+
+    // ── Attorneys for Plaintiff line → italic ─────────────────────────────────
+    if (/^Attorneys for Plaintiff/.test(text)) {
+      requests.push(_ts(startIndex, tEnd, { italic: true }));
       continue;
     }
 
