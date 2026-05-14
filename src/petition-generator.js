@@ -27,7 +27,7 @@ function buildCourtHeader(court = {}) {
   const hasCounty = upper.includes("COUNTY") || upper.includes("CITY");
   let header = `IN THE CIRCUIT COURT OF ${upper}`;
   if (!hasCounty) header += " COUNTY";
-  header += "\nSTATE OF MISSOURI";
+  header += ", MISSOURI";
   if (court.division) header += `\n${court.division.toUpperCase()}`;
   return header;
 }

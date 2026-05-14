@@ -447,7 +447,7 @@ async function formatPetitionDoc(accessToken, docId) {
       for (let j = slashsIdx - 1; j >= Math.max(0, slashsIdx - 6); j--) {
         const t = paras[j].text.trim();
         if (!t) continue; // skip blank lines
-        if (/^respectfully submitted/i.test(t) || /^keenan/i.test(t)) {
+        if (/^respectfully submitted/i.test(t) || /^keenan/i.test(t) || /^dated:/i.test(t)) {
           sigBlockStart = j; // extend signature block start upward
         } else {
           break;
@@ -503,8 +503,15 @@ async function formatPetitionDoc(accessToken, docId) {
 
     // ── DEMAND FOR A JURY TRIAL ───────────────────────────────────────────────
     if (text === "DEMAND FOR A JURY TRIAL") {
-      requests.push(_ts(startIndex, tEnd, { bold: true }));
+      requests.push(_ts(startIndex, tEnd, { bold: true, underline: true }));
       requests.push(_ps(startIndex, endIndex, { alignment: "CENTER", lineSpacing: 200 }));
+      continue;
+    }
+
+    // ── PRAYER FOR RELIEF heading ─────────────────────────────────────────────
+    if (text === "PRAYER FOR RELIEF") {
+      requests.push(_ts(startIndex, tEnd, { bold: true, underline: true }));
+      requests.push(_ps(startIndex, endIndex, { alignment: "CENTER" }));
       continue;
     }
 
@@ -549,7 +556,7 @@ async function formatPetitionDoc(accessToken, docId) {
         indentStart: { magnitude: 0, unit: "PT" },
       };
       if (inCountsSection) numStyle.lineSpacing = 200;
-      else if (inPrayerSection) numStyle.lineSpacing = 115;
+      else if (inPrayerSection) numStyle.lineSpacing = 200;
       requests.push(_ps(startIndex, endIndex, numStyle));
       inServeBlock = false;
       continue;
