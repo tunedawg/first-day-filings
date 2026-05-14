@@ -508,7 +508,7 @@ async function formatPetitionDoc(accessToken, docId) {
     }
 
     // ── Defendant caption names: ALL CAPS ending with semicolon (+ optional \t)) ──
-    if (/^[A-Z][A-Z0-9\s,.'&()/#-]+;(\t\))?$/.test(text)) {
+    if (/^[A-Z][A-Z0-9\s,.'&()/#-]+;$/.test(text)) {
       requests.push(_ts(startIndex, tEnd, { bold: true }));
       inServeBlock = true;
       continue;
@@ -568,11 +568,67 @@ async function formatPetitionDoc(accessToken, docId) {
   });
 }
 
+// After replaceDocTokens, the caption table's right cells are empty.
+// This function reads the table, counts paragraphs in each left cell that
+// lacks a corresponding right-cell value, and inserts one ")" per left-cell
+// paragraph into the right cell so the ")" column aligns automatically.
+async function fillCaptionParens(accessToken, docId) {
+  const doc = await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${docId}`);
+  const tableEl = (doc.body?.content || []).find(el => el.table);
+  if (!tableEl) return;
+
+  const insertions = [];
+
+  for (const row of tableEl.table.tableRows || []) {
+    const cells = row.tableCells || [];
+    if (cells.length < 2) continue;
+
+    const [leftCell, rightCell] = cells;
+
+    // Skip rows where right cell already has content (Case No., Div., Plaintiff, etc.)
+    const rightText = (rightCell.content || [])
+      .flatMap(el => (el.paragraph?.elements || []).map(e => e.textRun?.content || ""))
+      .join("").replace(/\n/g, "").trim();
+    if (rightText) continue;
+
+    const leftParas = (leftCell.content || []).filter(el => el.paragraph);
+    if (leftParas.length === 0) continue;
+
+    // Skip rows where left cell is also empty (structural-only)
+    const leftText = leftParas
+      .flatMap(p => (p.paragraph.elements || []).map(e => e.textRun?.content || ""))
+      .join("").replace(/\n/g, "").trim();
+    if (!leftText) continue;
+
+    const rightParas = (rightCell.content || []).filter(el => el.paragraph);
+    if (rightParas.length === 0) continue;
+
+    insertions.push({
+      index: rightParas[0].startIndex,
+      text: Array(leftParas.length).fill(")").join("\n"),
+    });
+  }
+
+  if (insertions.length === 0) return;
+
+  insertions.sort((a, b) => b.index - a.index);
+
+  await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${docId}:batchUpdate`, {
+    method: "POST",
+    body: JSON.stringify({
+      requests: insertions.map(({ index, text }) => ({
+        insertText: { location: { index }, text },
+      })),
+    }),
+  });
+}
+
 module.exports = {
   copyGoogleDoc,
   createDriveFolder,
   deleteFile,
   exportGoogleDocAs,
+  fillCaptionParens,
   fixPronounTokensInDoc,
   formatPetitionDoc,
   getDriveFile,
