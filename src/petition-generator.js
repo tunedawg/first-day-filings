@@ -62,7 +62,7 @@ function buildSignatureBlock(intake) {
   const rosterLines = selectedIds.filter((id) => ATTORNEYS[id]).map((id) => ATTORNEYS[id].rosterLine).join("\n");
   const emailLines = selectedIds.filter((id) => ATTORNEYS[id]).map((id) => ATTORNEYS[id].email).join("\n");
 
-  return `KEENAN & BHATIA, LLC\n\n${signingLine}\n${rosterLines}\n${firmBlock}\n${emailLines}`;
+  return `KEENAN & BHATIA, LLC\n\n___________________________\n${signingLine}\n${rosterLines}\n${firmBlock}\n${emailLines}`;
 }
 
 const PRONOUN_TO_POSSESSIVE = { he: "his", she: "her", they: "their" };

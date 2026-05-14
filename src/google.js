@@ -477,8 +477,8 @@ async function formatPetitionDoc(accessToken, docId) {
       continue;
     }
 
-    // ── Defendant caption names: ALL CAPS ending with semicolon ──────────────
-    if (/^[A-Z][A-Z0-9\s,.'&()/#-]+;$/.test(text)) {
+    // ── Defendant caption names: ALL CAPS ending with semicolon (+ optional \t) ──
+    if (/^[A-Z][A-Z0-9\s,.'&()/#-]+;(\t\))?$/.test(text)) {
       requests.push(_ts(startIndex, tEnd, { bold: true }));
       inServeBlock = true;
       continue;
