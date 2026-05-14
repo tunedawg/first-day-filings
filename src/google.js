@@ -442,7 +442,7 @@ async function formatPetitionDoc(accessToken, docId) {
   for (const { text, startIndex, endIndex } of paras) {
     if (text.endsWith("\t)")) {
       requests.push(_ps(startIndex, endIndex, {
-        tabStops: [{ alignment: "LEFT", offset: { magnitude: 288, unit: "PT" } }],
+        tabStops: [{ alignment: "START", offset: { magnitude: 288, unit: "PT" } }],
       }));
     }
   }
