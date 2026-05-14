@@ -37,12 +37,11 @@ function buildDefendantsCaption(defendants = []) {
   return defendants.map((d, i) => {
     const addressLines = (d.serveAddress || "[SERVICE ADDRESS]").split("\n");
     const lines = [
-      `${d.captionName};\t)`,
-      `${d.serveLabel || "Serve at:"}\t)`,
-      ...addressLines.map(l => `${l}\t)`),
+      `${d.captionName};`,
+      `${d.serveLabel || "Serve at:"}`,
+      ...addressLines,
     ];
-    // Blank ) line between defendants keeps the column continuous.
-    if (i < defendants.length - 1) lines.push("\t)");
+    if (i < defendants.length - 1) lines.push("");
     return lines.join("\n");
   }).join("\n");
 }
