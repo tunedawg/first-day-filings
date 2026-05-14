@@ -32,8 +32,6 @@ function buildCourtHeader(court = {}) {
   return header;
 }
 
-// TAB_STOP_PT must match the formatPetitionDoc tab stop used for caption paragraphs.
-const CAPTION_TAB_STOP_PT = 288; // 4 inches — right edge of the left caption column
 
 function buildDefendantsCaption(defendants = []) {
   return defendants.map((d, i) => {
