@@ -1,3 +1,5 @@
+const { jsonrepair } = require("jsonrepair");
+
 const GEMINI_API =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
@@ -203,7 +205,7 @@ async function extractPetitionContext(files) {
   try {
     extracted = JSON.parse(jsonText);
   } catch (_) {
-    extracted = JSON.parse(sanitizeJsonString(jsonText));
+    extracted = JSON.parse(jsonrepair(jsonText));
   }
 
   const { summary = [], ...fields } = extracted;
