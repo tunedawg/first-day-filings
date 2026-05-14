@@ -491,14 +491,24 @@ async function formatPetitionDoc(accessToken, docId) {
       continue;
     }
 
+    // ── Signing line (/s/ …) and signature underline → compact, no gap ─────
+    if (text.startsWith("/s/ ") || /^_+$/.test(text)) {
+      requests.push(_ps(startIndex, endIndex, {
+        lineSpacing: 115,
+        spaceAbove: { magnitude: 0, unit: "PT" },
+        spaceBelow: { magnitude: 0, unit: "PT" },
+      }));
+      continue;
+    }
+
     // ── Attorneys for Plaintiff line → italic ─────────────────────────────────
     if (/^Attorneys for Plaintiff/.test(text)) {
       requests.push(_ts(startIndex, tEnd, { italic: true }));
       continue;
     }
 
-    // ── Defendant caption names: ALL CAPS ending with semicolon ─────────────
-    if (/^[A-Z][A-Z0-9\s,.'&()/#-]+;$/.test(text)) {
+    // ── Defendant caption names: ALL CAPS ending with semicolon (+ optional \t)) ──
+    if (/^[A-Z][A-Z0-9\s,.'&()/#-]+;(\t\))?$/.test(text)) {
       requests.push(_ts(startIndex, tEnd, { bold: true }));
       inServeBlock = true;
       continue;

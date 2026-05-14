@@ -37,11 +37,11 @@ function buildDefendantsCaption(defendants = []) {
   return defendants.map((d, i) => {
     const addressLines = (d.serveAddress || "[SERVICE ADDRESS]").split("\n");
     const lines = [
-      `${d.captionName};`,
-      `${d.serveLabel || "Serve at:"}`,
-      ...addressLines,
+      `${d.captionName};\t)`,
+      `${d.serveLabel || "Serve at:"}\t)`,
+      ...addressLines.map(l => `${l}\t)`),
     ];
-    if (i < defendants.length - 1) lines.push("");
+    if (i < defendants.length - 1) lines.push("\t)");
     return lines.join("\n");
   }).join("\n");
 }
