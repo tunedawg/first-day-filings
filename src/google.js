@@ -437,25 +437,6 @@ async function formatPetitionDoc(accessToken, docId) {
   const paras = _collectParas(doc.body?.content || []);
   const requests = [];
 
-  // Pre-scan: find signature block start by locating the /s/ line (guaranteed
-  // to exist) then walking backwards to the earliest anchor paragraph.
-  let sigBlockStart = -1;
-  {
-    const slashsIdx = paras.findIndex(p => p.text.startsWith("/s/ "));
-    if (slashsIdx >= 0) {
-      sigBlockStart = slashsIdx;
-      for (let j = slashsIdx - 1; j >= Math.max(0, slashsIdx - 6); j--) {
-        const t = paras[j].text.trim();
-        if (!t) continue; // skip blank lines
-        if (/^respectfully submitted/i.test(t) || /^keenan/i.test(t) || /^dated:/i.test(t)) {
-          sigBlockStart = j; // extend signature block start upward
-        } else {
-          break;
-        }
-      }
-    }
-  }
-
   let inServeBlock = false;
   let inCountsSection = false;
   let inPrayerSection = false;
@@ -465,25 +446,6 @@ async function formatPetitionDoc(accessToken, docId) {
     const tEnd = endIndex - 1; // exclude the trailing \n from text-style ranges
 
     if (!text.trim()) { inServeBlock = false; continue; }
-
-    // ── Signature block (right-align everything from sigBlockStart onward) ────
-    if (sigBlockStart >= 0 && i >= sigBlockStart) {
-      requests.push(_ps(startIndex, endIndex, { alignment: "END" }));
-      if (text.startsWith("/s/ ")) {
-        requests.push(_ps(startIndex, endIndex, {
-          borderTop: {
-            color: { color: { rgbColor: { red: 0, green: 0, blue: 0 } } },
-            width: { magnitude: 0.5, unit: "PT" },
-            padding: { magnitude: 4, unit: "PT" },
-            dashStyle: "SOLID",
-          },
-        }));
-      }
-      if (/^Attorneys for Plaintiff/.test(text)) {
-        requests.push(_ts(startIndex, tEnd, { italic: true }));
-      }
-      continue;
-    }
 
     // ── COUNT I / II / III … → bold + underline + center ─────────────────────
     if (/^COUNT\s+[IVXLCDM]+$/.test(text)) {
