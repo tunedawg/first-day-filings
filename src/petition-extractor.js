@@ -99,7 +99,7 @@ function buildFactsPrompt({ plaintiffRefName, collectiveDefendantRef, jurisdicti
 Plaintiff: ${plaintiffRefName}
 Defendants: ${collectiveDefendantRef || "Defendants"}
 
-The Jurisdiction and Venue section above ended at paragraph ${lastNum}. Begin Facts at paragraph ${startAt}.
+The Jurisdiction and Venue section ended at paragraph ${lastNum}. Begin Facts at paragraph ${startAt}.
 
 ══════════════════════════════════════════════════════════
 YOUR SOLE TASK: Write an exhaustive, complete FACTS section.
@@ -113,13 +113,34 @@ NON-NEGOTIABLE RULES — violating any of these is unacceptable:
 
 3. PRESERVE SPECIFICS. Every specific date, time, name, job title, location, dollar amount, percentage, quote, policy citation, and sequence of events must appear exactly as in the source documents.
 
-4. FIRST PERSON → THIRD PERSON. All source documents are first-person. Convert every sentence to third person. "I reported to HR" becomes "${plaintiffRefName} reported to Human Resources." Never write "I", "me", "my", or "we".
+4. ACTIVE VOICE ONLY — NO EXCEPTIONS. Every sentence must use active voice. Name the actor performing the action.
+   - WRONG (passive): "Ms. Smith was terminated by Defendants." / "She was told by her supervisor." / "A complaint was filed."
+   - RIGHT (active): "Defendants terminated Ms. Smith." / "Her supervisor told her." / "${plaintiffRefName} filed a complaint."
+   - Passive constructions to eliminate entirely: "was [verb]ed by", "was subjected to", "was placed on", "was denied by", "was informed by", "was advised by", "was required to", "had been [verb]ed."
+   - If no named actor is known, use "Defendants" or "the Company" as the subject.
 
-5. EXHAUSTIVE CHRONOLOGY. Work through the source documents systematically from beginning to end. Do not skip anything because it seems minor, repetitive, or embarrassing. Attorneys need every fact.
+5. DATE FIRST. When a paragraph describes an event tied to a specific date or time period, that date or time reference must be the very first thing in the paragraph — before the subject, before anything else.
+   - CORRECT: "On March 15, 2022, Supervisor Jones told ${plaintiffRefName}..."
+   - CORRECT: "In January 2021, Defendants placed ${plaintiffRefName} on a performance improvement plan..."
+   - WRONG: "${plaintiffRefName} was told on March 15, 2022..."
+   - WRONG: "Defendants, on January 5, 2022, terminated..."
 
-6. LENGTH. A thorough facts section for a complex employment case routinely runs 60–150+ numbered paragraphs. Write until the source documents are fully exhausted. There is no length limit. Do NOT stop early.
+6. FIRST PERSON → THIRD PERSON. All source documents are first-person. Convert every sentence to third person. "I reported to HR" becomes "${plaintiffRefName} reported to Human Resources." Never write "I", "me", "my", or "we".
 
-7. FINAL PARAGRAPH (verbatim, always last): "${plaintiffRefName} reserves the right to amend this action to raise any appropriate cause of action with relation back to the date of filing, including but not limited to any causes of action under Chapters 213 and 287, RSMo."
+7. EXHAUSTIVE CHRONOLOGY. Work through the source documents systematically from beginning to end. Do not skip anything because it seems minor, repetitive, or embarrassing. Attorneys need every fact.
+
+8. LENGTH. A thorough facts section for a complex employment case routinely runs 60–150+ numbered paragraphs. Write until the source documents are fully exhausted. There is no length limit. Do NOT stop early.
+
+9. SUBSECTION HEADERS. At each major narrative transition (e.g., shifting from background to the start of discrimination; from discrimination to formal complaints; from complaints to adverse actions; from adverse actions to termination; from termination to administrative proceedings), insert a creative, descriptive subsection header. Rules for headers:
+   - The header is a plain line of text with NO paragraph number. It is NOT numbered.
+   - Paragraph numbering continues uninterrupted immediately after the header on the very next line.
+   - Write headers that are evocative and specific to this case — not generic labels. They should read like chapter titles that tell the story.
+     Good examples: 'A Stellar Record, Suddenly Tarnished' / 'The Complaint That Changed Everything' / 'Defendants Choose Retaliation Over Accountability' / 'The Last Day — A Calculated Dismissal'
+     Bad examples: 'Background' / 'Discrimination' / 'Termination'
+   - Aim for 4–8 headers throughout the section, placed where they add narrative structure and emphasis.
+   - Format in the JSON string: "...last numbered paragraph.\\n\\nHeader Text\\n\\n${startAt + 1}.\\t..." — two \\n before and after each header to create separation.
+
+10. FINAL PARAGRAPH (verbatim, always last): "${plaintiffRefName} reserves the right to amend this action to raise any appropriate cause of action with relation back to the date of filing, including but not limited to any causes of action under Chapters 213 and 287, RSMo."
 
 COVER IN THIS ORDER:
 - ${plaintiffRefName}'s background: age, race, sex, disability, or other protected characteristics; years of relevant experience; education or credentials
@@ -128,11 +149,11 @@ COVER IN THIS ORDER:
 - Every accommodation request made by ${plaintiffRefName}, when made, to whom, and what response (or non-response) followed
 - Every internal complaint, HR report, or protected activity — date, method (written/verbal), to whom, exact substance of complaint
 - Each response or non-response by Defendants to each complaint or report — dates, names of people involved, stated reasons
-- Every adverse employment action (termination, demotion, PIP, discipline, schedule reduction, pay cut, failure to promote, reassignment): exact date, who made the decision, reason given to ${plaintiffRefName}, and whether similarly situated employees outside the protected class were treated differently
+- Every adverse employment action (termination, demotion, PIP, discipline, schedule reduction, pay cut, failure to promote, reassignment): exact date, who made the actor's decision, reason given to ${plaintiffRefName}, and whether similarly situated employees outside the protected class were treated differently
 - Filing date of the MCHR or EEOC charge; issuance date of the right-to-sue letter; any other administrative proceedings
 
-FORMAT: "${startAt}.\\t[Paragraph text].\\n${startAt + 1}.\\t[Paragraph text]."
-Begin every paragraph with its sequential number followed by a period, a tab, then the paragraph text.
+FORMAT FOR NUMBERED PARAGRAPHS: "${startAt}.\\t[Paragraph text].\\n${startAt + 1}.\\t[Paragraph text]."
+Begin every numbered paragraph with its sequential number followed by a period, a tab, then the paragraph text.
 
 CRITICAL JSON RULES:
 1. Return ONLY: { "facts": "..." }

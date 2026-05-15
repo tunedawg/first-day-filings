@@ -440,6 +440,7 @@ async function formatPetitionDoc(accessToken, docId) {
   let inServeBlock = false;
   let inCountsSection = false;
   let inPrayerSection = false;
+  let inFactsBody = false;
   let inFirmCareOf = 0; // countdown: lines of care-of address remaining
 
   for (let i = 0; i < paras.length; i++) {
@@ -472,7 +473,21 @@ async function formatPetitionDoc(accessToken, docId) {
       requests.push(_ps(startIndex, endIndex, { alignment: "CENTER", lineSpacing: 115,
         spaceAbove: { magnitude: 0, unit: "PT" }, spaceBelow: { magnitude: 0, unit: "PT" } }));
       inCountsSection = true;
+      inFactsBody = false;
       inServeBlock = false;
+      continue;
+    }
+
+    // ── Facts subsection headers (bold + italic, no underline) ────────────────
+    // Non-empty, non-numbered lines that appear inside the facts body region.
+    if (inFactsBody && !/^\d+/.test(text)) {
+      requests.push(_ts(startIndex, tEnd, { bold: true, italic: true, underline: false }));
+      requests.push(_ps(startIndex, endIndex, {
+        alignment: "START",
+        lineSpacing: 150,
+        spaceAbove: { magnitude: 12, unit: "PT" },
+        spaceBelow: { magnitude: 4, unit: "PT" },
+      }));
       continue;
     }
 
@@ -494,6 +509,7 @@ async function formatPetitionDoc(accessToken, docId) {
     // ── Section headings (INTRODUCTION, PARTIES, etc., PRAYER FOR RELIEF) ────
     if (text === "INTRODUCTION" || text === "PARTIES" || text === "JURISDICTION AND VENUE" ||
         text === "FACTS" || text === "PRAYER FOR RELIEF") {
+      if (text === "FACTS") inFactsBody = true;
       requests.push(_ts(startIndex, tEnd, { bold: true, underline: true }));
       requests.push(_ps(startIndex, endIndex, { alignment: "CENTER", lineSpacing: 115 }));
       continue;
