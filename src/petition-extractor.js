@@ -3,10 +3,12 @@ const { jsonrepair } = require("jsonrepair");
 const GEMINI_API =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
-const PETITION_PROMPT = `You are a Missouri employment litigation attorney assistant at Keenan & Bhatia, LLC. Analyze the uploaded documents (EEOC charge, right-to-sue letter, client intake notes, prior petition drafts, or other supporting materials) and perform two tasks:
+// ── Call 1: structured fields + short prose sections (no facts) ───────────────
+
+const EXTRACTION_PROMPT = `You are a Missouri employment litigation attorney assistant at Keenan & Bhatia, LLC. Analyze the uploaded documents (EEOC charge, right-to-sue letter, client intake notes, prior petition drafts, or other supporting materials) and perform two tasks:
 
 1. Extract structured case data
-2. Draft the prose sections of a Missouri circuit court Petition
+2. Draft the shorter prose sections of a Missouri circuit court Petition (Introduction, Parties, Jurisdiction, Prayer)
 
 Return ONLY a valid JSON object with the structure below. Do not fabricate facts not in the documents. Use [BRACKET PLACEHOLDERS] for required information you cannot determine. Never invent names, dates, or specific facts not stated in the documents. All prose sections must be written in THIRD PERSON — never use "I", "me", "my", or "we".
 
@@ -73,17 +75,6 @@ All numbered prose paragraphs across Introduction, Parties, Jurisdiction and Ven
   - Venue rationale: specific to the county/location where plaintiff worked or unlawful acts occurred, citing RSMo 213.111 if MHRA claims present
   Use \\n between numbered paragraphs.
 
-"facts": Draft the FACTS section as numbered paragraphs in chronological order, continuing from where jurisdictionVenue ended. Write in THIRD PERSON ONLY — never use "I", "me", "my", "we". Convert any first-person language from the source documents into third-person narrative. Include EVERY factual allegation from the source documents — do not summarize or omit anything. The petition reader should not need to read the underlying charge to understand what happened. Cover:
-  - Plaintiff's background: age if known, protected characteristics, years of experience, tenure at this employer
-  - Employment history: exact hire date, job title(s), work location(s), supervisor(s), performance record
-  - Every discriminatory incident, comment, act, or pattern described in the documents — in chronological order with specific dates where available
-  - Every internal complaint, HR report, accommodation request, or protected activity — with specific dates
-  - Details of any investigation or Defendant's response (or lack thereof)
-  - Every adverse employment action: termination, discipline, PIP, demotion, schedule reduction, denial of accommodation — with dates and stated reasons given by Defendant
-  - MCHR/EEOC charge filing date and the right-to-sue letter issuance date
-  - Final paragraph (always include verbatim): "[Plaintiff refName] reserves the right to amend this action to raise any appropriate cause of action with relation back to the date of filing, including but not limited to any causes of action under Chapters 213 and 287, RSMo."
-  Format: "[N].\\t[Text].\\n[N+1].\\t[Text]." — continue the running counter from jurisdictionVenue. Keep track of the final facts paragraph number; count body paragraphs must continue from that number. Use [BRACKET PLACEHOLDERS] only for information genuinely absent from the documents.
-
 "prayer": Draft the standard prayer for relief as a numbered list:
   "Plaintiff respectfully prays that this Court enter judgment against Defendants, and grant the following relief, believed to be in excess of $25,000:\\n1.\\tActual damages, including both economic and non-economic damages, including emotional distress damages;\\n2.\\tBackpay;\\n3.\\tFrontpay and/or reinstatement;\\n4.\\tPunitive damages;\\n5.\\tPre-judgment and post-judgment interest at the maximum legal rate;\\n6.\\tDeclaratory and injunctive relief, including but not limited to expungement of any negative personnel records and adjustment for the tax consequences of any lump-sum award;\\n7.\\tThe costs of this action;\\n8.\\tReasonable attorney's fees, expert expenses, and other disbursements; and\\n9.\\tAny other and further legal and/or equitable relief that this Court deems just and proper."
 
@@ -97,6 +88,68 @@ CRITICAL JSON RULES — you must follow these exactly or the output will be unpa
 3. Never embed raw newline, carriage-return, or tab characters inside a string value. Use \\n for line breaks and \\t for tabs.
 4. Do not truncate or omit any section. Emit all fields completely.`;
 
+// ── Call 2: facts only — dedicated full-budget call ───────────────────────────
+
+function buildFactsPrompt({ plaintiffRefName, collectiveDefendantRef, jurisdictionVenue }) {
+  const lastNum = findLastParagraphNum(jurisdictionVenue);
+  const startAt = lastNum + 1;
+
+  return `You are drafting the FACTS section of a Missouri employment litigation petition for Keenan & Bhatia, LLC.
+
+Plaintiff: ${plaintiffRefName}
+Defendants: ${collectiveDefendantRef || "Defendants"}
+
+The Jurisdiction and Venue section above ended at paragraph ${lastNum}. Begin Facts at paragraph ${startAt}.
+
+══════════════════════════════════════════════════════════
+YOUR SOLE TASK: Write an exhaustive, complete FACTS section.
+══════════════════════════════════════════════════════════
+
+NON-NEGOTIABLE RULES — violating any of these is unacceptable:
+
+1. ZERO SUMMARIZATION. Every distinct event, date, comment, act, observation, complaint, response, and consequence from the source documents must appear as its own numbered paragraph. If the documents describe 80 incidents, you write 80+ paragraphs for them.
+
+2. DO NOT COMBINE. Do not merge multiple events into a single paragraph. One incident = one paragraph (or more). Separate things that happened on separate dates always get separate paragraphs.
+
+3. PRESERVE SPECIFICS. Every specific date, time, name, job title, location, dollar amount, percentage, quote, policy citation, and sequence of events must appear exactly as in the source documents.
+
+4. FIRST PERSON → THIRD PERSON. All source documents are first-person. Convert every sentence to third person. "I reported to HR" becomes "${plaintiffRefName} reported to Human Resources." Never write "I", "me", "my", or "we".
+
+5. EXHAUSTIVE CHRONOLOGY. Work through the source documents systematically from beginning to end. Do not skip anything because it seems minor, repetitive, or embarrassing. Attorneys need every fact.
+
+6. LENGTH. A thorough facts section for a complex employment case routinely runs 60–150+ numbered paragraphs. Write until the source documents are fully exhausted. There is no length limit. Do NOT stop early.
+
+7. FINAL PARAGRAPH (verbatim, always last): "${plaintiffRefName} reserves the right to amend this action to raise any appropriate cause of action with relation back to the date of filing, including but not limited to any causes of action under Chapters 213 and 287, RSMo."
+
+COVER IN THIS ORDER:
+- ${plaintiffRefName}'s background: age, race, sex, disability, or other protected characteristics; years of relevant experience; education or credentials
+- Employment history with this employer: exact hire date, job title(s), department, work location(s), direct supervisor(s) by name and title, starting pay and any changes, any promotions or positive performance history
+- Every discriminatory or harassing act, comment, pattern, or incident — in strict chronological order with specific dates, names of perpetrators, exact words used where known, and witnesses present
+- Every accommodation request made by ${plaintiffRefName}, when made, to whom, and what response (or non-response) followed
+- Every internal complaint, HR report, or protected activity — date, method (written/verbal), to whom, exact substance of complaint
+- Each response or non-response by Defendants to each complaint or report — dates, names of people involved, stated reasons
+- Every adverse employment action (termination, demotion, PIP, discipline, schedule reduction, pay cut, failure to promote, reassignment): exact date, who made the decision, reason given to ${plaintiffRefName}, and whether similarly situated employees outside the protected class were treated differently
+- Filing date of the MCHR or EEOC charge; issuance date of the right-to-sue letter; any other administrative proceedings
+
+FORMAT: "${startAt}.\\t[Paragraph text].\\n${startAt + 1}.\\t[Paragraph text]."
+Begin every paragraph with its sequential number followed by a period, a tab, then the paragraph text.
+
+CRITICAL JSON RULES:
+1. Return ONLY: { "facts": "..." }
+2. Never embed raw double-quote characters inside the string — use single quotes for any quoted speech.
+3. Use \\n for line breaks and \\t for tabs within the string value. Never embed literal newlines or tabs.
+4. No markdown fences. No explanation before or after the JSON.`;
+}
+
+// ── Shared utilities ──────────────────────────────────────────────────────────
+
+function findLastParagraphNum(text) {
+  if (!text) return 0;
+  const matches = [...text.matchAll(/(\d+)\.\t/g)];
+  if (!matches.length) return 0;
+  return Math.max(...matches.map((m) => parseInt(m[1], 10)));
+}
+
 // Walk the JSON character by character so we can safely escape literal control
 // chars that Gemini sometimes emits inside string values despite being asked not to.
 // Handles all U+0000–U+001F control chars plus U+2028/U+2029 (line/paragraph separators).
@@ -109,7 +162,6 @@ function sanitizeJsonString(text) {
     const ch = text[i];
     if (inString) {
       if (ch === "\\") {
-        // Already-escaped sequence — copy both chars and skip ahead.
         out += ch + (text[i + 1] ?? "");
         i += 2;
         continue;
@@ -118,15 +170,14 @@ function sanitizeJsonString(text) {
         inString = false;
         out += ch;
       } else if (cp < 0x20) {
-        // All C0 control characters must be escaped in JSON strings.
         if (cp === 0x09) out += "\\t";
         else if (cp === 0x0a) out += "\\n";
         else if (cp === 0x0d) out += "\\r";
         else out += `\\u${cp.toString(16).padStart(4, "0")}`;
       } else if (cp === 0x2028) {
-        out += "\\u2028"; // Unicode Line Separator — illegal bare in JSON
+        out += "\\u2028";
       } else if (cp === 0x2029) {
-        out += "\\u2029"; // Unicode Paragraph Separator — illegal bare in JSON
+        out += "\\u2029";
       } else {
         out += ch;
       }
@@ -139,30 +190,7 @@ function sanitizeJsonString(text) {
   return out;
 }
 
-async function extractPetitionContext(files) {
-  if (!Array.isArray(files) || files.length === 0) {
-    throw new Error("Upload at least one document (EEOC charge, right-to-sue letter, intake notes, etc.).");
-  }
-  if (files.length > 10) {
-    throw new Error("Upload no more than ten files at a time.");
-  }
-
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured. Contact your administrator.");
-  }
-
-  const parts = [{ text: PETITION_PROMPT }];
-
-  for (const file of files) {
-    if (file.contentType === "application/pdf") {
-      parts.push({ inline_data: { mime_type: "application/pdf", data: file.contentBase64 } });
-    } else {
-      const text = Buffer.from(file.contentBase64, "base64").toString("utf8");
-      parts.push({ text: `Document: ${file.name}\n\n${text}` });
-    }
-  }
-
+async function callGemini(apiKey, parts) {
   const response = await fetch(`${GEMINI_API}?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -184,20 +212,54 @@ async function extractPetitionContext(files) {
   const stripped = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
   const jsonText = sanitizeJsonString(stripped);
 
-  let extracted;
   try {
-    extracted = JSON.parse(jsonText);
+    return JSON.parse(jsonText);
   } catch (_) {
     try {
-      extracted = JSON.parse(jsonrepair(jsonText));
+      return JSON.parse(jsonrepair(jsonText));
     } catch (_2) {
-      // Sanitizer may have broken string-boundary tracking if Gemini embedded raw quotes;
-      // try jsonrepair on the pre-sanitize text as a last resort.
-      extracted = JSON.parse(jsonrepair(stripped));
+      return JSON.parse(jsonrepair(stripped));
     }
   }
+}
+
+// ── Main export ───────────────────────────────────────────────────────────────
+
+async function extractPetitionContext(files) {
+  if (!Array.isArray(files) || files.length === 0) {
+    throw new Error("Upload at least one document (EEOC charge, right-to-sue letter, intake notes, etc.).");
+  }
+  if (files.length > 10) {
+    throw new Error("Upload no more than ten files at a time.");
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not configured. Contact your administrator.");
+  }
+
+  // Build file parts shared by both calls.
+  const fileParts = files.map((file) =>
+    file.contentType === "application/pdf"
+      ? { inline_data: { mime_type: "application/pdf", data: file.contentBase64 } }
+      : { text: `Document: ${file.name}\n\n${Buffer.from(file.contentBase64, "base64").toString("utf8")}` }
+  );
+
+  // ── Call 1: structure + short sections ─────────────────────────────────────
+  const extracted = await callGemini(apiKey, [{ text: EXTRACTION_PROMPT }, ...fileParts]);
 
   const { summary = [], ...fields } = extracted;
+
+  // ── Call 2: facts section — dedicated full-budget call ──────────────────────
+  const plaintiffRefName = fields.plaintiff?.refName || fields.plaintiff?.fullName || "Plaintiff";
+  const collectiveDefendantRef = fields.collectiveDefendantRef || "Defendants";
+  const jurisdictionVenue = fields.jurisdictionVenue || "";
+
+  const factsPrompt = buildFactsPrompt({ plaintiffRefName, collectiveDefendantRef, jurisdictionVenue });
+  const factsResult = await callGemini(apiKey, [{ text: factsPrompt }, ...fileParts]);
+
+  fields.facts = factsResult.facts || "";
+
   return { ok: true, summary, fields, documents: files.map((f) => ({ name: f.name })) };
 }
 
