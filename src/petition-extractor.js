@@ -2,6 +2,10 @@ const { jsonrepair } = require("jsonrepair");
 
 const GEMINI_API =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+const GEMINI_FILES_API =
+  "https://generativelanguage.googleapis.com/upload/v1beta/files";
+const GEMINI_FILES_BASE =
+  "https://generativelanguage.googleapis.com/v1beta";
 
 // ── Call 1: structured fields + short prose sections (no facts) ───────────────
 
@@ -211,6 +215,48 @@ function sanitizeJsonString(text) {
   return out;
 }
 
+// Upload one file to Gemini Files API; returns { uri, name } for use in file_data refs.
+// Files auto-expire after 48 hours. Upload each file once, reference in multiple calls.
+async function uploadToGeminiFiles(apiKey, file) {
+  const buffer = Buffer.from(file.contentBase64, "base64");
+  const mimeType = file.contentType || "application/octet-stream";
+  const boundary = `fdf${Date.now()}${Math.random().toString(36).slice(2)}`;
+
+  const metaJson = JSON.stringify({ file: { display_name: file.name } });
+  const body = Buffer.concat([
+    Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metaJson}\r\n`, "utf8"),
+    Buffer.from(`--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`, "utf8"),
+    buffer,
+    Buffer.from(`\r\n--${boundary}--`, "utf8"),
+  ]);
+
+  let res;
+  try {
+    res = await fetch(`${GEMINI_FILES_API}?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": `multipart/related; boundary=${boundary}` },
+      body,
+      signal: AbortSignal.timeout(120_000),
+    });
+  } catch (e) {
+    const cause = e?.cause?.message || e?.cause?.code || "";
+    throw new Error(`File upload failed for "${file.name}": ${e.message}${cause ? ` — ${cause}` : ""}`);
+  }
+
+  if (!res.ok) {
+    const err = await res.text().catch(() => "(unreadable)");
+    throw new Error(`File upload error ${res.status} for "${file.name}": ${err}`);
+  }
+
+  const result = await res.json();
+  return { uri: result.file.uri, name: result.file.name };
+}
+
+// Best-effort delete after calls finish (files also auto-expire in 48h).
+async function deleteGeminiFile(apiKey, fileName) {
+  await fetch(`${GEMINI_FILES_BASE}/${fileName}?key=${apiKey}`, { method: "DELETE" }).catch(() => {});
+}
+
 async function callGemini(apiKey, parts, label = "Gemini") {
   let response;
   try {
@@ -266,29 +312,44 @@ async function extractPetitionContext(files) {
     throw new Error("GEMINI_API_KEY is not configured. Contact your administrator.");
   }
 
-  // Build file parts shared by both calls.
-  const fileParts = files.map((file) =>
-    file.contentType === "application/pdf"
-      ? { inline_data: { mime_type: "application/pdf", data: file.contentBase64 } }
-      : { text: `Document: ${file.name}\n\n${Buffer.from(file.contentBase64, "base64").toString("utf8")}` }
+  // ── Upload all files to Gemini Files API once; reference by URI in both calls ─
+  // This bypasses the 20 MB inline_data limit and avoids sending large payloads twice.
+  const uploadResults = await Promise.all(
+    files.map(async (file) => {
+      if (file.contentType === "application/pdf") {
+        const uploaded = await uploadToGeminiFiles(apiKey, file);
+        return { part: { file_data: { mime_type: "application/pdf", file_uri: uploaded.uri } }, geminiName: uploaded.name };
+      }
+      // Non-PDF (plain text, DOCX text dump): send inline — these are small.
+      const text = Buffer.from(file.contentBase64, "base64").toString("utf8");
+      return { part: { text: `Document: ${file.name}\n\n${text}` }, geminiName: null };
+    })
   );
 
-  // ── Call 1: structure + short sections ─────────────────────────────────────
-  const extracted = await callGemini(apiKey, [{ text: EXTRACTION_PROMPT }, ...fileParts], "Extraction call");
+  const fileParts = uploadResults.map((r) => r.part);
+  const uploadedFileNames = uploadResults.map((r) => r.geminiName).filter(Boolean);
 
-  const { summary = [], ...fields } = extracted;
+  try {
+    // ── Call 1: structure + short sections ───────────────────────────────────
+    const extracted = await callGemini(apiKey, [{ text: EXTRACTION_PROMPT }, ...fileParts], "Extraction call");
 
-  // ── Call 2: facts section — dedicated full-budget call ──────────────────────
-  const plaintiffRefName = fields.plaintiff?.refName || fields.plaintiff?.fullName || "Plaintiff";
-  const collectiveDefendantRef = fields.collectiveDefendantRef || "Defendants";
-  const jurisdictionVenue = fields.jurisdictionVenue || "";
+    const { summary = [], ...fields } = extracted;
 
-  const factsPrompt = buildFactsPrompt({ plaintiffRefName, collectiveDefendantRef, jurisdictionVenue });
-  const factsResult = await callGemini(apiKey, [{ text: factsPrompt }, ...fileParts], "Facts drafting call");
+    // ── Call 2: facts section — dedicated full-budget call ───────────────────
+    const plaintiffRefName = fields.plaintiff?.refName || fields.plaintiff?.fullName || "Plaintiff";
+    const collectiveDefendantRef = fields.collectiveDefendantRef || "Defendants";
+    const jurisdictionVenue = fields.jurisdictionVenue || "";
 
-  fields.facts = factsResult.facts || "";
+    const factsPrompt = buildFactsPrompt({ plaintiffRefName, collectiveDefendantRef, jurisdictionVenue });
+    const factsResult = await callGemini(apiKey, [{ text: factsPrompt }, ...fileParts], "Facts drafting call");
 
-  return { ok: true, summary, fields, documents: files.map((f) => ({ name: f.name })) };
+    fields.facts = factsResult.facts || "";
+
+    return { ok: true, summary, fields, documents: files.map((f) => ({ name: f.name })) };
+  } finally {
+    // Clean up uploaded files (they also auto-expire in 48 h).
+    await Promise.all(uploadedFileNames.map((name) => deleteGeminiFile(apiKey, name)));
+  }
 }
 
 module.exports = { extractPetitionContext };
