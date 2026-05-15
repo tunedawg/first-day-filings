@@ -19,7 +19,7 @@ const {
 const { extractCaseContext } = require("./extractor");
 const { getSupabaseAdmin, getUserFromRequest } = require("./supabaseClient");
 const { buildDocumentName, buildMatterFolderName, setAttorneyDirectory, validateSelections } = require("./generator");
-const { createDriveFolder, copyGoogleDoc, deleteFile, exportGoogleDocAs, insertDefendantRows, fixPronounTokensInDoc, formatPetitionDoc, inspectTemplateFile, replaceDocTokens, replaceTokenWithParagraphs, uploadFileToDrive } = require("./google");
+const { createDriveFolder, copyGoogleDoc, deleteFile, exportGoogleDocAs, fixPronounTokensInDoc, formatPetitionDoc, inspectTemplateFile, replaceDocTokens, replaceTokenWithParagraphs, uploadFileToDrive } = require("./google");
 const { getQuestionnaire, getTemplateRegistry } = require("./templateRegistry");
 const { extractPetitionContext } = require("./petition-extractor");
 const { buildPetitionTokenMap, buildPetitionDocumentName, getPetitionRegistry } = require("./petition-generator");
@@ -552,8 +552,6 @@ const server = http.createServer(async (request, response) => {
       let copiedDoc;
       try {
         copiedDoc = await copyGoogleDoc(accessToken, templateDocId, documentName, null);
-        const defendantCount = Array.isArray(intake.defendants) ? intake.defendants.length : 0;
-        await insertDefendantRows(accessToken, copiedDoc.id, defendantCount);
         await replaceDocTokens(accessToken, copiedDoc.id, tokenMap);
         await formatPetitionDoc(accessToken, copiedDoc.id);
       } catch (e) {

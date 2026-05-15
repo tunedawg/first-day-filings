@@ -41,37 +41,27 @@ function buildCaptionTokens(intake) {
   const isStl = plaintiff.firmOffice === "stl";
   const careOf = isStl ? STL_FIRM_CARE_OF : KC_FIRM_CARE_OF;
 
-  const plaintiffLeftLines = [
+  const lines = [
     (plaintiff.captionName || plaintiff.fullName?.toUpperCase() || "[PLAINTIFF NAME]") + ",",
     ...careOf.split("\n"),
     "",
     "Plaintiff,",
+    "",
+    "v.",
   ];
 
-  const tokens = {
-    "{{captionPlaintiffLeft}}": plaintiffLeftLines.join("\n"),
-    "{{captionPlaintiffRight}}": [
-      ...plaintiffLeftLines.map(() => ")"),
-      "Case No. _______________",
-      "\tDiv. _______________",
-    ].join("\n"),
-  };
-
   defendants.forEach((d, i) => {
-    const isLast = i === defendants.length - 1;
+    if (i > 0) lines.push(""); // blank line between defendants
     const addressLines = (d.serveAddress || "[SERVICE ADDRESS]").split("\n");
-    const leftLines = [
-      `${d.captionName};`,
-      d.serveLabel || "Serve at:",
-      ...addressLines,
-    ];
-    if (!isLast) leftLines.push("");
-
-    tokens[`{{captionDefendant${i + 1}Left}}`] = leftLines.join("\n");
-    tokens[`{{captionDefendant${i + 1}Right}}`] = leftLines.map(() => ")").join("\n");
+    lines.push(`${d.captionName};`);
+    lines.push(d.serveLabel || "Serve at:");
+    lines.push(...addressLines);
   });
 
-  return tokens;
+  lines.push("");
+  lines.push("Defendants.");
+
+  return { "{{captionLeft}}": lines.join("\n") };
 }
 
 const PRONOUN_TO_POSSESSIVE = { he: "his", she: "her", they: "their" };
