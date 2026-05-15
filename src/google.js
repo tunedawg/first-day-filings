@@ -448,9 +448,9 @@ async function formatPetitionDoc(accessToken, docId) {
 
     if (!text.trim()) { inServeBlock = false; continue; }
 
-    // ── Plaintiff caption name (always immediately before the c/o line) → un-bold
+    // ── Plaintiff caption name (always immediately before the c/o line) → bold
     if (i + 1 < paras.length && /^c\/o /i.test(paras[i + 1].text)) {
-      requests.push(_ts(startIndex, tEnd, { bold: false }));
+      requests.push(_ts(startIndex, tEnd, { bold: true }));
       continue;
     }
 
