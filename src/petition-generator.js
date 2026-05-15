@@ -74,24 +74,6 @@ function buildCaptionTokens(intake) {
   return tokens;
 }
 
-function buildSignatureBlock(intake) {
-  const isStl = intake.plaintiff?.firmOffice === "stl";
-  const firmBlock = isStl ? STL_FIRM_BLOCK : KC_FIRM_BLOCK;
-
-  const selectedIds = Array.isArray(intake.selectedAttorneys) && intake.selectedAttorneys.length > 0
-    ? intake.selectedAttorneys
-    : ["edward_keenan"];
-
-  const signingId = intake.signingAttorney || selectedIds[0];
-  const signingAtty = ATTORNEYS[signingId];
-  const signingLine = signingAtty ? `/s/ ${signingAtty.displayName}` : "/s/ [Attorney Name]";
-
-  const rosterLines = selectedIds.filter((id) => ATTORNEYS[id]).map((id) => ATTORNEYS[id].rosterLine).join("\n");
-  const emailLines = selectedIds.filter((id) => ATTORNEYS[id]).map((id) => ATTORNEYS[id].email).join("\n");
-
-  return `KEENAN & BHATIA, LLC\n\n${signingLine}\n___________________________\n${rosterLines}\n${firmBlock}\n${emailLines}`;
-}
-
 const PRONOUN_TO_POSSESSIVE = { he: "his", she: "her", they: "their" };
 
 function formatLongDate(raw) {
@@ -107,6 +89,18 @@ function buildPetitionTokenMap(intake) {
   const court = intake.court || {};
   const plaintiff = intake.plaintiff || {};
   const possessive = plaintiff.possessivePronoun || PRONOUN_TO_POSSESSIVE[plaintiff.pronoun] || "their";
+  const isStl = plaintiff.firmOffice === "stl";
+  const firmBlock = isStl ? STL_FIRM_BLOCK : KC_FIRM_BLOCK;
+
+  const selectedIds = Array.isArray(intake.selectedAttorneys) && intake.selectedAttorneys.length > 0
+    ? intake.selectedAttorneys : ["edward_keenan"];
+  const signingId = intake.signingAttorney || selectedIds[0];
+  const signingAtty = ATTORNEYS[signingId];
+
+  const rosterLines = selectedIds.filter(id => ATTORNEYS[id]).map(id => ATTORNEYS[id].rosterLine).join("\n");
+  const emailLines  = selectedIds.filter(id => ATTORNEYS[id]).map(id => ATTORNEYS[id].email).join("\n");
+  const attorneyForLine = `Attorneys for Plaintiff ${plaintiff.fullName || "[Plaintiff Name]"}`;
+  const filingDate = formatLongDate(intake.filingDate) || intake.filingDate || "";
 
   return {
     ...buildCaptionTokens(intake),
@@ -120,9 +114,14 @@ function buildPetitionTokenMap(intake) {
     "{{petitionFacts}}":             intake.facts || "",
     "{{petitionCounts}}":            intake.counts || "",
     "{{petitionPrayerItems}}":       intake.prayer || "",
-    "{{petitionFilingDate}}":        formatLongDate(intake.filingDate) || intake.filingDate || "",
-    "{{petitionSignatureBlock}}":    buildSignatureBlock(intake),
-    "{{petitionAttorneyForLine}}":   `Attorneys for Plaintiff ${plaintiff.fullName || "[Plaintiff Name]"}`,
+    "{{petitionFilingDate}}":        filingDate,
+    "{{serviceDate}}":               filingDate,
+    "{{signingAttorney}}":           signingAtty?.displayName || "[Attorney Name]",
+    "{{attorneyRosterBlock}}":       rosterLines,
+    "{{firmAddressBlock}}":          firmBlock,
+    "{{attorneyEmailBlock}}":        emailLines,
+    "{{attorneyForLine}}":           attorneyForLine,
+    "{{petitionAttorneyForLine}}":   attorneyForLine,
   };
 }
 

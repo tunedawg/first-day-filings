@@ -448,13 +448,22 @@ async function formatPetitionDoc(accessToken, docId) {
 
     if (!text.trim()) { inServeBlock = false; continue; }
 
-    // ── Firm care-of address (caption plaintiff service address) → compact ────
+    // ── Plaintiff caption name (always immediately before the c/o line) → un-bold
+    if (i + 1 < paras.length && /^c\/o /i.test(paras[i + 1].text)) {
+      requests.push(_ts(startIndex, tEnd, { bold: false }));
+      continue;
+    }
+
+    // ── Firm care-of address → compact, indented, un-bold ────────────────────
     if (/^c\/o /i.test(text) || inFirmCareOf > 0) {
       if (/^c\/o /i.test(text)) inFirmCareOf = 2; else inFirmCareOf--;
+      requests.push(_ts(startIndex, tEnd, { bold: false }));
       requests.push(_ps(startIndex, endIndex, {
         lineSpacing: 115,
         spaceAbove: { magnitude: 0, unit: "PT" },
         spaceBelow: { magnitude: 0, unit: "PT" },
+        indentStart: { magnitude: 36, unit: "PT" },
+        indentFirstLine: { magnitude: 0, unit: "PT" },
       }));
       continue;
     }
@@ -491,8 +500,9 @@ async function formatPetitionDoc(accessToken, docId) {
       continue;
     }
 
-    // ── Signing line (/s/ …) and signature underline → compact, no gap ─────
-    if (text.startsWith("/s/ ") || /^_+$/.test(text)) {
+    // ── Signing line (/s/ …) → italic + compact, no gap ─────────────────────
+    if (text.startsWith("/s/") || /^_+$/.test(text)) {
+      requests.push(_ts(startIndex, tEnd, { italic: true }));
       requests.push(_ps(startIndex, endIndex, {
         lineSpacing: 115,
         spaceAbove: { magnitude: 0, unit: "PT" },
