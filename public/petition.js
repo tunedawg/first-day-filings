@@ -9,6 +9,10 @@ const extractButton = document.getElementById("extractButton");
 const extractionError = document.getElementById("extractionError");
 const extractionStatus = document.getElementById("extractionStatus");
 const extractionStatusText = document.getElementById("extractionStatusText");
+const extractionProgress = document.getElementById("extractionProgress");
+const extractionProgressFill = document.getElementById("extractionProgressFill");
+const extractionProgressCount = document.getElementById("extractionProgressCount");
+const extractionProgressFile = document.getElementById("extractionProgressFile");
 const extractionSummary = document.getElementById("extractionSummary");
 const extractionSummaryTitle = document.getElementById("extractionSummaryTitle");
 const extractionSummaryList = document.getElementById("extractionSummaryList");
@@ -197,11 +201,36 @@ async function runExtraction() {
   extractionError.hidden = true;
   resetStep(stepReview);
 
+  const total = selectedFiles.length;
+  extractionStatusText.textContent = "Preparing documents…";
+  extractionProgressFill.style.width = "0%";
+  extractionProgressCount.textContent = "";
+  extractionProgressFile.textContent = "";
+  extractionProgress.hidden = false;
+
   const filePayloads = await Promise.all(selectedFiles.map(async (file) => ({
     name: file.name,
     contentType: file.type || "application/octet-stream",
     contentBase64: await fileToBase64(file),
   })));
+
+  function applyProgress(pct, statusText, countLabel, fileLabel) {
+    extractionProgressFill.style.width = `${pct}%`;
+    extractionStatusText.textContent = statusText;
+    extractionProgressCount.textContent = countLabel;
+    extractionProgressFile.textContent = fileLabel;
+  }
+
+  function handleProgressEvent(ev) {
+    if (ev.step === "uploading") {
+      const pct = ((ev.index - 1) / total) * 55;
+      applyProgress(pct, `Uploading document ${ev.index} of ${ev.total}…`, `${ev.index} / ${ev.total}`, ev.fileName);
+    } else if (ev.step === "analyzing") {
+      applyProgress(60, "Analyzing documents…", "", "");
+    } else if (ev.step === "drafting_facts") {
+      applyProgress(78, "Drafting facts section…", "", "");
+    }
+  }
 
   try {
     const res = await fetch("/api/petition/extract", {
@@ -209,17 +238,53 @@ async function runExtraction() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ files: filePayloads }),
     });
-    const payload = await res.json();
-    if (!res.ok || !payload.ok) throw new Error(payload.error || "Extraction failed.");
+
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      throw new Error(payload.error || `Server error ${res.status}`);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let finalPayload = null;
+
+    outer: while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let sep;
+      while ((sep = buffer.indexOf("\n\n")) !== -1) {
+        const chunk = buffer.slice(0, sep).trim();
+        buffer = buffer.slice(sep + 2);
+        if (!chunk.startsWith("data: ")) continue;
+        const ev = JSON.parse(chunk.slice(6));
+        if (ev.type === "progress") {
+          handleProgressEvent(ev);
+        } else if (ev.type === "done") {
+          finalPayload = ev.result;
+          break outer;
+        } else if (ev.type === "error") {
+          throw new Error(ev.message);
+        }
+      }
+    }
+
+    if (!finalPayload?.ok) throw new Error(finalPayload?.error || "Extraction failed.");
+
+    applyProgress(100, "Done!", "", "");
+    await new Promise((r) => setTimeout(r, 350));
 
     extractionStatus.hidden = true;
-    showExtractionSummary(payload.summary || []);
-    populateForm(payload.fields || {});
+    extractionProgress.hidden = true;
+    showExtractionSummary(finalPayload.summary || []);
+    populateForm(finalPayload.fields || {});
     unlockStep(stepReview);
     petitionForm.hidden = false;
     stepReview.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (err) {
     extractionStatus.hidden = true;
+    extractionProgress.hidden = true;
     extractionError.textContent = err.message;
     extractionError.hidden = false;
     extractButton.disabled = false;

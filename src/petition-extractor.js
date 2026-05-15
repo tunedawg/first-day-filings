@@ -298,7 +298,7 @@ async function callGemini(apiKey, parts, label = "Gemini") {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-async function extractPetitionContext(files) {
+async function extractPetitionContext(files, onProgress = () => {}) {
   if (!Array.isArray(files) || files.length === 0) {
     throw new Error("Upload at least one document (EEOC charge, right-to-sue letter, intake notes, etc.).");
   }
@@ -311,34 +311,34 @@ async function extractPetitionContext(files) {
     throw new Error("GEMINI_API_KEY is not configured. Contact your administrator.");
   }
 
-  // ── Upload all files to Gemini Files API once; reference by URI in both calls ─
-  // This bypasses the 20 MB inline_data limit and avoids sending large payloads twice.
-  const uploadResults = await Promise.all(
-    files.map(async (file) => {
-      if (file.contentType === "application/pdf") {
-        const uploaded = await uploadToGeminiFiles(apiKey, file);
-        return { part: { file_data: { mime_type: "application/pdf", file_uri: uploaded.uri } }, geminiName: uploaded.name };
-      }
-      // Non-PDF (plain text, DOCX text dump): send inline — these are small.
+  // Sequential uploads so the caller receives per-file progress events.
+  const uploadResults = [];
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    onProgress({ type: "progress", step: "uploading", fileName: file.name, index: i + 1, total: files.length });
+    if (file.contentType === "application/pdf") {
+      const uploaded = await uploadToGeminiFiles(apiKey, file);
+      uploadResults.push({ part: { file_data: { mime_type: "application/pdf", file_uri: uploaded.uri } }, geminiName: uploaded.name });
+    } else {
       const text = Buffer.from(file.contentBase64, "base64").toString("utf8");
-      return { part: { text: `Document: ${file.name}\n\n${text}` }, geminiName: null };
-    })
-  );
+      uploadResults.push({ part: { text: `Document: ${file.name}\n\n${text}` }, geminiName: null });
+    }
+  }
 
   const fileParts = uploadResults.map((r) => r.part);
   const uploadedFileNames = uploadResults.map((r) => r.geminiName).filter(Boolean);
 
   try {
-    // ── Call 1: structure + short sections ───────────────────────────────────
+    onProgress({ type: "progress", step: "analyzing" });
     const extracted = await callGemini(apiKey, [{ text: EXTRACTION_PROMPT }, ...fileParts], "Extraction call");
 
     const { summary = [], ...fields } = extracted;
 
-    // ── Call 2: facts section — dedicated full-budget call ───────────────────
     const plaintiffRefName = fields.plaintiff?.refName || fields.plaintiff?.fullName || "Plaintiff";
     const collectiveDefendantRef = fields.collectiveDefendantRef || "Defendants";
     const jurisdictionVenue = fields.jurisdictionVenue || "";
 
+    onProgress({ type: "progress", step: "drafting_facts" });
     const factsPrompt = buildFactsPrompt({ plaintiffRefName, collectiveDefendantRef, jurisdictionVenue });
     const factsResult = await callGemini(apiKey, [{ text: factsPrompt }, ...fileParts], "Facts drafting call");
 
@@ -346,7 +346,6 @@ async function extractPetitionContext(files) {
 
     return { ok: true, summary, fields, documents: files.map((f) => ({ name: f.name })) };
   } finally {
-    // Clean up uploaded files (they also auto-expire in 48 h).
     await Promise.all(uploadedFileNames.map((name) => deleteGeminiFile(apiKey, name)));
   }
 }

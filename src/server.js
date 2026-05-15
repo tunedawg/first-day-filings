@@ -497,12 +497,27 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (request.method === "POST" && requestUrl.pathname === "/api/petition/extract") {
+      let body;
       try {
-        const body = await collectRequestBody(request);
-        const payload = await extractPetitionContext(body.files || []);
-        sendJson(response, 200, payload);
+        body = await collectRequestBody(request);
       } catch (e) {
-        sendJson(response, 500, { ok: false, error: e.message });
+        sendJson(response, 400, { ok: false, error: e.message });
+        return;
+      }
+      response.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+      });
+      const sendEvent = (data) => response.write(`data: ${JSON.stringify(data)}\n\n`);
+      try {
+        const result = await extractPetitionContext(body.files || [], sendEvent);
+        sendEvent({ type: "done", result });
+      } catch (e) {
+        sendEvent({ type: "error", message: e.message });
+      } finally {
+        response.end();
       }
       return;
     }
