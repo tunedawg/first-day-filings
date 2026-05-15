@@ -149,7 +149,7 @@ sourceFilesInput.addEventListener("change", () => handleFiles(Array.from(sourceF
 function handleFiles(newFiles) {
   const existing = new Set(selectedFiles.map(f => f.name));
   for (const f of newFiles) {
-    if (selectedFiles.length >= 10) break;
+    if (selectedFiles.length >= 15) break;
     if (!existing.has(f.name)) { selectedFiles.push(f); existing.add(f.name); }
   }
   sourceFilesInput.value = "";
