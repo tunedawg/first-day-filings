@@ -226,7 +226,9 @@ async function runExtraction() {
       const pct = ((ev.index - 1) / total) * 55;
       applyProgress(pct, `Uploading document ${ev.index} of ${ev.total}…`, `${ev.index} / ${ev.total}`, ev.fileName);
     } else if (ev.step === "analyzing") {
-      applyProgress(60, "Analyzing documents and drafting petition…", "", "");
+      applyProgress(58, "Analyzing documents…", "", "");
+    } else if (ev.step === "drafting_facts") {
+      applyProgress(78, "Drafting facts section…", "", "");
     }
   }
 

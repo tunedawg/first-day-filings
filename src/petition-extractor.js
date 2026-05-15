@@ -84,59 +84,6 @@ All numbered prose paragraphs across Introduction, Parties, Jurisdiction and Ven
 
 "summary": array of 3-5 plain-English strings summarizing what was found (e.g., ["Plaintiff: Garry Liess", "Defendants: Walmart Inc., Wal-Mart Associates Inc.", "Claims: Workers' comp retaliation, Age discrimination, MHRA Retaliation", "Court: Buchanan County Circuit Court"])
 
-"facts": Write the complete FACTS section as a single string. Use the same plaintiff refName and collectiveDefendantRef you determined above. Continue paragraph numbering from where jurisdictionVenue ended.
-
-  ══════════════════════════════════════════════════════════
-  THE FACTS FIELD IS THE MOST IMPORTANT OUTPUT IN THIS ENTIRE RESPONSE.
-  All other fields are short. Facts must be exhaustive and long.
-  The facts string should be by far the longest value in this JSON.
-  Reserve the bulk of your output token budget for facts.
-  ══════════════════════════════════════════════════════════
-
-  NON-NEGOTIABLE RULES — violating any of these is unacceptable:
-
-  1. ZERO SUMMARIZATION. Every distinct event, date, comment, act, observation, complaint, response, and consequence from the source documents must appear as its own numbered paragraph. If the documents describe 80 incidents, write 80+ paragraphs. Do not collapse, condense, or paraphrase — reproduce the substance of every fact in full.
-
-  2. DO NOT COMBINE. Never merge multiple events into a single paragraph. One incident = one paragraph (or more). Events on separate dates always get separate paragraphs. A single conversation that covers multiple topics gets multiple paragraphs.
-
-  3. PRESERVE SPECIFICS. Every specific date, time, name, job title, department, location, dollar amount, percentage, quote, email reference, policy name, policy citation, and sequence of events must appear exactly as stated in the source documents. Do not round, approximate, or generalize.
-
-  4. ACTIVE VOICE ONLY — NO EXCEPTIONS. Every sentence must use active voice. Name the actor performing the action.
-     - WRONG: "She was terminated by Defendants." / "A complaint was filed." / "She was told by her supervisor." / "She was subjected to harassment."
-     - RIGHT: "Defendants terminated her." / "She filed a complaint." / "Her supervisor told her." / "Her supervisor harassed her."
-     - Eliminate entirely: "was [verb]ed by", "was subjected to", "was placed on", "was denied by", "was informed by", "was advised by", "was required to", "had been [verb]ed", "were taken against."
-     - If no named actor is known, use "Defendants" or "the Company" as the subject.
-
-  5. DATE FIRST. When a paragraph describes an event tied to a specific date or time period, that date must be the very first thing in the paragraph — before the subject, before any other words.
-     - CORRECT: "On March 15, 2022, Supervisor Jones told Plaintiff..."
-     - CORRECT: "In January 2021, Defendants issued Plaintiff a written warning..."
-     - WRONG: "Plaintiff was told on March 15, 2022..." / "Defendants, on January 5, terminated..."
-
-  6. FIRST PERSON → THIRD PERSON. Source documents are often first-person. Convert every sentence to third person. "I reported to HR" becomes "[refName] reported to Human Resources." Never write "I", "me", "my", or "we".
-
-  7. EXHAUSTIVE CHRONOLOGY. Work through every source document from beginning to end. Do not skip anything because it seems minor, repetitive, cumulative, or unflattering. Attorneys need every fact. What seems trivial often becomes essential at trial.
-
-  8. LENGTH — THIS IS A HARD MINIMUM, NOT A SUGGESTION:
-     - Simple cases with limited documents: 50+ paragraphs minimum.
-     - Typical cases: 75–100+ paragraphs.
-     - Cases with depositions, extensive notes, or multiple incidents: 100–150+ paragraphs.
-     - Write until every fact in the source documents is captured. There is no upper limit. Do NOT stop early. Do NOT truncate. If you are approaching what feels like a limit, keep writing.
-
-  9. SUBSECTION HEADERS. At each major narrative transition, insert a creative, descriptive subsection header — a plain unnumbered line. Paragraph numbering continues immediately after. Use \\n\\n before and after each header. Aim for 4–8 headers. Write headers that are evocative and specific to this case (e.g., 'A Stellar Record, Suddenly Tarnished' / 'The Complaint That Changed Everything' / 'Defendants Choose Retaliation Over Accountability'). Never use generic labels like 'Background', 'Discrimination', or 'Termination'.
-
-  10. COVER EVERY CATEGORY BELOW — do not skip any that appear in the source documents:
-     - Plaintiff's background: protected characteristics (age, race, sex, disability, religion, national origin); years of experience; relevant education or credentials; professional reputation
-     - Full employment history with this employer: exact hire date, all job titles held, department(s), work location(s), direct and indirect supervisors by name and title, starting pay and all changes, bonuses or commissions, any promotions or positive performance evaluations
-     - Every discriminatory or harassing act, comment, slur, joke, gesture, or pattern — in strict chronological order with specific dates, names of perpetrators, exact words used where known, witnesses present, and physical location
-     - Every accommodation request: date made, to whom, in what form (verbal/written), exact substance, Defendants' response or non-response, and any follow-up
-     - Every internal complaint, HR report, or other protected activity: exact date, method (verbal/written/email), to whom directed, exact substance of the complaint, and any written confirmation
-     - Each response or non-response by Defendants to each complaint: dates, names of individuals involved, stated reasons given, any investigation conducted, outcome communicated to plaintiff
-     - Every adverse employment action (termination, demotion, PIP, written warning, suspension, schedule reduction, pay cut, failure to promote, reassignment, exclusion): exact date, who made the decision, reason stated to plaintiff, whether similarly situated employees outside the protected class were treated differently, and any documentation referenced
-     - Comparator employees: names, titles, conduct, and how Defendants treated them differently
-     - Filing date of the MCHR or EEOC charge; charge number if available; issuance date of the right-to-sue letter; any state or federal agency findings
-
-  11. FINAL PARAGRAPH (verbatim, always last): "Plaintiff reserves the right to amend this action to raise any appropriate cause of action with relation back to the date of filing, including but not limited to any causes of action under Chapters 213 and 287, RSMo." (substitute the actual plaintiff refName for 'Plaintiff')
-
 Return ONLY the JSON object. No markdown fences. No explanation. No extra text.
 
 CRITICAL JSON RULES — you must follow these exactly or the output will be unparseable:
@@ -144,6 +91,86 @@ CRITICAL JSON RULES — you must follow these exactly or the output will be unpa
 2. Never embed raw double-quote characters (" U+0022) inside a string value. If you need to represent a quotation or quoted speech within the text, use single quotes ('like this') instead.
 3. Never embed raw newline, carriage-return, or tab characters inside a string value. Use \\n for line breaks and \\t for tabs.
 4. Do not truncate or omit any section. Emit all fields completely.`;
+
+// ── Call 2: facts only — dedicated full-budget call ───────────────────────────
+
+function findLastParagraphNum(text) {
+  if (!text) return 0;
+  const matches = [...text.matchAll(/(\d+)\.\t/g)];
+  if (!matches.length) return 0;
+  return Math.max(...matches.map((m) => parseInt(m[1], 10)));
+}
+
+function buildFactsPrompt({ plaintiffRefName, collectiveDefendantRef, jurisdictionVenue }) {
+  const lastNum = findLastParagraphNum(jurisdictionVenue);
+  const startAt = lastNum + 1;
+
+  return `You are a Missouri employment litigation attorney assistant at Keenan & Bhatia, LLC.
+
+YOUR SOLE TASK: Write an exhaustive, complete FACTS section for a Missouri circuit court Petition.
+
+Plaintiff reference name: ${plaintiffRefName}
+Defendants reference: ${collectiveDefendantRef || "Defendants"}
+Jurisdiction and Venue section ended at paragraph ${lastNum}. Begin Facts at paragraph ${startAt}.
+
+══════════════════════════════════════════════════════════
+THIS IS YOUR ONLY OUTPUT. YOUR ENTIRE TOKEN BUDGET IS FOR FACTS.
+Write nothing except the JSON object below. No preamble, no summary.
+══════════════════════════════════════════════════════════
+
+NON-NEGOTIABLE RULES — violating any of these is unacceptable:
+
+1. ZERO SUMMARIZATION. Every distinct event, date, comment, act, observation, complaint, response, and consequence from the source documents must appear as its own numbered paragraph. If the documents describe 80 incidents, write 80+ paragraphs. Do not collapse, condense, or paraphrase — reproduce the substance of every fact in full.
+
+2. DO NOT COMBINE. Never merge multiple events into a single paragraph. One incident = one paragraph (or more). Events on separate dates always get separate paragraphs. A single conversation covering multiple topics gets multiple paragraphs.
+
+3. PRESERVE SPECIFICS. Every specific date, time, name, job title, department, location, dollar amount, percentage, quote, email reference, policy name, policy citation, and sequence of events must appear exactly as stated in the source documents. Do not round, approximate, or generalize.
+
+4. ACTIVE VOICE ONLY — NO EXCEPTIONS. Every sentence must use active voice. Name the actor performing the action.
+   - WRONG: "She was terminated by Defendants." / "A complaint was filed." / "She was told by her supervisor." / "She was subjected to harassment."
+   - RIGHT: "Defendants terminated her." / "She filed a complaint." / "Her supervisor told her." / "Her supervisor harassed her."
+   - Eliminate entirely: "was [verb]ed by", "was subjected to", "was placed on", "was denied by", "was informed by", "was advised by", "was required to", "had been [verb]ed", "were taken against."
+   - If no named actor is known, use "Defendants" or "the Company" as the subject.
+
+5. DATE FIRST. When a paragraph describes an event tied to a specific date or time period, that date must be the very first thing in the paragraph — before the subject, before any other words.
+   - CORRECT: "On March 15, 2022, Supervisor Jones told ${plaintiffRefName}..."
+   - CORRECT: "In January 2021, Defendants issued ${plaintiffRefName} a written warning..."
+   - WRONG: "${plaintiffRefName} was told on March 15, 2022..." / "Defendants, on January 5, terminated..."
+
+6. FIRST PERSON → THIRD PERSON. Source documents are often first-person. Convert every sentence to third person. "I reported to HR" becomes "${plaintiffRefName} reported to Human Resources." Never write "I", "me", "my", or "we".
+
+7. EXHAUSTIVE CHRONOLOGY. Work through every source document from beginning to end. Do not skip anything because it seems minor, repetitive, cumulative, or unflattering. Attorneys need every fact. What seems trivial often becomes essential at trial.
+
+8. LENGTH — THIS IS A HARD MINIMUM, NOT A SUGGESTION:
+   - Simple cases with limited documents: 50+ paragraphs minimum.
+   - Typical cases: 75–100+ paragraphs.
+   - Cases with depositions, extensive notes, or multiple incidents: 100–150+ paragraphs.
+   - Write until every fact in the source documents is captured. There is no upper limit. Do NOT stop early. Do NOT truncate. Keep writing.
+
+9. SUBSECTION HEADERS. At each major narrative transition, insert a creative, descriptive subsection header — a plain unnumbered line. Paragraph numbering continues immediately after. Use \\n\\n before and after each header. Aim for 4–8 headers. Write headers that are evocative and specific to this case (e.g., 'A Stellar Record, Suddenly Tarnished' / 'The Complaint That Changed Everything' / 'Defendants Choose Retaliation Over Accountability'). Never use generic labels like 'Background', 'Discrimination', or 'Termination'.
+
+10. COVER EVERY CATEGORY BELOW — do not skip any that appear in the source documents:
+   - Plaintiff's background: protected characteristics (age, race, sex, disability, religion, national origin); years of experience; relevant education or credentials; professional reputation
+   - Full employment history with this employer: exact hire date, all job titles held, department(s), work location(s), direct and indirect supervisors by name and title, starting pay and all changes, bonuses or commissions, any promotions or positive performance evaluations
+   - Every discriminatory or harassing act, comment, slur, joke, gesture, or pattern — in strict chronological order with specific dates, names of perpetrators, exact words used where known, witnesses present, and physical location
+   - Every accommodation request: date made, to whom, in what form (verbal/written), exact substance, Defendants' response or non-response, and any follow-up
+   - Every internal complaint, HR report, or other protected activity: exact date, method (verbal/written/email), to whom directed, exact substance of the complaint, and any written confirmation
+   - Each response or non-response by Defendants to each complaint: dates, names of individuals involved, stated reasons given, any investigation conducted, outcome communicated to plaintiff
+   - Every adverse employment action (termination, demotion, PIP, written warning, suspension, schedule reduction, pay cut, failure to promote, reassignment, exclusion): exact date, who made the decision, reason stated to plaintiff, whether similarly situated employees outside the protected class were treated differently, and any documentation referenced
+   - Comparator employees: names, titles, conduct, and how Defendants treated them differently
+   - Filing date of the MCHR or EEOC charge; charge number if available; issuance date of the right-to-sue letter; any state or federal agency findings
+
+11. FINAL PARAGRAPH (verbatim, always last): "${plaintiffRefName} reserves the right to amend this action to raise any appropriate cause of action with relation back to the date of filing, including but not limited to any causes of action under Chapters 213 and 287, RSMo."
+
+FORMAT: "${startAt}.\\t[Paragraph text].\\n${startAt + 1}.\\t[Paragraph text]."
+Begin every numbered paragraph with its sequential number, a period, a tab, then the text.
+
+CRITICAL JSON RULES:
+1. Return ONLY: { "facts": "..." }
+2. Never embed raw double-quote characters — use single quotes for any quoted speech.
+3. Use \\n for line breaks and \\t for tabs. Never embed literal newlines or tabs.
+4. No markdown fences. No explanation before or after the JSON.`;
+}
 
 // ── Shared utilities ──────────────────────────────────────────────────────────
 
@@ -304,6 +331,16 @@ async function extractPetitionContext(files, onProgress = () => {}) {
     onProgress({ type: "progress", step: "analyzing" });
     const extracted = await callGemini(apiKey, [{ text: EXTRACTION_PROMPT }, ...fileParts], "Extraction call");
     const { summary = [], ...fields } = extracted;
+
+    const plaintiffRefName = fields.plaintiff?.refName || fields.plaintiff?.fullName || "Plaintiff";
+    const collectiveDefendantRef = fields.collectiveDefendantRef || "Defendants";
+    const jurisdictionVenue = fields.jurisdictionVenue || "";
+
+    onProgress({ type: "progress", step: "drafting_facts" });
+    const factsPrompt = buildFactsPrompt({ plaintiffRefName, collectiveDefendantRef, jurisdictionVenue });
+    const factsResult = await callGemini(apiKey, [{ text: factsPrompt }, ...fileParts], "Facts drafting call");
+    fields.facts = factsResult.facts || "";
+
     return { ok: true, summary, fields, documents: files.map((f) => ({ name: f.name })) };
   } finally {
     await Promise.all(uploadedFileNames.map((name) => deleteGeminiFile(apiKey, name)));
