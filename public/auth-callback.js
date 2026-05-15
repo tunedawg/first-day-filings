@@ -49,7 +49,10 @@ async function finalize(session) {
   }
 
   // Auto-join the firm org if this is a first login.
-  const res = await fetch("/api/auth/auto-join", { method: "POST" });
+  const res = await fetch("/api/auth/auto-join", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${session.access_token}` },
+  });
   const payload = await res.json().catch(() => ({}));
   if (!res.ok || !payload.ok) {
     await supabase.auth.signOut();

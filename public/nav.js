@@ -20,7 +20,10 @@ export async function requireAuth() {
 
   if (!profile?.organization_id) {
     // New firm member — auto-join the org, then re-fetch.
-    const res = await fetch("/api/auth/auto-join", { method: "POST" });
+    const res = await fetch("/api/auth/auto-join", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${session.access_token}` },
+    });
     const payload = await res.json().catch(() => ({}));
     if (!res.ok || !payload.ok) {
       await supabase.auth.signOut();
