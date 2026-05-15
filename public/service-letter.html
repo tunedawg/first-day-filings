@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Service Letter — First Day Filings</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script>
+      window.__FDF_CONFIG__ = {
+        supabaseUrl: "{{SUPABASE_URL}}",
+        supabaseAnonKey: "{{SUPABASE_ANON_KEY}}",
+        siteUrl: "{{SITE_URL}}"
+      };
+    </script>
+    <script src="/service-letter.js" type="module"></script>
+  </head>
+  <body>
+    <nav class="topbar" id="mainNav">
+      <a href="/" class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none">
+            <path d="M9 5.5h10.5c3.6 0 5.5 1.8 5.5 5.2v13.1c0 2.9-1.8 4.7-4.8 4.7H9.8C6.8 28.5 5 26.7 5 23.8V10.2c0-3 1.9-4.7 4-4.7Z" fill="currentColor" opacity="0.18"/>
+            <path d="M12 4.5h8.8c3.1 0 4.7 1.6 4.7 4.6v12.4c0 3.3-1.8 5-5 5H11.2c-3 0-4.7-1.7-4.7-4.8V9.1c0-3 1.7-4.6 4.6-4.6Z" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M11 11h10M11 16h10M11 21h6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M20.5 4.8v3.7c0 1 .5 1.5 1.5 1.5h3.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="brand-name">First Day Filings</span>
+      </a>
+      <nav class="topbar-tool-nav" aria-label="Tool switcher">
+        <a href="/service-letter" class="topbar-tool-link topbar-tool-link--active" aria-current="page">Service Letter</a>
+        <a href="/petition" class="topbar-tool-link">Petition Drafter</a>
+        <a href="/" class="topbar-tool-link">First Day Filings</a>
+      </nav>
+      <div class="topbar-right">
+        <div class="account-bubble" id="userBubble" hidden>
+          <button class="account-trigger" id="userBubbleTrigger" type="button" aria-haspopup="true" aria-expanded="false">
+            <span class="account-avatar" id="userBubbleAvatar"></span>
+            <span class="account-name" id="userBubbleName"></span>
+            <svg class="account-chevron" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <div class="account-dropdown" id="userBubbleDropdown" hidden>
+            <a href="/dashboard" class="account-dropdown-item">Dashboard</a>
+            <a href="/settings/firm" class="account-dropdown-item">Firm Settings</a>
+            <button id="userBubbleSignOut" class="account-dropdown-item account-dropdown-signout" type="button">Sign out</button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="sl-layout">
+      <div class="sl-form-col">
+        <div class="wizard-hero" style="padding: 40px 0 24px;">
+          <p class="hero-kicker">Missouri employment litigation · RSMo § 290.140</p>
+          <h1>Service Letter Generator</h1>
+          <p class="hero-sub">Fill in the fields below. The letter updates live on the right — print when ready.</p>
+        </div>
+
+        <div class="questionnaire">
+          <div class="panel">
+            <div class="panel-header"><h2>Letter Details</h2></div>
+            <div class="field-grid">
+
+              <div class="field" style="grid-column: 1 / -1;">
+                <label class="field-label" for="slDate">Date</label>
+                <input type="text" id="slDate" placeholder="e.g., May 15, 2026" />
+              </div>
+
+              <div class="field" style="grid-column: 1 / -1;">
+                <label class="field-label" for="slSupervisor">Supervisor / Manager Name(s)</label>
+                <input type="text" id="slSupervisor" placeholder="e.g., Jane Smith, Human Resources Director" />
+                <span class="field-hint">Used in the addressee block and salutation</span>
+              </div>
+
+              <div class="field" style="grid-column: 1 / -1;">
+                <label class="field-label" for="slCompany">Company Name</label>
+                <input type="text" id="slCompany" placeholder="e.g., Acme Corp." />
+              </div>
+
+              <div class="field" style="grid-column: 1 / -1;">
+                <label class="field-label" for="slCompanyAddress">Principal Office Address</label>
+                <textarea id="slCompanyAddress" rows="3" placeholder="123 Main St.&#10;Kansas City, MO 64106"></textarea>
+              </div>
+
+              <div class="field" style="grid-column: 1 / -1;">
+                <label class="field-label" for="slClientName">Client Name</label>
+                <input type="text" id="slClientName" placeholder="e.g., John Doe" />
+              </div>
+
+              <div class="field" style="grid-column: 1 / -1;">
+                <label class="field-label" for="slClientAddress">Client Address</label>
+                <textarea id="slClientAddress" rows="3" placeholder="456 Oak Ave.&#10;St. Louis, MO 63101"></textarea>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <div class="step-actions" style="margin-top: 8px; padding-bottom: 48px;">
+          <button type="button" id="printBtn" class="action-primary">Print Letter</button>
+          <button type="button" id="slClearBtn" class="action-secondary">Clear</button>
+        </div>
+      </div>
+
+      <div class="sl-preview-col" id="slPreviewCol">
+        <div class="sl-preview-wrap" id="slPreview">
+
+          <!-- Instructions block (red, for client) -->
+          <div class="sl-instructions">
+            <p class="sl-instructions-heading">Instructions to send to client:</p>
+            <ol>
+              <li>Print this Service Letter Request out ASAP and sign the bottom in pen</li>
+              <li>Send this document to the Registered Agent via <strong><u>Certified Mail</u></strong></li>
+              <li>Notify <a href="mailto:team@kclaborlaw.com">team@kclaborlaw.com</a> when you receive the receipt that the Registered Agent has received the Service Letter Request</li>
+              <li>Wait to receive the Service Letter from your company</li>
+              <li>Notify <a href="mailto:team@kclaborlaw.com">team@kclaborlaw.com</a> when you have the Service Letter</li>
+            </ol>
+          </div>
+
+          <!-- Letter body -->
+          <div class="sl-letter">
+            <p class="sl-field" id="previewDate"></p>
+
+            <div class="sl-addressee">
+              <p class="sl-field" id="previewSupervisor"></p>
+              <p class="sl-field" id="previewCompany"></p>
+              <p class="sl-field sl-multiline" id="previewCompanyAddress"></p>
+            </div>
+
+            <p class="sl-re">RE:&nbsp;&nbsp;&nbsp;Service Letter Request under RSMo § 290.140</p>
+
+            <p>Dear <span class="sl-field sl-inline" id="previewSalutation"></span>,</p>
+
+            <p>I am writing to request a service letter under the Revised Statutes of Missouri § 290.140.</p>
+
+            <p>The law requires that this letter be provided within 45 days, &ldquo;setting forth the nature and character of service rendered by such employee to such corporation and the duration thereof, and truly stating for what cause, if any, such employee was discharged or voluntarily quit such service.&rdquo;</p>
+
+            <p>Please send the letter to me at the following address:</p>
+
+            <div class="sl-client-address">
+              <p class="sl-field" id="previewClientName"></p>
+              <p class="sl-field sl-multiline" id="previewClientAddress"></p>
+            </div>
+
+            <p>Thank you for your cooperation.</p>
+
+            <p>Sincerely,</p>
+
+            <div class="sl-signature">
+              <div class="sl-signature-line"></div>
+              <p class="sl-field" id="previewSignatureName"></p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

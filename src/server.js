@@ -39,7 +39,7 @@ setInterval(() => {
 }, 5 * 60 * 1000).unref();
 
 // HTML pages that need per-page HTML files in /public; auth enforcement is client-side via nav.js.
-const PROTECTED_PATHS = new Set(["/dashboard", "/onboarding", "/settings/firm", "/petition"]);
+const PROTECTED_PATHS = new Set(["/dashboard", "/onboarding", "/settings/firm", "/petition", "/service-letter"]);
 
 function sendJson(response, statusCode, payload) {
   response.writeHead(statusCode, { "Content-Type": "application/json; charset=utf-8" });
