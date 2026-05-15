@@ -1584,18 +1584,18 @@ body {
 
 /* ── Team instructions (form column, never printed) ── */
 .sl-team-instructions {
-  background: rgba(124, 58, 237, 0.06);
-  border: 1px solid rgba(124, 58, 237, 0.18);
+  background: rgba(124, 58, 237, 0.12);
+  border: 1px solid rgba(124, 58, 237, 0.30);
   border-radius: 12px;
   padding: 14px 18px;
   margin-bottom: 20px;
   font-size: 0.84rem;
-  color: var(--paper-text);
+  color: var(--text);
 }
 .sl-team-instructions-heading {
   font-weight: 700;
   margin: 0 0 8px;
-  color: var(--paper-text);
+  color: var(--text);
   font-size: 0.84rem;
 }
 .sl-team-instructions ol {
@@ -1607,7 +1607,7 @@ body {
   line-height: 1.45;
 }
 .sl-team-instructions a {
-  color: var(--accent);
+  color: var(--accent-hi);
 }
 
 /* ── Letter body ── */
