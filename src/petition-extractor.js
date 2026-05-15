@@ -113,7 +113,13 @@ Write in plain prose — no markdown, no bullet points inside any section. Use t
 
 "summary": array of 3-5 plain-English strings summarizing what was found (e.g., ["Plaintiff: Garry Liess", "Defendants: Walmart Inc., Wal-Mart Associates Inc.", "Claims: Workers' comp retaliation, Age discrimination, MHRA Retaliation", "Court: Buchanan County Circuit Court"])
 
-Return ONLY the JSON object. No markdown fences. No explanation. No extra text.`;
+Return ONLY the JSON object. No markdown fences. No explanation. No extra text.
+
+CRITICAL JSON RULES — you must follow these exactly or the output will be unparseable:
+1. Every prose string value must be a valid JSON string enclosed in double quotes.
+2. Never embed raw double-quote characters (" U+0022) inside a string value. If you need to represent a quotation or quoted speech within the text, use single quotes ('like this') instead.
+3. Never embed raw newline, carriage-return, or tab characters inside a string value. Use \\n for line breaks and \\t for tabs.
+4. Do not truncate or omit any section. Emit all fields completely.`;
 
 // Walk the JSON character by character so we can safely escape literal control
 // chars that Gemini sometimes emits inside string values despite being asked not to.
@@ -186,7 +192,7 @@ async function extractPetitionContext(files) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       contents: [{ parts }],
-      generationConfig: { response_mime_type: "application/json" },
+      generationConfig: { response_mime_type: "application/json", maxOutputTokens: 65536 },
     }),
   });
 
@@ -199,15 +205,20 @@ async function extractPetitionContext(files) {
   const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!rawText) throw new Error("Gemini returned an empty response.");
 
-  const jsonText = sanitizeJsonString(
-    rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim()
-  );
+  const stripped = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+  const jsonText = sanitizeJsonString(stripped);
 
   let extracted;
   try {
     extracted = JSON.parse(jsonText);
   } catch (_) {
-    extracted = JSON.parse(jsonrepair(jsonText));
+    try {
+      extracted = JSON.parse(jsonrepair(jsonText));
+    } catch (_2) {
+      // Sanitizer may have broken string-boundary tracking if Gemini embedded raw quotes;
+      // try jsonrepair on the pre-sanitize text as a last resort.
+      extracted = JSON.parse(jsonrepair(stripped));
+    }
   }
 
   const { summary = [], ...fields } = extracted;
