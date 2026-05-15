@@ -540,6 +540,52 @@ body {
   justify-content: center;
 }
 
+/* ── Upload file list ── */
+.upload-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.upload-file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: var(--paper);
+  border: 1px solid rgba(124, 58, 237, 0.14);
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.upload-file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--paper-text);
+}
+
+.upload-file-remove {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0 4px;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--paper-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.upload-file-remove:hover {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
 /* ── Extraction summary ── */
 .extraction-summary {
   margin-top: 14px;

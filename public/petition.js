@@ -145,8 +145,22 @@ uploadZone.addEventListener("drop", (e) => {
 });
 sourceFilesInput.addEventListener("change", () => handleFiles(Array.from(sourceFilesInput.files)));
 
-function handleFiles(files) {
-  selectedFiles = files.slice(0, 5);
+function handleFiles(newFiles) {
+  const existing = new Set(selectedFiles.map(f => f.name));
+  for (const f of newFiles) {
+    if (selectedFiles.length >= 10) break;
+    if (!existing.has(f.name)) { selectedFiles.push(f); existing.add(f.name); }
+  }
+  sourceFilesInput.value = "";
+  syncFileUI();
+}
+
+function removeFile(index) {
+  selectedFiles.splice(index, 1);
+  syncFileUI();
+}
+
+function syncFileUI() {
   if (selectedFiles.length === 0) {
     extractButton.disabled = true;
     uploadZoneLabel.textContent = "Drop files here, or click to browse";
@@ -159,10 +173,16 @@ function handleFiles(files) {
 }
 
 function renderFileList() {
-  uploadFileList.innerHTML = selectedFiles.map((f) =>
-    `<div class="upload-file-item"><span class="upload-file-name">${escapeHtml(f.name)}</span></div>`
+  uploadFileList.innerHTML = selectedFiles.map((f, i) =>
+    `<div class="upload-file-item">
+      <span class="upload-file-name">${escapeHtml(f.name)}</span>
+      <button type="button" class="upload-file-remove" data-index="${i}" title="Remove">×</button>
+    </div>`
   ).join("");
   uploadFileList.hidden = false;
+  uploadFileList.querySelectorAll(".upload-file-remove").forEach(btn => {
+    btn.addEventListener("click", () => removeFile(Number(btn.dataset.index)));
+  });
 }
 
 // ── Extract ───────────────────────────────────────────────────────────────────
@@ -547,9 +567,7 @@ function clearAllFields() {
   resetStep(stepGenerate);
 
   selectedFiles = [];
-  extractButton.disabled = true;
-  uploadZoneLabel.textContent = "Drop files here, or click to browse";
-  uploadFileList.hidden = true;
+  syncFileUI();
 }
 
 document.getElementById("clearAllBtn")?.addEventListener("click", () => {
