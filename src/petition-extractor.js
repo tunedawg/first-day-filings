@@ -216,26 +216,25 @@ function sanitizeJsonString(text) {
 }
 
 // Upload one file to Gemini Files API; returns { uri, name } for use in file_data refs.
-// Files auto-expire after 48 hours. Upload each file once, reference in multiple calls.
+// Uses multipart/form-data with named fields (metadata + file) as required by the API.
+// Files auto-expire after 48 hours. Upload once, reference in multiple calls.
 async function uploadToGeminiFiles(apiKey, file) {
   const buffer = Buffer.from(file.contentBase64, "base64");
-  const mimeType = file.contentType || "application/octet-stream";
-  const boundary = `fdf${Date.now()}${Math.random().toString(36).slice(2)}`;
+  const mimeType = file.contentType || "application/pdf";
 
-  const metaJson = JSON.stringify({ file: { display_name: file.name } });
-  const body = Buffer.concat([
-    Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metaJson}\r\n`, "utf8"),
-    Buffer.from(`--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`, "utf8"),
-    buffer,
-    Buffer.from(`\r\n--${boundary}--`, "utf8"),
-  ]);
+  const form = new FormData();
+  form.append(
+    "metadata",
+    new Blob([JSON.stringify({ file: { display_name: file.name } })], { type: "application/json" })
+  );
+  form.append("file", new Blob([buffer], { type: mimeType }), file.name);
 
   let res;
   try {
     res = await fetch(`${GEMINI_FILES_API}?key=${apiKey}`, {
       method: "POST",
-      headers: { "Content-Type": `multipart/related; boundary=${boundary}` },
-      body,
+      headers: { "X-Goog-Upload-Protocol": "multipart" },
+      body: form,
       signal: AbortSignal.timeout(120_000),
     });
   } catch (e) {
