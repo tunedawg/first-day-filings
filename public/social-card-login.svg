@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5b21b6"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.10)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.04)"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Subtle grid lines -->
+  <line x1="0" y1="210" x2="1200" y2="210" stroke="white" stroke-opacity="0.05" stroke-width="1"/>
+  <line x1="0" y1="420" x2="1200" y2="420" stroke="white" stroke-opacity="0.05" stroke-width="1"/>
+  <line x1="400" y1="0" x2="400" y2="630" stroke="white" stroke-opacity="0.05" stroke-width="1"/>
+  <line x1="800" y1="0" x2="800" y2="630" stroke="white" stroke-opacity="0.05" stroke-width="1"/>
+
+  <!-- Document icon -->
+  <g transform="translate(132, 180)">
+    <rect x="6" y="6" width="156" height="196" rx="14" fill="black" fill-opacity="0.18"/>
+    <rect x="0" y="0" width="156" height="196" rx="14" fill="url(#card)" stroke="white" stroke-opacity="0.25" stroke-width="1.5"/>
+    <path d="M 108 0 L 156 46 L 108 46 Z" fill="black" fill-opacity="0.18"/>
+    <path d="M 108 0 L 108 46 L 156 46" fill="none" stroke="white" stroke-opacity="0.25" stroke-width="1.5"/>
+    <line x1="24" y1="78" x2="132" y2="78" stroke="white" stroke-opacity="0.7" stroke-width="8" stroke-linecap="round"/>
+    <line x1="24" y1="108" x2="132" y2="108" stroke="white" stroke-opacity="0.7" stroke-width="8" stroke-linecap="round"/>
+    <line x1="24" y1="138" x2="96" y2="138" stroke="white" stroke-opacity="0.45" stroke-width="8" stroke-linecap="round"/>
+    <line x1="24" y1="166" x2="80" y2="166" stroke="white" stroke-opacity="0.3" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <!-- Text block -->
+  <text x="360" y="252" font-family="Georgia, 'Times New Roman', serif" font-size="72" font-weight="700" fill="white" letter-spacing="-1">Keenan &amp; Bhatia</text>
+  <text x="362" y="318" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="30" fill="white" fill-opacity="0.72">Internal tools — sign in with your firm</text>
+  <text x="362" y="360" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="30" fill="white" fill-opacity="0.72">Google account to get started.</text>
+
+  <!-- Divider -->
+  <line x1="360" y1="408" x2="1060" y2="408" stroke="white" stroke-opacity="0.18" stroke-width="1"/>
+
+  <!-- Kicker -->
+  <text x="362" y="456" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" fill="white" fill-opacity="0.5" letter-spacing="2">KCLABORLAW.COM · KEENANFIRM.COM</text>
+</svg>
