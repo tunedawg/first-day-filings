@@ -491,8 +491,9 @@ async function formatPetitionDoc(accessToken, docId) {
       continue;
     }
 
-    // ── PRAYER FOR RELIEF heading ─────────────────────────────────────────────
-    if (text === "PRAYER FOR RELIEF") {
+    // ── Section headings (INTRODUCTION, PARTIES, etc., PRAYER FOR RELIEF) ────
+    if (text === "INTRODUCTION" || text === "PARTIES" || text === "JURISDICTION AND VENUE" ||
+        text === "FACTS" || text === "PRAYER FOR RELIEF") {
       requests.push(_ts(startIndex, tEnd, { bold: true, underline: true }));
       requests.push(_ps(startIndex, endIndex, { alignment: "CENTER", lineSpacing: 115 }));
       continue;

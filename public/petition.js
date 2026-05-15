@@ -37,6 +37,7 @@ const addDefendantBtn = document.getElementById("addDefendantBtn");
 let selectedFiles = [];
 let defendants = [];
 let _draftFacts = "";
+let _draftIntroduction = "";
 let authSession = null;
 let _googleRefreshToken = null;
 let _sb = null;
@@ -260,6 +261,7 @@ function populateForm(fields) {
   });
 
   // AI-drafted sections (counts are drafted separately after claims are finalized)
+  _draftIntroduction = fields.introduction || "";
   _draftFacts = fields.facts || "";
   setField("pPartiesSection", fields.partiesSection || "");
   setField("pJurisdictionVenue", fields.jurisdictionVenue || "");
@@ -458,6 +460,7 @@ function collectIntake() {
     filingDate: document.getElementById("pFilingDate")?.value.trim() || "",
     signingAttorney: document.getElementById("pSigningAttorney")?.value || "edward_keenan",
     selectedAttorneys,
+    introduction: _draftIntroduction,
     partiesSection: document.getElementById("pPartiesSection")?.value || "",
     jurisdictionVenue: document.getElementById("pJurisdictionVenue")?.value || "",
     facts: _draftFacts,
@@ -535,6 +538,7 @@ function saveFormState() {
       pCounts:           document.getElementById("pCounts")?.value || "",
       pPrayer:           document.getElementById("pPrayer")?.value || "",
       draftFacts:        _draftFacts,
+      draftIntroduction: _draftIntroduction,
       summaryLines: Array.from(document.querySelectorAll("#extractionSummaryList li")).map(li => li.textContent),
     }));
   } catch (_) {}
@@ -576,6 +580,7 @@ function loadFormState() {
     setField("pCounts",           s.pCounts || "");
     setField("pPrayer",           s.pPrayer || "");
     _draftFacts = s.draftFacts || "";
+    _draftIntroduction = s.draftIntroduction || "";
 
     if (s.summaryLines?.length) showExtractionSummary(s.summaryLines);
 
@@ -605,6 +610,7 @@ function clearAllFields() {
   defendants = [];
   renderDefendantCards();
   _draftFacts = "";
+  _draftIntroduction = "";
 
   extractionSummary.hidden = true;
   extractionError.hidden = true;

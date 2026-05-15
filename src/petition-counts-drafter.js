@@ -29,7 +29,7 @@ ${claimList}
 PLAINTIFF REFERENCE NAME: ${plaintiffRefName}
 COLLECTIVE DEFENDANT REFERENCE: ${collectiveDefendantRef || "Defendants"}
 
-FACTS SECTION (already written — count the numbered paragraphs to determine where body paragraph numbering must continue):
+FACTS SECTION (already written — find the LAST paragraph number that appears in this section, i.e., the highest N where "N.\t" occurs, and start body paragraph numbering at N+1):
 ${facts}
 
 ═══ DRAFTING RULES ═══

@@ -99,6 +99,7 @@ function buildPetitionTokenMap(intake) {
     "{{petitionPlaintiffFullName}}": plaintiff.fullName || "[Plaintiff Name]",
     "{{petitionIntroGenderClause}}": possessive,
     "{{petitionPlaintiffRef}}":      plaintiff.refName || plaintiff.fullName || "[Plaintiff]",
+    "{{petitionIntroduction}}":      intake.introduction || "",
     "{{petitionPartiesSection}}":    intake.partiesSection || "",
     "{{petitionJurisdictionVenue}}": intake.jurisdictionVenue || "",
     "{{petitionFacts}}":             intake.facts || "",

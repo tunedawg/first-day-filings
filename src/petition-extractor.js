@@ -54,13 +54,18 @@ Return ONLY a valid JSON object with the structure below. Do not fabricate facts
 
 Write in plain prose — no markdown, no bullet points inside any section. Use the plaintiff's refName and defendants' refNames consistently. Write each paragraph as a complete, filing-quality sentence.
 
-"partiesSection": Draft the complete PARTIES section as numbered paragraphs:
+PARAGRAPH NUMBERING — GLOBAL RULE:
+All numbered prose paragraphs across Introduction, Parties, Jurisdiction and Venue, and Facts form one single continuous sequence starting at 1. Each section picks up the counter where the previous section ended. The Prayer for Relief and Jury Demand do NOT participate in this sequence. Maintain the running count internally as you draft each section and open the next section at the correct continuation number.
+
+"introduction": Draft the INTRODUCTION section as 5–10 numbered paragraphs, beginning at paragraph 1. Write with dramatic precision — objectively, sharply, and compellingly. This is the reader's first and most lasting impression of the case. Cover: the nature of the case and the law it invokes; who the plaintiff is and what they endured; who the defendants are and what they chose to do; the arc of the key events; and why this case demands adjudication. Do NOT enumerate specific numbered facts or legal elements — write with narrative power. All prose in THIRD PERSON only. Format: "1.\\t[Text].\\n2.\\t[Text]."
+
+"partiesSection": Draft the complete PARTIES section as numbered paragraphs, continuing the counter from where introduction ended (e.g., if introduction ended at paragraph 7, begin with "8.\\t..."):
   - Plaintiff paragraph: residence, citizenship, employment status (was employed / is an employee)
   - One paragraph per defendant: entity type (corporation, LLC, nonprofit), state of incorporation, principal place of business, citizenship
   - If multiple defendants: a paragraph stating they "acted in concert with one another" and establishing the collective reference (e.g., "References to 'Walmart' include both Defendants unless otherwise specified.")
-  Use \\n between numbered paragraphs (e.g., "1.\\tPlaintiff Garry Liess...\\n2.\\tDefendant Walmart Inc...").
+  Use \\n between numbered paragraphs.
 
-"jurisdictionVenue": Draft the complete JURISDICTION AND VENUE section as numbered paragraphs:
+"jurisdictionVenue": Draft the complete JURISDICTION AND VENUE section as numbered paragraphs, continuing from where partiesSection ended:
   - "This Court has subject matter jurisdiction under Mo. Const. art. V, § 14, and RSMo 478.070."
   - "No federal court has subject matter jurisdiction. The claims here arise solely under Missouri law."
   - If workers_comp in claims: "This action is non-removable because this action raises a claim under the Missouri Workers' Compensation Law, and Congress has categorically precluded the removal of actions raising claims under a workers' compensation law. See 28 U.S.C. § 1445(c); Humphrey v. Sequentia, Inc., 58 F.3d 1238 (8th Cir. 1995)."
@@ -68,7 +73,7 @@ Write in plain prose — no markdown, no bullet points inside any section. Use t
   - Venue rationale: specific to the county/location where plaintiff worked or unlawful acts occurred, citing RSMo 213.111 if MHRA claims present
   Use \\n between numbered paragraphs.
 
-"facts": Draft the FACTS section as numbered paragraphs in chronological order. Write in THIRD PERSON ONLY — never use "I", "me", "my", "we". Convert any first-person language from the source documents into third-person narrative. Include EVERY factual allegation from the source documents — do not summarize or omit anything. The petition reader should not need to read the underlying charge to understand what happened. Cover:
+"facts": Draft the FACTS section as numbered paragraphs in chronological order, continuing from where jurisdictionVenue ended. Write in THIRD PERSON ONLY — never use "I", "me", "my", "we". Convert any first-person language from the source documents into third-person narrative. Include EVERY factual allegation from the source documents — do not summarize or omit anything. The petition reader should not need to read the underlying charge to understand what happened. Cover:
   - Plaintiff's background: age if known, protected characteristics, years of experience, tenure at this employer
   - Employment history: exact hire date, job title(s), work location(s), supervisor(s), performance record
   - Every discriminatory incident, comment, act, or pattern described in the documents — in chronological order with specific dates where available
@@ -77,7 +82,7 @@ Write in plain prose — no markdown, no bullet points inside any section. Use t
   - Every adverse employment action: termination, discipline, PIP, demotion, schedule reduction, denial of accommodation — with dates and stated reasons given by Defendant
   - MCHR/EEOC charge filing date and the right-to-sue letter issuance date
   - Final paragraph (always include verbatim): "[Plaintiff refName] reserves the right to amend this action to raise any appropriate cause of action with relation back to the date of filing, including but not limited to any causes of action under Chapters 213 and 287, RSMo."
-  Format: "1.\\t[Text].\\n2.\\t[Text]." — number every fact paragraph sequentially starting at 1. Keep track of the final fact paragraph number; count body paragraphs must continue from that number. Use [BRACKET PLACEHOLDERS] only for information genuinely absent from the documents.
+  Format: "[N].\\t[Text].\\n[N+1].\\t[Text]." — continue the running counter from jurisdictionVenue. Keep track of the final facts paragraph number; count body paragraphs must continue from that number. Use [BRACKET PLACEHOLDERS] only for information genuinely absent from the documents.
 
 "prayer": Draft the standard prayer for relief as a numbered list:
   "Plaintiff respectfully prays that this Court enter judgment against Defendants, and grant the following relief, believed to be in excess of $25,000:\\n1.\\tActual damages, including both economic and non-economic damages, including emotional distress damages;\\n2.\\tBackpay;\\n3.\\tFrontpay and/or reinstatement;\\n4.\\tPunitive damages;\\n5.\\tPre-judgment and post-judgment interest at the maximum legal rate;\\n6.\\tDeclaratory and injunctive relief, including but not limited to expungement of any negative personnel records and adjustment for the tax consequences of any lump-sum award;\\n7.\\tThe costs of this action;\\n8.\\tReasonable attorney's fees, expert expenses, and other disbursements; and\\n9.\\tAny other and further legal and/or equitable relief that this Court deems just and proper."
