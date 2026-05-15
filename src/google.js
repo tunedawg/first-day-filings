@@ -449,21 +449,19 @@ async function formatPetitionDoc(accessToken, docId) {
     if (!text.trim()) { inServeBlock = false; continue; }
 
     // ── Plaintiff caption name (always immediately before the c/o line) → bold
-    if (i + 1 < paras.length && /^c\/o /i.test(paras[i + 1].text)) {
+    if (i + 1 < paras.length && /c\/o /i.test(paras[i + 1].text)) {
       requests.push(_ts(startIndex, tEnd, { bold: true }));
       continue;
     }
 
-    // ── Firm care-of address → compact, indented, un-bold ────────────────────
-    if (/^c\/o /i.test(text) || inFirmCareOf > 0) {
-      if (/^c\/o /i.test(text)) inFirmCareOf = 2; else inFirmCareOf--;
+    // ── Firm care-of address → compact, un-bold (tab in token handles indent) ─
+    if (/c\/o /i.test(text) || inFirmCareOf > 0) {
+      if (/c\/o /i.test(text)) inFirmCareOf = 2; else inFirmCareOf--;
       requests.push(_ts(startIndex, tEnd, { bold: false }));
       requests.push(_ps(startIndex, endIndex, {
         lineSpacing: 115,
         spaceAbove: { magnitude: 0, unit: "PT" },
         spaceBelow: { magnitude: 0, unit: "PT" },
-        indentStart: { magnitude: 36, unit: "PT" },
-        indentFirstLine: { magnitude: 0, unit: "PT" },
       }));
       continue;
     }
@@ -511,8 +509,8 @@ async function formatPetitionDoc(accessToken, docId) {
       continue;
     }
 
-    // ── Caption italic labels ─────────────────────────────────────────────────
-    if (text === "Plaintiff," || text === "v." || /^Defendants\.?$/.test(text)) {
+    // ── Caption italic labels (tab-prefixed in token) ────────────────────────
+    if (/^\t?Plaintiff,?$/.test(text) || text === "v." || /^\t?Defendants\.?$/.test(text)) {
       requests.push(_ts(startIndex, tEnd, { italic: true }));
       continue;
     }
@@ -530,10 +528,9 @@ async function formatPetitionDoc(accessToken, docId) {
       continue;
     }
 
-    // ── Serve label + address lines → indent 0.5in, 1.15 spacing, no gaps ────
-    // Detect both via inServeBlock state AND by explicit "Serve at:"/"Serve RA:"
-    // pattern so a blank line between defendant name and label doesn't break it.
-    const isServeLabel = /^Serve (at|RA):/i.test(text);
+    // ── Serve label + address lines → compact spacing, un-bold ──────────────
+    // Tab in token value handles the 0.5" indent visually.
+    const isServeLabel = /^\t?Serve (at|RA):/i.test(text);
     if (inServeBlock || isServeLabel) {
       if (isServeLabel) inServeBlock = true;
       requests.push(_ts(startIndex, tEnd, { bold: false }));
@@ -541,8 +538,6 @@ async function formatPetitionDoc(accessToken, docId) {
         lineSpacing: 115,
         spaceAbove: { magnitude: 0, unit: "PT" },
         spaceBelow: { magnitude: 0, unit: "PT" },
-        indentStart: { magnitude: 36, unit: "PT" },
-        indentFirstLine: { magnitude: 0, unit: "PT" },
       }));
       continue;
     }
