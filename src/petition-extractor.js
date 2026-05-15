@@ -302,8 +302,8 @@ async function extractPetitionContext(files, onProgress = () => {}) {
   if (!Array.isArray(files) || files.length === 0) {
     throw new Error("Upload at least one document (EEOC charge, right-to-sue letter, intake notes, etc.).");
   }
-  if (files.length > 15) {
-    throw new Error("Upload no more than fifteen files at a time.");
+  if (files.length > 5) {
+    throw new Error("Upload no more than five files at a time.");
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
