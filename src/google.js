@@ -501,6 +501,12 @@ async function formatPetitionDoc(accessToken, docId) {
       continue;
     }
 
+    // ── Caption italic labels ─────────────────────────────────────────────────
+    if (text === "Plaintiff," || text === "v." || /^Defendants\.?$/.test(text)) {
+      requests.push(_ts(startIndex, tEnd, { italic: true }));
+      continue;
+    }
+
     // ── Attorneys for Plaintiff line → italic ─────────────────────────────────
     if (/^Attorneys for Plaintiff/.test(text)) {
       requests.push(_ts(startIndex, tEnd, { italic: true }));
@@ -568,55 +574,74 @@ async function formatPetitionDoc(accessToken, docId) {
   });
 }
 
-// After replaceDocTokens, the caption table's right cells are empty.
-// This function reads the table, counts paragraphs in each left cell that
-// lacks a corresponding right-cell value, and inserts one ")" per left-cell
-// paragraph into the right cell so the ")" column aligns automatically.
-async function fillCaptionParens(accessToken, docId) {
+// For cases with >1 defendant, the template has one defendant row
+// ({{captionDefendant1Left}} / {{captionDefendant1Right}}). This function
+// inserts the additional rows needed, then seeds each with its token so
+// replaceDocTokens can fill them all uniformly.
+async function insertDefendantRows(accessToken, docId, defendantCount) {
+  if (!defendantCount || defendantCount <= 1) return;
+
   const doc = await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${docId}`);
   const tableEl = (doc.body?.content || []).find(el => el.table);
   if (!tableEl) return;
 
-  const insertions = [];
+  const tableStartIndex = tableEl.startIndex;
+  const rows = tableEl.table.tableRows || [];
 
-  for (const row of tableEl.table.tableRows || []) {
-    const cells = row.tableCells || [];
-    if (cells.length < 2) continue;
-
-    const [leftCell, rightCell] = cells;
-
-    // Skip rows where right cell already has content (Case No., Div., Plaintiff, etc.)
-    const rightText = (rightCell.content || [])
+  let templateRowIndex = -1;
+  for (let r = 0; r < rows.length; r++) {
+    const cellText = (rows[r].tableCells?.[0]?.content || [])
       .flatMap(el => (el.paragraph?.elements || []).map(e => e.textRun?.content || ""))
-      .join("").replace(/\n/g, "").trim();
-    if (rightText) continue;
+      .join("");
+    if (cellText.includes("{{captionDefendant1Left}}")) {
+      templateRowIndex = r;
+      break;
+    }
+  }
+  if (templateRowIndex === -1) return;
 
-    const leftParas = (leftCell.content || []).filter(el => el.paragraph);
-    if (leftParas.length === 0) continue;
-
-    // Skip rows where left cell is also empty (structural-only)
-    const leftText = leftParas
-      .flatMap(p => (p.paragraph.elements || []).map(e => e.textRun?.content || ""))
-      .join("").replace(/\n/g, "").trim();
-    if (!leftText) continue;
-
-    const rightParas = (rightCell.content || []).filter(el => el.paragraph);
-    if (rightParas.length === 0) continue;
-
-    insertions.push({
-      index: rightParas[0].startIndex,
-      text: Array(leftParas.length).fill(")").join("\n"),
+  // Insert N-1 rows below the template row. Each successive request targets
+  // the previously inserted row (rowIndex increments by 1 each time).
+  const insertRequests = [];
+  for (let i = 0; i < defendantCount - 1; i++) {
+    insertRequests.push({
+      insertTableRow: {
+        tableCellLocation: {
+          tableStartLocation: { index: tableStartIndex },
+          rowIndex: templateRowIndex + i,
+          columnIndex: 0,
+        },
+        insertBelow: true,
+      },
     });
   }
+  await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${docId}:batchUpdate`, {
+    method: "POST",
+    body: JSON.stringify({ requests: insertRequests }),
+  });
 
-  if (insertions.length === 0) return;
+  // Re-read to get the real indices of the new rows.
+  const doc2 = await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${docId}`);
+  const tableEl2 = (doc2.body?.content || []).find(el => el.table);
+  const rows2 = tableEl2.table.tableRows || [];
 
-  insertions.sort((a, b) => b.index - a.index);
+  const textInsertions = [];
+  for (let i = 1; i < defendantCount; i++) {
+    const row = rows2[templateRowIndex + i];
+    if (!row) continue;
+    const leftPara  = (row.tableCells?.[0]?.content || []).find(el => el.paragraph);
+    const rightPara = (row.tableCells?.[1]?.content || []).find(el => el.paragraph);
+    if (rightPara) textInsertions.push({ index: rightPara.startIndex, text: `{{captionDefendant${i + 1}Right}}` });
+    if (leftPara)  textInsertions.push({ index: leftPara.startIndex,  text: `{{captionDefendant${i + 1}Left}}` });
+  }
+
+  if (textInsertions.length === 0) return;
+  textInsertions.sort((a, b) => b.index - a.index);
 
   await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${docId}:batchUpdate`, {
     method: "POST",
     body: JSON.stringify({
-      requests: insertions.map(({ index, text }) => ({
+      requests: textInsertions.map(({ index, text }) => ({
         insertText: { location: { index }, text },
       })),
     }),
@@ -628,7 +653,7 @@ module.exports = {
   createDriveFolder,
   deleteFile,
   exportGoogleDocAs,
-  fillCaptionParens,
+  insertDefendantRows,
   fixPronounTokensInDoc,
   formatPetitionDoc,
   getDriveFile,

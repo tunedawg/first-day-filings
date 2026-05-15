@@ -33,17 +33,45 @@ function buildCourtHeader(court = {}) {
 }
 
 
-function buildDefendantsCaption(defendants = []) {
-  return defendants.map((d, i) => {
+function buildCaptionTokens(intake) {
+  const plaintiff = intake.plaintiff || {};
+  const defendants = Array.isArray(intake.defendants) && intake.defendants.length > 0
+    ? intake.defendants
+    : [{ captionName: "[DEFENDANT]", serveAddress: "[SERVICE ADDRESS]" }];
+  const isStl = plaintiff.firmOffice === "stl";
+  const careOf = isStl ? STL_FIRM_CARE_OF : KC_FIRM_CARE_OF;
+
+  const plaintiffLeftLines = [
+    (plaintiff.captionName || plaintiff.fullName?.toUpperCase() || "[PLAINTIFF NAME]") + ",",
+    ...careOf.split("\n"),
+    "",
+    "Plaintiff,",
+  ];
+
+  const tokens = {
+    "{{captionPlaintiffLeft}}": plaintiffLeftLines.join("\n"),
+    "{{captionPlaintiffRight}}": [
+      ...plaintiffLeftLines.map(() => ")"),
+      "Case No. _______________",
+      "\tDiv. _______________",
+    ].join("\n"),
+  };
+
+  defendants.forEach((d, i) => {
+    const isLast = i === defendants.length - 1;
     const addressLines = (d.serveAddress || "[SERVICE ADDRESS]").split("\n");
-    const lines = [
+    const leftLines = [
       `${d.captionName};`,
       d.serveLabel || "Serve at:",
       ...addressLines,
     ];
-    if (i < defendants.length - 1) lines.push("");
-    return lines.join("\n");
-  }).join("\n");
+    if (!isLast) leftLines.push("");
+
+    tokens[`{{captionDefendant${i + 1}Left}}`] = leftLines.join("\n");
+    tokens[`{{captionDefendant${i + 1}Right}}`] = leftLines.map(() => ")").join("\n");
+  });
+
+  return tokens;
 }
 
 function buildSignatureBlock(intake) {
@@ -78,26 +106,23 @@ function formatLongDate(raw) {
 function buildPetitionTokenMap(intake) {
   const court = intake.court || {};
   const plaintiff = intake.plaintiff || {};
-  const defendants = Array.isArray(intake.defendants) ? intake.defendants : [];
   const possessive = plaintiff.possessivePronoun || PRONOUN_TO_POSSESSIVE[plaintiff.pronoun] || "their";
 
   return {
-    "{{petitionCourtHeader}}":        buildCourtHeader(court),
-    "{{petitionPlaintiffCaptionName}}": (plaintiff.captionName || plaintiff.fullName?.toUpperCase() || "[PLAINTIFF NAME]") + ",",
-    "{{petitionFirmCareOf}}":         plaintiff.firmOffice === "stl" ? STL_FIRM_CARE_OF : KC_FIRM_CARE_OF,
-    "{{petitionDefendantsCaption}}":  buildDefendantsCaption(defendants),
-    "{{petitionCaseTypeLabel}}":      intake.caseTypeLabel || "",
-    "{{petitionPlaintiffFullName}}":  plaintiff.fullName || "[Plaintiff Name]",
-    "{{petitionIntroGenderClause}}":  possessive,
-    "{{petitionPlaintiffRef}}":       plaintiff.refName || plaintiff.fullName || "[Plaintiff]",
-    "{{petitionPartiesSection}}":     intake.partiesSection || "",
-    "{{petitionJurisdictionVenue}}":  intake.jurisdictionVenue || "",
-    "{{petitionFacts}}":              intake.facts || "",
-    "{{petitionCounts}}":             intake.counts || "",
-    "{{petitionPrayerItems}}":        intake.prayer || "",
-    "{{petitionFilingDate}}":         formatLongDate(intake.filingDate) || intake.filingDate || "",
-    "{{petitionSignatureBlock}}":     buildSignatureBlock(intake),
-    "{{petitionAttorneyForLine}}":    `Attorneys for Plaintiff ${plaintiff.fullName || "[Plaintiff Name]"}`,
+    ...buildCaptionTokens(intake),
+    "{{petitionCourtHeader}}":       buildCourtHeader(court),
+    "{{petitionCaseTypeLabel}}":     intake.caseTypeLabel || "",
+    "{{petitionPlaintiffFullName}}": plaintiff.fullName || "[Plaintiff Name]",
+    "{{petitionIntroGenderClause}}": possessive,
+    "{{petitionPlaintiffRef}}":      plaintiff.refName || plaintiff.fullName || "[Plaintiff]",
+    "{{petitionPartiesSection}}":    intake.partiesSection || "",
+    "{{petitionJurisdictionVenue}}": intake.jurisdictionVenue || "",
+    "{{petitionFacts}}":             intake.facts || "",
+    "{{petitionCounts}}":            intake.counts || "",
+    "{{petitionPrayerItems}}":       intake.prayer || "",
+    "{{petitionFilingDate}}":        formatLongDate(intake.filingDate) || intake.filingDate || "",
+    "{{petitionSignatureBlock}}":    buildSignatureBlock(intake),
+    "{{petitionAttorneyForLine}}":   `Attorneys for Plaintiff ${plaintiff.fullName || "[Plaintiff Name]"}`,
   };
 }
 
