@@ -250,12 +250,15 @@ function populateForm(fields) {
   const plaintiffLast = (plaintiff.fullName || "Plaintiff").split(" ").pop();
   const defRef = fields.collectiveDefendantRef || fields.defendants?.[0]?.refName || "Defendant";
   setField("pDocumentName", `${plaintiffLast}_${defRef} - Petition`);
+
+  scheduleSave();
 }
 
 // ── Defendant cards ───────────────────────────────────────────────────────────
 function renderDefendantCards() {
   defendantCards.innerHTML = "";
   defendants.forEach((d, i) => defendantCards.appendChild(makeDefendantCard(d, i)));
+  scheduleSave();
 }
 
 function makeDefendantCard(d, index) {
@@ -432,6 +435,135 @@ function stopProgress() {
   setTimeout(() => { generationProgress.hidden = true; generationProgressBar.style.width = "0%"; }, 600);
 }
 
+// ── Persistence ───────────────────────────────────────────────────────────────
+const STORAGE_KEY = "fdf-petition-draft-v1";
+let _saveTimer = null;
+
+function scheduleSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveFormState, 400);
+}
+
+function saveFormState() {
+  if (petitionForm.hidden) return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      pCourtCounty:          document.getElementById("pCourtCounty")?.value || "",
+      pCourtDivision:        document.getElementById("pCourtDivision")?.value || "",
+      pCaseType:             document.getElementById("pCaseType")?.value || "",
+      pFilingDate:           document.getElementById("pFilingDate")?.value || "",
+      pFirmOffice:           document.getElementById("pFirmOffice")?.value || "kc",
+      pCollectiveRef:        document.getElementById("pCollectiveRef")?.value || "",
+      pPlaintiffCaptionName: document.getElementById("pPlaintiffCaptionName")?.value || "",
+      pPlaintiffFullName:    document.getElementById("pPlaintiffFullName")?.value || "",
+      pPlaintiffRefName:     document.getElementById("pPlaintiffRefName")?.value || "",
+      pPlaintiffPronoun:     document.getElementById("pPlaintiffPronoun")?.value || "she",
+      pSigningAttorney:      document.getElementById("pSigningAttorney")?.value || "edward_keenan",
+      pDocumentName:         document.getElementById("pDocumentName")?.value || "",
+      claims:          Array.from(document.querySelectorAll("#claimsGrid input[type='checkbox']:checked")).map(cb => cb.value),
+      selectedAttorneys: Array.from(document.querySelectorAll("#pAttorneyRoster input[type='checkbox']:checked")).map(cb => cb.value),
+      defendants:      collectDefendants(),
+      pPartiesSection:   document.getElementById("pPartiesSection")?.value || "",
+      pJurisdictionVenue: document.getElementById("pJurisdictionVenue")?.value || "",
+      pCounts:           document.getElementById("pCounts")?.value || "",
+      pPrayer:           document.getElementById("pPrayer")?.value || "",
+      draftFacts:        _draftFacts,
+      summaryLines: Array.from(document.querySelectorAll("#extractionSummaryList li")).map(li => li.textContent),
+    }));
+  } catch (_) {}
+}
+
+function loadFormState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+
+    setField("pCourtCounty",          s.pCourtCounty || "");
+    setField("pCourtDivision",        s.pCourtDivision || "");
+    setField("pCaseType",             s.pCaseType || "");
+    setField("pFilingDate",           s.pFilingDate || "");
+    setField("pFirmOffice",           s.pFirmOffice || "kc");
+    setField("pCollectiveRef",        s.pCollectiveRef || "");
+    setField("pPlaintiffCaptionName", s.pPlaintiffCaptionName || "");
+    setField("pPlaintiffFullName",    s.pPlaintiffFullName || "");
+    setField("pPlaintiffRefName",     s.pPlaintiffRefName || "");
+    setField("pPlaintiffPronoun",     s.pPlaintiffPronoun || "she");
+    setField("pSigningAttorney",      s.pSigningAttorney || "edward_keenan");
+    setField("pDocumentName",         s.pDocumentName || "");
+
+    document.querySelectorAll("#claimsGrid input[type='checkbox']").forEach(cb => {
+      cb.checked = (s.claims || []).includes(cb.value);
+    });
+    if (s.selectedAttorneys) {
+      document.querySelectorAll("#pAttorneyRoster input[type='checkbox']").forEach(cb => {
+        cb.checked = s.selectedAttorneys.includes(cb.value);
+      });
+    }
+
+    defendants = s.defendants || [];
+    renderDefendantCards();
+
+    setField("pPartiesSection",   s.pPartiesSection || "");
+    setField("pJurisdictionVenue", s.pJurisdictionVenue || "");
+    setField("pCounts",           s.pCounts || "");
+    setField("pPrayer",           s.pPrayer || "");
+    _draftFacts = s.draftFacts || "";
+
+    if (s.summaryLines?.length) showExtractionSummary(s.summaryLines);
+
+    unlockStep(stepReview);
+    petitionForm.hidden = false;
+  } catch (_) {}
+}
+
+function clearAllFields() {
+  localStorage.removeItem(STORAGE_KEY);
+
+  ["pCourtCounty","pCourtDivision","pCaseType","pCollectiveRef",
+   "pPlaintiffCaptionName","pPlaintiffFullName","pPlaintiffRefName",
+   "pPartiesSection","pJurisdictionVenue","pCounts","pPrayer","pDocumentName"
+  ].forEach(id => setField(id, ""));
+  setField("pFilingDate", "");
+  setField("pFirmOffice", "kc");
+  setField("pPlaintiffPronoun", "she");
+  setField("pSigningAttorney", "edward_keenan");
+
+  document.querySelectorAll("#claimsGrid input[type='checkbox']").forEach(cb => cb.checked = false);
+  const defaultAttorneys = ["edward_keenan", "sonal_bhatia", "jr_montgomery", "aaron_hadlow"];
+  document.querySelectorAll("#pAttorneyRoster input[type='checkbox']").forEach(cb => {
+    cb.checked = defaultAttorneys.includes(cb.value);
+  });
+
+  defendants = [];
+  renderDefendantCards();
+  _draftFacts = "";
+
+  extractionSummary.hidden = true;
+  extractionError.hidden = true;
+
+  petitionForm.hidden = true;
+  resetStep(stepReview);
+  resetStep(stepGenerate);
+
+  selectedFiles = [];
+  extractButton.disabled = true;
+  uploadZoneLabel.textContent = "Drop files here, or click to browse";
+  uploadFileList.hidden = true;
+}
+
+document.getElementById("clearAllBtn")?.addEventListener("click", () => {
+  if (petitionForm.hidden || confirm("Clear the current draft and start over?")) clearAllFields();
+});
+
+// Auto-save on any form input/change
+document.addEventListener("input", (e) => {
+  if (e.target.closest("#petitionForm, #generateSection")) scheduleSave();
+});
+document.addEventListener("change", (e) => {
+  if (e.target.closest("#petitionForm, #generateSection")) scheduleSave();
+});
+
 // ── Utilities ─────────────────────────────────────────────────────────────────
 function setField(id, value) {
   const el = document.getElementById(id);
@@ -458,3 +590,5 @@ function showBanner(el, type, message) {
   el.textContent = message;
   el.hidden = false;
 }
+
+loadFormState();
