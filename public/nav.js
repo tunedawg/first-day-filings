@@ -3,8 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const { supabaseUrl, supabaseAnonKey } = window.__FDF_CONFIG__;
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Ensures a valid session exists; redirects to /login if not.
-// Returns { session, profile } on success.
+// Ensures a valid session exists and the user belongs to the firm org.
+// Returns { session, profile } on success; redirects away on failure.
 export async function requireAuth() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
@@ -12,22 +12,37 @@ export async function requireAuth() {
     return null;
   }
 
-  const { data: profile } = await supabase
+  let { data: profile } = await supabase
     .from("profiles")
     .select("id, organization_id, full_name, role, user_preferences")
     .eq("id", session.user.id)
     .maybeSingle();
 
-  if (!profile || !profile.organization_id) {
-    window.location.href = "/onboarding";
-    return null;
+  if (!profile?.organization_id) {
+    // New firm member — auto-join the org, then re-fetch.
+    const res = await fetch("/api/auth/auto-join", { method: "POST" });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok || !payload.ok) {
+      await supabase.auth.signOut();
+      window.location.href = "/login";
+      return null;
+    }
+    const { data: refreshed } = await supabase
+      .from("profiles")
+      .select("id, organization_id, full_name, role, user_preferences")
+      .eq("id", session.user.id)
+      .maybeSingle();
+    profile = refreshed;
+    if (!profile?.organization_id) {
+      window.location.href = "/login";
+      return null;
+    }
   }
 
   return { session, profile };
 }
 
 // Renders the authenticated top navigation bar into the element with id="appNav".
-// Call after requireAuth(). Pass the profile object and an optional activePage label.
 export function renderNav(profile, activePage = "") {
   const nav = document.getElementById("appNav");
   if (!nav) return;

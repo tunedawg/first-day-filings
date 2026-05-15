@@ -653,6 +653,51 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === "POST" && requestUrl.pathname === "/api/auth/auto-join") {
+      const user = await getUserFromRequest(request);
+      if (!user) { sendJson(response, 401, { ok: false, error: "Not authenticated." }); return; }
+
+      const allowedDomains = (process.env.ALLOWED_DOMAINS || "kclaborlaw.com,keenanfirm.com")
+        .split(",").map((d) => d.trim().toLowerCase());
+      const emailDomain = user.email?.split("@")[1]?.toLowerCase();
+
+      if (!emailDomain || !allowedDomains.includes(emailDomain)) {
+        sendJson(response, 403, { ok: false, error: `Access is restricted to Keenan & Bhatia accounts. Sign in with your @kclaborlaw.com or @keenanfirm.com Google account.` });
+        return;
+      }
+
+      const admin = getSupabaseAdmin();
+
+      // Idempotent — if already joined, just succeed.
+      const { data: existing } = await admin.from("profiles").select("id, organization_id").eq("id", user.id).maybeSingle();
+      if (existing?.organization_id) {
+        sendJson(response, 200, { ok: true, alreadyJoined: true });
+        return;
+      }
+
+      // Find the firm's one organization.
+      const { data: org } = await admin.from("organizations").select("id, name").limit(1).maybeSingle();
+      if (!org) {
+        sendJson(response, 500, { ok: false, error: "Firm organization not found. Have the administrator complete firm setup first." });
+        return;
+      }
+
+      const { error: profileErr } = await admin.from("profiles").upsert({
+        id: user.id,
+        organization_id: org.id,
+        full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Team Member",
+        role: "attorney",
+      });
+
+      if (profileErr) {
+        sendJson(response, 500, { ok: false, error: profileErr.message });
+        return;
+      }
+
+      sendJson(response, 200, { ok: true, orgName: org.name });
+      return;
+    }
+
     if (request.method === "POST" && requestUrl.pathname === "/api/onboarding") {
       const user = await getUserFromRequest(request);
       if (!user) { sendJson(response, 401, { ok: false, error: "Unauthorized" }); return; }

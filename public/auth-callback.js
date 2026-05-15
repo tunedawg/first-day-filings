@@ -7,15 +7,16 @@ const msgEl = document.getElementById("callbackMsg");
 const errorEl = document.getElementById("callbackError");
 const spinnerEl = document.getElementById("spinner");
 
+const ALLOWED_DOMAINS = ["kclaborlaw.com", "keenanfirm.com"];
+
 function showError(msg) {
   spinnerEl.hidden = true;
   msgEl.hidden = true;
-  errorEl.innerHTML = `${msg} <br><a href="/login">Return to sign in</a>`;
+  errorEl.innerHTML = `${msg}<br><a href="/login">Return to sign in</a>`;
   errorEl.hidden = false;
 }
 
 async function handleCallback() {
-  // Supabase auto-exchanges the code/token from the URL hash or query params.
   const { data: { session }, error } = await supabase.auth.getSession();
 
   if (error) {
@@ -24,11 +25,10 @@ async function handleCallback() {
   }
 
   if (!session) {
-    // Code exchange may still be in progress — listen for the auth state change.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, sess) => {
       subscription.unsubscribe();
       if (event === "SIGNED_IN" && sess) {
-        await redirect(sess);
+        await finalize(sess);
       } else {
         showError("Sign-in could not be completed. Please try again.");
       }
@@ -36,28 +36,30 @@ async function handleCallback() {
     return;
   }
 
-  await redirect(session);
+  await finalize(session);
 }
 
-async function redirect(session) {
-  // Check whether user has a profile + org; if not, go to onboarding.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, organization_id")
-    .eq("id", session.user.id)
-    .maybeSingle();
+async function finalize(session) {
+  // Enforce firm domain restriction client-side (server validates authoritatively).
+  const emailDomain = session.user.email?.split("@")[1]?.toLowerCase();
+  if (!emailDomain || !ALLOWED_DOMAINS.includes(emailDomain)) {
+    await supabase.auth.signOut();
+    showError("Access is restricted to Keenan &amp; Bhatia accounts. Sign in with your @kclaborlaw.com or @keenanfirm.com Google account.");
+    return;
+  }
 
-  // Honour ?next= param for password-reset flows etc.
+  // Auto-join the firm org if this is a first login.
+  const res = await fetch("/api/auth/auto-join", { method: "POST" });
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok || !payload.ok) {
+    await supabase.auth.signOut();
+    showError(payload.error || "Access denied. Contact your administrator.");
+    return;
+  }
+
   const params = new URLSearchParams(window.location.search);
   const next = params.get("next");
-
-  if (next && next.startsWith("/") && !next.startsWith("//")) {
-    window.location.href = next;
-  } else if (!profile || !profile.organization_id) {
-    window.location.href = "/onboarding";
-  } else {
-    window.location.href = "/dashboard";
-  }
+  window.location.href = (next && next.startsWith("/") && !next.startsWith("//")) ? next : "/dashboard";
 }
 
 handleCallback();

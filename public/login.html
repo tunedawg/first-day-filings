@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
     <script>
       window.__FDF_CONFIG__ = {
@@ -47,11 +47,12 @@
 
       .login-card {
         width: 100%;
-        max-width: 420px;
+        max-width: 400px;
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 16px;
         padding: 40px;
+        text-align: center;
       }
 
       .login-heading {
@@ -59,14 +60,14 @@
         font-size: 2rem;
         font-weight: 400;
         letter-spacing: -0.02em;
-        margin: 0 0 6px;
+        margin: 0 0 8px;
         line-height: 1.1;
       }
 
       .login-sub {
         color: var(--text2);
-        font-size: 0.9rem;
-        margin: 0 0 32px;
+        font-size: 0.88rem;
+        margin: 0 0 36px;
         line-height: 1.5;
       }
 
@@ -76,148 +77,26 @@
         justify-content: center;
         gap: 12px;
         width: 100%;
-        padding: 13px 20px;
+        padding: 14px 20px;
         border-radius: 10px;
-        border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(167, 139, 250, 0.3);
+        background: rgba(124, 58, 237, 0.07);
         color: var(--text);
-        font: 500 0.9rem/1 var(--sans);
+        font: 500 0.95rem/1 var(--sans);
         cursor: pointer;
         transition: all 0.15s;
         text-decoration: none;
-        margin-bottom: 10px;
       }
 
       .oauth-btn:hover {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(255, 255, 255, 0.18);
+        background: rgba(124, 58, 237, 0.14);
+        border-color: rgba(167, 139, 250, 0.5);
       }
 
       .oauth-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
 
-      .oauth-btn-google { border-color: rgba(167, 139, 250, 0.25); background: rgba(124, 58, 237, 0.06); }
-      .oauth-btn-google:hover { border-color: rgba(167, 139, 250, 0.45); background: rgba(124, 58, 237, 0.12); }
-
-      .divider {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin: 24px 0;
-        color: var(--text3);
-        font-size: 0.78rem;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-      }
-
-      .divider::before, .divider::after {
-        content: "";
-        flex: 1;
-        height: 1px;
-        background: var(--border);
-      }
-
-      .field-label {
-        display: block;
-        font-size: 0.82rem;
-        font-weight: 500;
-        color: var(--text2);
-        margin-bottom: 6px;
-      }
-
-      .field-input {
-        display: block;
-        width: 100%;
-        padding: 11px 14px;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.04);
-        color: var(--text);
-        font: 0.9rem/1.4 var(--sans);
-        outline: none;
-        transition: border-color 0.15s;
-        margin-bottom: 14px;
-      }
-
-      .field-input:focus { border-color: var(--accent); }
-      .field-input::placeholder { color: var(--text3); }
-
-      .password-field {
-        position: relative;
-        margin-bottom: 14px;
-      }
-
-      .password-field .field-input {
-        margin-bottom: 0;
-        padding-right: 44px;
-      }
-
-      .password-toggle {
-        position: absolute;
-        right: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        color: var(--text3);
-        cursor: pointer;
-        padding: 4px;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        line-height: 0;
-        transition: color 0.15s;
-      }
-
-      .password-toggle:hover { color: var(--text2); }
-
-      .login-submit {
-        width: 100%;
-        padding: 13px;
-        border-radius: 10px;
-        border: none;
-        background: var(--accent);
-        color: #fff;
-        font: 600 0.9rem/1 var(--sans);
-        cursor: pointer;
-        transition: background 0.15s;
-        margin-top: 4px;
-      }
-
-      .login-submit:hover { background: #6d28d9; }
-      .login-submit:disabled { opacity: 0.5; cursor: not-allowed; }
-
-      .login-toggle {
-        display: block;
-        text-align: center;
-        margin-top: 18px;
-        color: var(--text2);
-        font-size: 0.85rem;
-      }
-
-      .login-toggle a {
-        color: var(--accent-hi);
-        text-decoration: none;
-        font-weight: 500;
-        cursor: pointer;
-      }
-
-      .login-toggle a:hover { text-decoration: underline; }
-
-      .forgot-link {
-        display: block;
-        text-align: right;
-        font-size: 0.8rem;
-        color: var(--text2);
-        text-decoration: none;
-        margin-top: -8px;
-        margin-bottom: 16px;
-        cursor: pointer;
-      }
-
-      .forgot-link:hover { color: var(--accent-hi); }
-
       .login-error {
-        margin-bottom: 16px;
+        margin-bottom: 20px;
         padding: 10px 14px;
         border-radius: 8px;
         background: rgba(248, 113, 113, 0.1);
@@ -225,20 +104,15 @@
         color: var(--error);
         font-size: 0.85rem;
         line-height: 1.4;
+        text-align: left;
       }
 
-      .login-info {
-        margin-bottom: 16px;
-        padding: 10px 14px;
-        border-radius: 8px;
-        background: rgba(34, 197, 94, 0.08);
-        border: 1px solid rgba(34, 197, 94, 0.2);
-        color: var(--success);
-        font-size: 0.85rem;
-        line-height: 1.4;
+      .login-domain-note {
+        margin-top: 20px;
+        color: var(--text3);
+        font-size: 0.78rem;
+        line-height: 1.5;
       }
-
-      #emailForm[hidden], #passwordResetForm[hidden] { display: none; }
 
       .login-footer {
         margin-top: 40px;
@@ -261,14 +135,12 @@
       </a>
 
       <div class="login-card">
-        <h1 class="login-heading">Welcome back</h1>
-        <p class="login-sub">Sign in to your firm's account to continue.</p>
+        <h1 class="login-heading">Keenan &amp; Bhatia</h1>
+        <p class="login-sub">Internal tools &mdash; sign in with your firm Google account.</p>
 
         <div id="loginError" class="login-error" hidden></div>
-        <div id="loginInfo" class="login-info" hidden></div>
 
-        <!-- Google OAuth -->
-        <button class="oauth-btn oauth-btn-google" id="googleSignInBtn" type="button">
+        <button class="oauth-btn" id="googleSignInBtn" type="button">
           <svg viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -278,53 +150,10 @@
           Continue with Google
         </button>
 
-        <div class="divider">or</div>
-
-        <!-- Email / password form -->
-        <div id="emailForm">
-          <label class="field-label" for="emailInput">Email address</label>
-          <input class="field-input" id="emailInput" type="email" placeholder="you@yourfirm.com" autocomplete="email" />
-
-          <label class="field-label" id="passwordLabel" for="passwordInput">Password</label>
-          <div class="password-field">
-            <input class="field-input" id="passwordInput" type="password" placeholder="••••••••" autocomplete="current-password" />
-            <button class="password-toggle" type="button" aria-label="Show password" tabindex="-1" id="passwordToggle"></button>
-          </div>
-
-          <div id="confirmPasswordField" hidden>
-            <label class="field-label" for="confirmPasswordInput">Confirm password</label>
-            <div class="password-field">
-              <input class="field-input" id="confirmPasswordInput" type="password" placeholder="••••••••" autocomplete="new-password" />
-              <button class="password-toggle" type="button" aria-label="Show password" tabindex="-1" id="confirmPasswordToggle"></button>
-            </div>
-          </div>
-
-          <a class="forgot-link" id="forgotPasswordLink">Forgot password?</a>
-
-          <button class="login-submit" id="emailSignInBtn" type="button">Sign in</button>
-
-          <span class="login-toggle">
-            Don't have an account? <a id="toggleSignUpLink">Create one</a>
-          </span>
-        </div>
-
-        <!-- Password reset form (shown when "Forgot password?" clicked) -->
-        <div id="passwordResetForm" hidden>
-          <p style="color: var(--text2); font-size: 0.88rem; margin: 0 0 16px; line-height: 1.5;">
-            Enter your email and we'll send you a reset link.
-          </p>
-          <label class="field-label" for="resetEmailInput">Email address</label>
-          <input class="field-input" id="resetEmailInput" type="email" placeholder="you@yourfirm.com" autocomplete="email" />
-          <button class="login-submit" id="sendResetBtn" type="button">Send reset link</button>
-          <span class="login-toggle" style="margin-top: 14px;">
-            <a id="backToSignInLink">← Back to sign in</a>
-          </span>
-        </div>
+        <p class="login-domain-note">@kclaborlaw.com and @keenanfirm.com accounts only.</p>
       </div>
 
-      <p class="login-footer">
-        First Day Filings &mdash; Missouri employment litigation automation
-      </p>
+      <p class="login-footer">First Day Filings &mdash; Missouri employment litigation automation</p>
     </div>
   </body>
 </html>
