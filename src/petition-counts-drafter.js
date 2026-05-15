@@ -74,17 +74,24 @@ async function draftCounts({ claims, facts, plaintiffRefName, collectiveDefendan
 
   const prompt = buildCountsPrompt({ claims, facts, plaintiffRefName, collectiveDefendantRef });
 
-  const response = await fetch(`${GEMINI_API}?key=${apiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { response_mime_type: "application/json", maxOutputTokens: 32768 },
-    }),
-  });
+  let response;
+  try {
+    response = await fetch(`${GEMINI_API}?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { response_mime_type: "application/json", maxOutputTokens: 32768 },
+      }),
+      signal: AbortSignal.timeout(180_000),
+    });
+  } catch (e) {
+    const cause = e?.cause?.message || e?.cause?.code || "";
+    throw new Error(`Counts drafting request failed: ${e.message}${cause ? ` — ${cause}` : ""}`);
+  }
 
   if (!response.ok) {
-    const err = await response.text();
+    const err = await response.text().catch(() => "(unreadable)");
     throw new Error(`Gemini API error ${response.status}: ${err}`);
   }
 

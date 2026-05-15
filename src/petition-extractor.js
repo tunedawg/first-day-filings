@@ -211,24 +211,31 @@ function sanitizeJsonString(text) {
   return out;
 }
 
-async function callGemini(apiKey, parts) {
-  const response = await fetch(`${GEMINI_API}?key=${apiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts }],
-      generationConfig: { response_mime_type: "application/json", maxOutputTokens: 65536 },
-    }),
-  });
+async function callGemini(apiKey, parts, label = "Gemini") {
+  let response;
+  try {
+    response = await fetch(`${GEMINI_API}?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: { response_mime_type: "application/json", maxOutputTokens: 65536 },
+      }),
+      signal: AbortSignal.timeout(300_000), // 5-minute hard cap per call
+    });
+  } catch (e) {
+    const cause = e?.cause?.message || e?.cause?.code || e?.cause?.toString() || "";
+    throw new Error(`${label} request failed: ${e.message}${cause ? ` — ${cause}` : ""}`);
+  }
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Gemini API error ${response.status}: ${errorText}`);
+    const errorText = await response.text().catch(() => "(unreadable)");
+    throw new Error(`${label} API error ${response.status}: ${errorText}`);
   }
 
   const result = await response.json();
   const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!rawText) throw new Error("Gemini returned an empty response.");
+  if (!rawText) throw new Error(`${label} returned an empty response.`);
 
   const stripped = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
   const jsonText = sanitizeJsonString(stripped);
@@ -267,7 +274,7 @@ async function extractPetitionContext(files) {
   );
 
   // ── Call 1: structure + short sections ─────────────────────────────────────
-  const extracted = await callGemini(apiKey, [{ text: EXTRACTION_PROMPT }, ...fileParts]);
+  const extracted = await callGemini(apiKey, [{ text: EXTRACTION_PROMPT }, ...fileParts], "Extraction call");
 
   const { summary = [], ...fields } = extracted;
 
@@ -277,7 +284,7 @@ async function extractPetitionContext(files) {
   const jurisdictionVenue = fields.jurisdictionVenue || "";
 
   const factsPrompt = buildFactsPrompt({ plaintiffRefName, collectiveDefendantRef, jurisdictionVenue });
-  const factsResult = await callGemini(apiKey, [{ text: factsPrompt }, ...fileParts]);
+  const factsResult = await callGemini(apiKey, [{ text: factsPrompt }, ...fileParts], "Facts drafting call");
 
   fields.facts = factsResult.facts || "";
 
