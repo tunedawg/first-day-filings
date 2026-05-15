@@ -273,10 +273,20 @@
                 <div class="panel">
                   <div class="panel-header">
                     <h2>Counts</h2>
-                    <p>AI-drafted counts for each selected claim. Includes jury demand. Edit claim-specific language as needed.</p>
+                    <p>Finalize your claim selections above, then click <strong>Draft Counts</strong>. You can re-draft any time the claims change.</p>
                   </div>
+                  <div class="step-actions" style="margin: 0 0 16px;">
+                    <button type="button" id="draftCountsBtn" class="action-primary">Draft Counts</button>
+                  </div>
+                  <div id="draftCountsStatus" hidden>
+                    <div class="status-row">
+                      <span class="spinner" aria-hidden="true"></span>
+                      <span>Drafting counts…</span>
+                    </div>
+                  </div>
+                  <div id="draftCountsError" class="status error" hidden></div>
                   <div class="field">
-                    <textarea id="pCounts" class="petition-prose-area petition-prose-area--tall" rows="24" placeholder="AI will draft all COUNT sections here after extraction…"></textarea>
+                    <textarea id="pCounts" class="petition-prose-area petition-prose-area--tall" rows="24" placeholder="Click 'Draft Counts' after finalizing your claim selections above…"></textarea>
                   </div>
                 </div>
 

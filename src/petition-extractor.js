@@ -79,35 +79,6 @@ Write in plain prose — no markdown, no bullet points inside any section. Use t
   - Final paragraph (always include verbatim): "[Plaintiff refName] reserves the right to amend this action to raise any appropriate cause of action with relation back to the date of filing, including but not limited to any causes of action under Chapters 213 and 287, RSMo."
   Format: "1.\\t[Text].\\n2.\\t[Text]." — number every fact paragraph sequentially starting at 1. Keep track of the final fact paragraph number; count body paragraphs must continue from that number. Use [BRACKET PLACEHOLDERS] only for information genuinely absent from the documents.
 
-"counts": Draft ALL applicable COUNT sections. COUNT HEADERS are NOT numbered. Each COUNT BODY paragraph is numbered, continuing sequentially from where the facts ended. For example, if facts ended at paragraph 54, the first body paragraph of Count I is "55.\\t[text]." This numbering runs through every body paragraph of every count.
-
-  COUNT HEADER FORMAT (not numbered — just these lines, separated by \\n):
-  workers_comp:    "COUNT I\\nDISCRIMINATION FOR EXERCISE OF WORKERS' COMPENSATION RIGHTS\\nRSMo 287.780\\n(Against All Defendants)"
-  race:            "COUNT I\\nVIOLATION OF THE MISSOURI HUMAN RIGHTS ACT\\nRSMo CHAPTER 213\\nRACE DISCRIMINATION\\n(Against All Defendants)"
-  color:           "COUNT I\\nVIOLATION OF THE MISSOURI HUMAN RIGHTS ACT\\nRSMo CHAPTER 213\\nCOLOR DISCRIMINATION\\n(Against All Defendants)"
-  sex:             "COUNT I\\nVIOLATION OF THE MISSOURI HUMAN RIGHTS ACT\\nRSMo CHAPTER 213\\nSEX DISCRIMINATION\\n(Against All Defendants)"
-  age:             "COUNT I\\nVIOLATION OF THE MISSOURI HUMAN RIGHTS ACT\\nRSMo CHAPTER 213\\nAGE DISCRIMINATION\\n(Against All Defendants)"
-  disability:      "COUNT I\\nVIOLATION OF THE MISSOURI HUMAN RIGHTS ACT\\nRSMo CHAPTER 213\\nDISABILITY DISCRIMINATION\\n(Against All Defendants)"
-  retaliation:     "COUNT I\\nVIOLATION OF THE MISSOURI HUMAN RIGHTS ACT\\nRSMo CHAPTER 213\\nRETALIATION\\n(Against All Defendants)"
-  whistleblower:   "COUNT I\\nVIOLATION OF THE MISSOURI WHISTLEBLOWER'S PROTECTION ACT\\nRSMo 285.575\\n(Against All Defendants)"
-  rsmo_105_055:    "COUNT I\\nPUBLIC EMPLOYEE WHISTLEBLOWER RETALIATION\\nRSMo 105.055\\n(Against All Defendants)"
-  (Replace COUNT I with COUNT II, COUNT III, etc. for subsequent counts.)
-
-  EACH COUNT BODY (numbered paragraphs only — no headers):
-  N.\\t[Plaintiff refName] incorporates each and every other paragraph of this Petition as if fully set forth here.
-  N+1.\\t[Statutory employer/employee status — case-specific]
-  N+2.\\t[Elements/protected activity — case-specific]
-  N+3.\\t[Adverse action — case-specific]
-  N+4.\\t[Protected characteristic/activity] was the motivating factor in Defendants' adverse actions.
-  N+5.\\t[Plaintiff refName] has suffered damages, including but not limited to loss of pay/benefits and emotional distress.
-  N+6.\\tDefendants intentionally harmed [Plaintiff refName] without just cause and/or acted with a deliberate and flagrant disregard for the safety of others, justifying punitive damages.
-  N+7.\\t[Plaintiff refName] respectfully prays that this Court adjudge Defendants liable for [claim], and grant all relief allowed under the law, as set forth in the Prayer in this Petition.
-
-  After the last count body, add (not numbered):
-  "DEMAND FOR A JURY TRIAL\\n\\n[Plaintiff refName] respectfully demands a jury trial on all issues so triable."
-
-  Separate each count header block and the jury demand section with \\n\\n.
-
 "prayer": Draft the standard prayer for relief as a numbered list:
   "Plaintiff respectfully prays that this Court enter judgment against Defendants, and grant the following relief, believed to be in excess of $25,000:\\n1.\\tActual damages, including both economic and non-economic damages, including emotional distress damages;\\n2.\\tBackpay;\\n3.\\tFrontpay and/or reinstatement;\\n4.\\tPunitive damages;\\n5.\\tPre-judgment and post-judgment interest at the maximum legal rate;\\n6.\\tDeclaratory and injunctive relief, including but not limited to expungement of any negative personnel records and adjustment for the tax consequences of any lump-sum award;\\n7.\\tThe costs of this action;\\n8.\\tReasonable attorney's fees, expert expenses, and other disbursements; and\\n9.\\tAny other and further legal and/or equitable relief that this Court deems just and proper."
 

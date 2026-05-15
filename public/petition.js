@@ -259,11 +259,11 @@ function populateForm(fields) {
     cb.checked = claims.includes(cb.value);
   });
 
-  // AI-drafted sections
+  // AI-drafted sections (counts are drafted separately after claims are finalized)
   _draftFacts = fields.facts || "";
   setField("pPartiesSection", fields.partiesSection || "");
   setField("pJurisdictionVenue", fields.jurisdictionVenue || "");
-  setField("pCounts", fields.counts || "");
+  setField("pCounts", "");
   setField("pPrayer", fields.prayer || "");
 
   // Document name
@@ -340,6 +340,53 @@ function collectDefendants() {
     incorporationState: card.querySelector(".def-incorporationState")?.value.trim() || "",
   }));
 }
+
+// ── Draft Counts ──────────────────────────────────────────────────────────────
+const draftCountsBtn    = document.getElementById("draftCountsBtn");
+const draftCountsStatus = document.getElementById("draftCountsStatus");
+const draftCountsError  = document.getElementById("draftCountsError");
+
+draftCountsBtn?.addEventListener("click", async () => {
+  const claims = Array.from(document.querySelectorAll("#claimsGrid input[type='checkbox']:checked")).map(cb => cb.value);
+  if (claims.length === 0) {
+    draftCountsError.textContent = "Select at least one claim before drafting counts.";
+    draftCountsError.hidden = false;
+    return;
+  }
+  if (!_draftFacts.trim()) {
+    draftCountsError.textContent = "Run extraction first so the facts section is available.";
+    draftCountsError.hidden = false;
+    return;
+  }
+
+  draftCountsBtn.disabled = true;
+  draftCountsStatus.hidden = false;
+  draftCountsError.hidden = true;
+
+  try {
+    const res = await fetch("/api/petition/draft-counts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        claims,
+        facts: _draftFacts,
+        plaintiffRefName: document.getElementById("pPlaintiffRefName")?.value.trim() || "Plaintiff",
+        collectiveDefendantRef: document.getElementById("pCollectiveRef")?.value.trim() || "Defendants",
+      }),
+    });
+    const payload = await res.json();
+    if (!res.ok || !payload.ok) throw new Error(payload.error || "Counts drafting failed.");
+    setField("pCounts", payload.counts);
+    scheduleSave();
+    document.getElementById("pCounts")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } catch (err) {
+    draftCountsError.textContent = err.message;
+    draftCountsError.hidden = false;
+  } finally {
+    draftCountsBtn.disabled = false;
+    draftCountsStatus.hidden = true;
+  }
+});
 
 // ── Step navigation ───────────────────────────────────────────────────────────
 continueToGenerateBtn.addEventListener("click", () => {

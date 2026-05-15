@@ -22,6 +22,7 @@ const { buildDocumentName, buildMatterFolderName, setAttorneyDirectory, validate
 const { createDriveFolder, copyGoogleDoc, deleteFile, exportGoogleDocAs, fixPronounTokensInDoc, formatPetitionDoc, inspectTemplateFile, replaceDocTokens, replaceTokenWithParagraphs, uploadFileToDrive } = require("./google");
 const { getQuestionnaire, getTemplateRegistry } = require("./templateRegistry");
 const { extractPetitionContext } = require("./petition-extractor");
+const { draftCounts } = require("./petition-counts-drafter");
 const { buildPetitionTokenMap, buildPetitionDocumentName, getPetitionRegistry } = require("./petition-generator");
 
 const PORT = Number(process.env.PORT || 3000);
@@ -499,6 +500,17 @@ const server = http.createServer(async (request, response) => {
       try {
         const body = await collectRequestBody(request);
         const payload = await extractPetitionContext(body.files || []);
+        sendJson(response, 200, payload);
+      } catch (e) {
+        sendJson(response, 500, { ok: false, error: e.message });
+      }
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/petition/draft-counts") {
+      try {
+        const body = await collectRequestBody(request);
+        const payload = await draftCounts(body);
         sendJson(response, 200, payload);
       } catch (e) {
         sendJson(response, 500, { ok: false, error: e.message });
