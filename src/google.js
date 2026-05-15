@@ -449,21 +449,19 @@ async function formatPetitionDoc(accessToken, docId) {
     if (!text.trim()) { inServeBlock = false; continue; }
 
     // ── Plaintiff caption name (always immediately before the c/o line) → bold
-    if (i + 1 < paras.length && /^c\/o /i.test(paras[i + 1].text)) {
+    if (i + 1 < paras.length && /c\/o /i.test(paras[i + 1].text)) {
       requests.push(_ts(startIndex, tEnd, { bold: true }));
       continue;
     }
 
-    // ── Firm care-of address → compact, indented 0.33", un-bold ─────────────
-    if (/^c\/o /i.test(text) || inFirmCareOf > 0) {
-      if (/^c\/o /i.test(text)) inFirmCareOf = 2; else inFirmCareOf--;
+    // ── Firm care-of address → compact, un-bold (\t in token handles indent) ─
+    if (/c\/o /i.test(text) || inFirmCareOf > 0) {
+      if (/c\/o /i.test(text)) inFirmCareOf = 2; else inFirmCareOf--;
       requests.push(_ts(startIndex, tEnd, { bold: false }));
       requests.push(_ps(startIndex, endIndex, {
         lineSpacing: 115,
         spaceAbove: { magnitude: 0, unit: "PT" },
         spaceBelow: { magnitude: 0, unit: "PT" },
-        indentStart: { magnitude: 24, unit: "PT" },
-        indentFirstLine: { magnitude: 0, unit: "PT" },
       }));
       continue;
     }
@@ -511,13 +509,9 @@ async function formatPetitionDoc(accessToken, docId) {
       continue;
     }
 
-    // ── Plaintiff, / Defendants. → italic + indented 0.33" ───────────────────
-    if (text === "Plaintiff," || /^Defendants\.?$/.test(text)) {
+    // ── Plaintiff, / Defendants. → italic (\t in token handles indent) ───────
+    if (/^\t?Plaintiff,?$/.test(text) || /^\t?Defendants\.?$/.test(text)) {
       requests.push(_ts(startIndex, tEnd, { italic: true }));
-      requests.push(_ps(startIndex, endIndex, {
-        indentStart: { magnitude: 24, unit: "PT" },
-        indentFirstLine: { magnitude: 0, unit: "PT" },
-      }));
       continue;
     }
 
@@ -540,8 +534,8 @@ async function formatPetitionDoc(accessToken, docId) {
       continue;
     }
 
-    // ── Serve label + address lines → compact, indented 0.33", un-bold ──────
-    const isServeLabel = /^Serve (at|RA):/i.test(text);
+    // ── Serve label + address lines → compact, un-bold (\t handles indent) ───
+    const isServeLabel = /^\t?Serve (at|RA):/i.test(text);
     if (inServeBlock || isServeLabel) {
       if (isServeLabel) inServeBlock = true;
       requests.push(_ts(startIndex, tEnd, { bold: false, italic: isServeLabel }));
@@ -549,8 +543,6 @@ async function formatPetitionDoc(accessToken, docId) {
         lineSpacing: 115,
         spaceAbove: { magnitude: 0, unit: "PT" },
         spaceBelow: { magnitude: 0, unit: "PT" },
-        indentStart: { magnitude: 24, unit: "PT" },
-        indentFirstLine: { magnitude: 0, unit: "PT" },
       }));
       continue;
     }

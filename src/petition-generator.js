@@ -43,9 +43,9 @@ function buildCaptionTokens(intake) {
 
   const lines = [
     (plaintiff.captionName || plaintiff.fullName?.toUpperCase() || "[PLAINTIFF NAME]") + ",",
-    ...careOf.split("\n"),
+    ...careOf.split("\n").map(l => `\t${l}`),
     "",
-    "Plaintiff,",
+    "\tPlaintiff,",
     "",
     "v.",
   ];
@@ -54,12 +54,12 @@ function buildCaptionTokens(intake) {
     if (i > 0) lines.push(""); // blank line between defendants
     const addressLines = (d.serveAddress || "[SERVICE ADDRESS]").split("\n");
     lines.push(`${d.captionName};`);
-    lines.push(d.serveLabel || "Serve at:");
-    lines.push(...addressLines);
+    lines.push(`\t${d.serveLabel || "Serve at:"}`);
+    lines.push(...addressLines.map(l => `\t${l}`));
   });
 
   lines.push("");
-  lines.push("Defendants.");
+  lines.push("\tDefendants.");
 
   return { "{{captionLeft}}": lines.join("\n") };
 }
