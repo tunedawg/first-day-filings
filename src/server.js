@@ -496,9 +496,13 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (request.method === "POST" && requestUrl.pathname === "/api/petition/extract") {
-      const body = await collectRequestBody(request);
-      const payload = await extractPetitionContext(body.files || []);
-      sendJson(response, 200, payload);
+      try {
+        const body = await collectRequestBody(request);
+        const payload = await extractPetitionContext(body.files || []);
+        sendJson(response, 200, payload);
+      } catch (e) {
+        sendJson(response, 500, { ok: false, error: e.message });
+      }
       return;
     }
 

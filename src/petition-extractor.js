@@ -199,7 +199,9 @@ async function extractPetitionContext(files) {
   const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!rawText) throw new Error("Gemini returned an empty response.");
 
-  const jsonText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+  const jsonText = sanitizeJsonString(
+    rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim()
+  );
 
   let extracted;
   try {
