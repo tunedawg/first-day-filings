@@ -447,7 +447,11 @@ async function formatPetitionDoc(accessToken, docId) {
     const { text, startIndex, endIndex } = paras[i];
     const tEnd = endIndex - 1; // exclude the trailing \n from text-style ranges
 
-    if (!text.trim()) { inServeBlock = false; continue; }
+    if (!text.trim()) {
+      inServeBlock = false;
+      if (inFactsBody) requests.push({ deleteParagraphBullets: { range: { startIndex, endIndex } } });
+      continue;
+    }
 
     // ── Plaintiff caption name (always immediately before the c/o line) → bold
     if (i + 1 < paras.length && /c\/o /i.test(paras[i + 1].text)) {
@@ -478,9 +482,28 @@ async function formatPetitionDoc(accessToken, docId) {
       continue;
     }
 
+    // ── Section headings — MUST precede inFactsBody check to avoid misclassification ──
+    if (text === "INTRODUCTION" || text === "PARTIES" || text === "JURISDICTION AND VENUE" ||
+        text === "FACTS" || text === "PRAYER FOR RELIEF") {
+      if (text === "FACTS") inFactsBody = true;
+      else if (text === "PRAYER FOR RELIEF") { inFactsBody = false; inCountsSection = false; }
+      requests.push(_ts(startIndex, tEnd, { bold: true, underline: true }));
+      requests.push(_ps(startIndex, endIndex, { alignment: "CENTER", lineSpacing: 115 }));
+      continue;
+    }
+
+    // ── DEMAND FOR A JURY TRIAL — must precede inFactsBody check ─────────────
+    if (text === "DEMAND FOR A JURY TRIAL") {
+      inFactsBody = false;
+      requests.push(_ts(startIndex, tEnd, { bold: true, underline: true }));
+      requests.push(_ps(startIndex, endIndex, { alignment: "CENTER", lineSpacing: 115 }));
+      continue;
+    }
+
     // ── Facts subsection headers (bold + italic, no underline) ────────────────
     // Non-empty, non-numbered lines that appear inside the facts body region.
     if (inFactsBody && !/^\d+/.test(text)) {
+      requests.push({ deleteParagraphBullets: { range: { startIndex, endIndex } } });
       requests.push(_ts(startIndex, tEnd, { bold: true, italic: true, underline: false }));
       requests.push(_ps(startIndex, endIndex, {
         alignment: "START",
@@ -496,22 +519,6 @@ async function formatPetitionDoc(accessToken, docId) {
       requests.push(_ts(startIndex, tEnd, { bold: true }));
       requests.push(_ps(startIndex, endIndex, { alignment: "CENTER", lineSpacing: 115,
         spaceAbove: { magnitude: 0, unit: "PT" }, spaceBelow: { magnitude: 0, unit: "PT" } }));
-      continue;
-    }
-
-    // ── DEMAND FOR A JURY TRIAL ───────────────────────────────────────────────
-    if (text === "DEMAND FOR A JURY TRIAL") {
-      requests.push(_ts(startIndex, tEnd, { bold: true, underline: true }));
-      requests.push(_ps(startIndex, endIndex, { alignment: "CENTER", lineSpacing: 115 }));
-      continue;
-    }
-
-    // ── Section headings (INTRODUCTION, PARTIES, etc., PRAYER FOR RELIEF) ────
-    if (text === "INTRODUCTION" || text === "PARTIES" || text === "JURISDICTION AND VENUE" ||
-        text === "FACTS" || text === "PRAYER FOR RELIEF") {
-      if (text === "FACTS") inFactsBody = true;
-      requests.push(_ts(startIndex, tEnd, { bold: true, underline: true }));
-      requests.push(_ps(startIndex, endIndex, { alignment: "CENTER", lineSpacing: 115 }));
       continue;
     }
 

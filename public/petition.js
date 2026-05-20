@@ -330,7 +330,8 @@ function populateForm(fields) {
   _draftFacts = fields.facts || "";
   setField("pPartiesSection", fields.partiesSection || "");
   setField("pJurisdictionVenue", fields.jurisdictionVenue || "");
-  setField("pCounts", "");
+  // pCounts is intentionally NOT cleared here — preserve any drafted counts across re-extractions.
+  // Users must re-draft manually if claims change significantly.
   setField("pPrayer", fields.prayer || "");
 
   // Document name
