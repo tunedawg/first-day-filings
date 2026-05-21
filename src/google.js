@@ -506,7 +506,7 @@ async function formatPetitionDoc(accessToken, docId) {
       requests.push({ deleteParagraphBullets: { range: { startIndex, endIndex } } });
       requests.push(_ts(startIndex, tEnd, { bold: true, italic: true, underline: false }));
       requests.push(_ps(startIndex, endIndex, {
-        alignment: "START",
+        alignment: "CENTER",
         lineSpacing: 150,
         spaceAbove: { magnitude: 12, unit: "PT" },
         spaceBelow: { magnitude: 4, unit: "PT" },
