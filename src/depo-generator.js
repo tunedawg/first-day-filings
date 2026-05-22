@@ -244,9 +244,13 @@ function buildDepoHtml(payload) {
     ? payload.whatWeWant
     : String(payload.whatWeWant || "").split("\n").filter(Boolean);
 
-  const rulesOfRoad = Array.isArray(payload.rulesOfRoad)
-    ? payload.rulesOfRoad
-    : String(payload.rulesOfRoad || "").split("\n").filter(Boolean);
+  const rulesOfRoadRaw = payload.rulesOfRoad;
+  const rulesOfRoadIsString = typeof rulesOfRoadRaw === "string" && rulesOfRoadRaw.trim().length > 0;
+  const rulesOfRoad = Array.isArray(rulesOfRoadRaw)
+    ? rulesOfRoadRaw
+    : rulesOfRoadIsString
+      ? []
+      : String(rulesOfRoadRaw || "").split("\n").filter(Boolean);
 
   const wrapUpQuestions = Array.isArray(payload.wrapUpQuestions)
     ? payload.wrapUpQuestions
@@ -258,10 +262,13 @@ function buildDepoHtml(payload) {
   const existingExHtml = existingExhibits.length
     ? existingExhibits
         .map((e) => {
+          const linkPart = e.boxUrl
+            ? ` — <a href="${e.boxUrl}">${e.boxUrl}</a>`
+            : "";
           const note = e.nonOcrd
             ? " <em>[NON-OCR&apos;d — verify before deposition]</em>"
             : "";
-          return `<p>${escHtml(e.label)} — ${escHtml(e.bates)} — ${escHtml(e.description)}${note}</p>`;
+          return `<p>${escHtml(e.label)} — ${escHtml(e.bates)} — ${escHtml(e.description)}${linkPart}${note}</p>`;
         })
         .join("")
     : "<p><em>None</em></p>";
@@ -282,10 +289,14 @@ function buildDepoHtml(payload) {
 
   const firstNewNum = newExhibits[0]?.label?.match(/\d+/)?.[0] ?? "___";
 
+  const rulesBody = rulesOfRoadIsString
+    ? sectionToHtml(rulesOfRoadRaw)
+    : rulesOfRoad.map((r) => `<p>${escHtml(r)}</p>`).join("\n");
+
   const rulesSection =
-    rulesOfRoad.length > 0
+    (rulesOfRoadIsString || rulesOfRoad.length > 0)
       ? `<h1 style="text-align:center;text-decoration:underline;">RULES OF THE ROAD</h1>
-${rulesOfRoad.map((r) => `<p>${escHtml(r)}</p>`).join("\n")}
+${rulesBody}
 <hr>`
       : "";
 
