@@ -180,7 +180,7 @@ function buildCaptionHtml(payload) {
 
   const plaintiffIdx = leftLines.findIndex((l) => l.includes("Plaintiff,"));
 
-  const para = (text) => `<p style="margin:0;padding:0;line-height:1.15;">${text}</p>`;
+  const para = (text) => `<p style="font-family:'Century Schoolbook',serif;font-size:13pt;margin:0;padding:0;line-height:1.15;">${text}</p>`;
 
   const leftHtml  = leftLines.map((l) => para(l)).join("");
   const parenHtml = leftLines.map(() => para(")")).join("");
@@ -238,7 +238,7 @@ function buildDepoHtml(payload) {
   const courtLines = (payload.court || "IN THE CIRCUIT COURT")
     .split("\n").map(l => escHtml(l.trim())).filter(Boolean);
   const courtHtml = courtLines
-    .map(l => `<p style="text-align:center;font-weight:bold;margin:2pt 0;">${l}</p>`)
+    .map(l => `<p style="font-family:'Century Schoolbook',serif;font-size:13pt;text-align:center;font-weight:bold;margin:2pt 0;">${l}</p>`)
     .join("\n");
 
   const whatWeWant = Array.isArray(payload.whatWeWant)
@@ -300,12 +300,12 @@ ${rulesOfRoad.map((r) => `<li>${escHtml(r)}</li>`).join("\n")}
 <meta charset="UTF-8">
 <style>
   body  { font-family:"Century Schoolbook",serif; font-size:13pt; margin:1in; line-height:1.15; }
-  h1   { font-size:13pt; text-align:center; font-weight:bold; margin:14pt 0 4pt; }
-  h2   { font-size:13pt; font-weight:bold; text-decoration:underline; margin:16pt 0 4pt; }
-  h3   { font-size:13pt; font-weight:bold; margin:12pt 0 4pt; }
-  p    { margin:5pt 0; }
+  h1   { font-family:"Century Schoolbook",serif; font-size:13pt; text-align:center; font-weight:bold; margin:14pt 0 4pt; }
+  h2   { font-family:"Century Schoolbook",serif; font-size:13pt; font-weight:bold; text-decoration:underline; margin:16pt 0 4pt; }
+  h3   { font-family:"Century Schoolbook",serif; font-size:13pt; font-weight:bold; margin:12pt 0 4pt; }
+  p    { font-family:"Century Schoolbook",serif; font-size:13pt; margin:5pt 0; }
   ul   { margin:4pt 0 4pt 36pt; padding-left:0; }
-  li   { margin:3pt 0; }
+  li   { font-family:"Century Schoolbook",serif; font-size:13pt; margin:3pt 0; }
   table{ width:100%; border-collapse:collapse; }
   td   { border:none; vertical-align:top; padding:0; }
   hr   { border:none; border-top:1px solid #000; margin:14pt 0; }
