@@ -294,16 +294,16 @@ ${rulesOfRoad.map((r) => `<li>${escHtml(r)}</li>`).join("\n")}
 <head>
 <meta charset="UTF-8">
 <style>
-  body  { font-family:"Times New Roman",Times,serif; font-size:12pt; margin:1in; line-height:1.5; }
-  h1   { font-size:13pt; text-align:center; font-weight:bold; margin:14pt 0 4pt; }
-  h2   { font-size:12pt; font-weight:bold; margin:16pt 0 4pt; }
-  h3   { font-size:12pt; font-weight:bold; margin:12pt 0 4pt; }
+  body  { font-family:"Century Schoolbook",serif; font-size:13pt; margin:1in; line-height:1.15; }
+  h1   { font-size:13pt; text-align:center; font-weight:bold; text-decoration:underline; margin:14pt 0 4pt; }
+  h2   { font-size:13pt; font-weight:bold; text-decoration:underline; margin:16pt 0 4pt; }
+  h3   { font-size:13pt; font-weight:bold; margin:12pt 0 4pt; }
   p    { margin:5pt 0; }
-  ul   { margin:4pt 0 4pt 24pt; }
+  ul   { margin:4pt 0 4pt 36pt; padding-left:0; }
   li   { margin:3pt 0; }
   table{ width:100%; border-collapse:collapse; }
   td   { border:none; vertical-align:top; padding:0; }
-  hr   { border:none; border-top:1px solid #999; margin:14pt 0; }
+  hr   { border:none; border-top:1px solid #000; margin:14pt 0; }
   a    { color:#1155cc; }
 </style>
 </head>
