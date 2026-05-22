@@ -19,7 +19,8 @@ const {
 const { extractCaseContext } = require("./extractor");
 const { getSupabaseAdmin, getUserFromRequest } = require("./supabaseClient");
 const { buildDocumentName, buildMatterFolderName, setAttorneyDirectory, validateSelections } = require("./generator");
-const { createDriveFolder, copyGoogleDoc, deleteFile, exportGoogleDocAs, fixPronounTokensInDoc, formatPetitionDoc, inspectTemplateFile, replaceDocTokens, replaceTokenWithParagraphs, uploadFileToDrive } = require("./google");
+const { createDriveFolder, copyGoogleDoc, deleteFile, exportGoogleDocAs, fixPronounTokensInDoc, formatPetitionDoc, inspectTemplateFile, replaceDocTokens, replaceTokenWithParagraphs, uploadFileToDrive, uploadHtmlAsGoogleDoc } = require("./google");
+const { buildDepoHtml } = require("./depo-generator");
 const { getQuestionnaire, getTemplateRegistry } = require("./templateRegistry");
 const { extractPetitionContext } = require("./petition-extractor");
 const { draftCounts } = require("./petition-counts-drafter");
@@ -537,6 +538,45 @@ const server = http.createServer(async (request, response) => {
       try {
         const registry = getPetitionRegistry();
         sendJson(response, 200, { ok: true, templateDocId: registry.googleTemplateDocId });
+      } catch (e) {
+        sendJson(response, 500, { ok: false, error: e.message });
+      }
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/depo/generate") {
+      const apiKey = request.headers["x-depo-api-key"];
+      if (!apiKey || apiKey !== process.env.DEPO_API_KEY) {
+        sendJson(response, 401, { ok: false, error: "Unauthorized" });
+        return;
+      }
+
+      const payload = await collectRequestBody(request);
+
+      let accessToken;
+      try {
+        const firmRefreshToken = process.env.DEPO_GOOGLE_REFRESH_TOKEN;
+        if (!firmRefreshToken) throw new Error("DEPO_GOOGLE_REFRESH_TOKEN not configured on server.");
+        const refreshed = await refreshAccessToken(firmRefreshToken);
+        accessToken = refreshed.access_token;
+      } catch (e) {
+        sendJson(response, 500, { ok: false, error: `Google auth failed: ${e.message}` });
+        return;
+      }
+
+      try {
+        const html = buildDepoHtml(payload);
+        const buffer = Buffer.from(html, "utf8");
+        const documentName =
+          payload.documentName ||
+          `Deposition Outline — ${payload.witnessFullName || "Witness"}`;
+        const file = await uploadHtmlAsGoogleDoc(
+          accessToken,
+          documentName,
+          buffer,
+          payload.driveFolderId || null,
+        );
+        sendJson(response, 200, { ok: true, url: file.webViewLink, fileId: file.id });
       } catch (e) {
         sendJson(response, 500, { ok: false, error: e.message });
       }

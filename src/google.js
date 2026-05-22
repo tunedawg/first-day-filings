@@ -380,6 +380,39 @@ async function uploadFileToDrive(accessToken, name, mimeType, buffer, parentFold
   return res.json();
 }
 
+// Uploads an HTML buffer to Drive and converts it to a native Google Doc.
+// The metadata mimeType must be the Google Docs type while the data
+// Content-Type stays text/html so Drive performs the conversion.
+async function uploadHtmlAsGoogleDoc(accessToken, name, htmlBuffer, parentFolderId) {
+  if (!accessToken) throw new Error("Missing Google access token.");
+  const metadata = { name, mimeType: GOOGLE_DOC_MIME_TYPE };
+  if (parentFolderId) metadata.parents = [parentFolderId];
+
+  const boundary = `fdf_${Date.now()}`;
+  const metaPart = Buffer.from(
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`,
+    "utf8",
+  );
+  const dataPart = Buffer.from(`--${boundary}\r\nContent-Type: text/html\r\n\r\n`, "utf8");
+  const closePart = Buffer.from(`\r\n--${boundary}--`, "utf8");
+  const body = Buffer.concat([metaPart, dataPart, htmlBuffer, closePart]);
+
+  const url = `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,webViewLink`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": `multipart/related; boundary="${boundary}"`,
+    },
+    body,
+  });
+  if (!res.ok) {
+    const errBody = await res.text();
+    throw new Error(`Drive HTML-to-Doc upload failed: ${res.status} ${errBody}`);
+  }
+  return res.json();
+}
+
 async function deleteFile(accessToken, fileId) {
   if (!accessToken) return;
   try {
@@ -620,4 +653,5 @@ module.exports = {
   replaceDocTokens,
   replaceTokenWithParagraphs,
   uploadFileToDrive,
+  uploadHtmlAsGoogleDoc,
 };
