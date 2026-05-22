@@ -423,6 +423,33 @@ async function deleteFile(accessToken, fileId) {
   } catch (_) { /* best-effort cleanup */ }
 }
 
+// Applies Century Schoolbook 13pt to every character in a depo outline doc.
+// HTML-to-Doc conversion doesn't reliably honor font-family from CSS;
+// this batchUpdate call guarantees the font regardless of import behavior.
+async function formatDepoDoc(accessToken, docId) {
+  const doc = await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${docId}`);
+  const content = doc.body?.content || [];
+  const lastEl = content[content.length - 1];
+  const endIndex = (lastEl?.endIndex ?? 2) - 1;
+  if (endIndex <= 1) return;
+
+  await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${docId}:batchUpdate`, {
+    method: "POST",
+    body: JSON.stringify({
+      requests: [{
+        updateTextStyle: {
+          range: { startIndex: 1, endIndex },
+          textStyle: {
+            weightedFontFamily: { fontFamily: "Century Schoolbook" },
+            fontSize: { magnitude: 13, unit: "PT" },
+          },
+          fields: "weightedFontFamily,fontSize",
+        },
+      }],
+    }),
+  });
+}
+
 // ── Post-generation petition formatting ───────────────────────────────────────
 // Applies rich formatting that replaceAllText cannot: bold defendant names,
 // indent addresses, underline COUNT I/II, center count headers, double-space
@@ -647,6 +674,7 @@ module.exports = {
   deleteFile,
   exportGoogleDocAs,
   fixPronounTokensInDoc,
+  formatDepoDoc,
   formatPetitionDoc,
   getDriveFile,
   inspectTemplateFile,

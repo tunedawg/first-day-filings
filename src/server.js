@@ -19,7 +19,7 @@ const {
 const { extractCaseContext } = require("./extractor");
 const { getSupabaseAdmin, getUserFromRequest } = require("./supabaseClient");
 const { buildDocumentName, buildMatterFolderName, setAttorneyDirectory, validateSelections } = require("./generator");
-const { createDriveFolder, copyGoogleDoc, deleteFile, exportGoogleDocAs, fixPronounTokensInDoc, formatPetitionDoc, inspectTemplateFile, replaceDocTokens, replaceTokenWithParagraphs, uploadFileToDrive, uploadHtmlAsGoogleDoc } = require("./google");
+const { createDriveFolder, copyGoogleDoc, deleteFile, exportGoogleDocAs, fixPronounTokensInDoc, formatDepoDoc, formatPetitionDoc, inspectTemplateFile, replaceDocTokens, replaceTokenWithParagraphs, uploadFileToDrive, uploadHtmlAsGoogleDoc } = require("./google");
 const { buildDepoHtml } = require("./depo-generator");
 const { getQuestionnaire, getTemplateRegistry } = require("./templateRegistry");
 const { extractPetitionContext } = require("./petition-extractor");
@@ -576,6 +576,7 @@ const server = http.createServer(async (request, response) => {
           buffer,
           payload.driveFolderId || null,
         );
+        await formatDepoDoc(accessToken, file.id);
         sendJson(response, 200, { ok: true, url: file.webViewLink, fileId: file.id });
       } catch (e) {
         sendJson(response, 500, { ok: false, error: e.message });
