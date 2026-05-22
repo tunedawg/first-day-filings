@@ -463,7 +463,9 @@ async function formatDepoDoc(accessToken, docId, opts = {}) {
           .join("")
           .trim();
 
+        const namedStyle = el.paragraph.paragraphStyle?.namedStyleType || "";
         const shouldBold =
+          namedStyle.startsWith("HEADING_") ||
           EXHIBIT_RE.test(paraText) ||
           boldTexts.some(t => paraText.includes(t));
 

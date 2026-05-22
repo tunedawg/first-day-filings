@@ -316,6 +316,8 @@ ${rulesOfRoad.map((r) => `<li>${escHtml(r)}</li>`).join("\n")}
 
 ${courtHtml}
 
+<p>&nbsp;</p>
+
 ${buildCaptionHtml(payload)}
 
 <h1 style="text-align:center;font-weight:bold;margin-bottom:0;">DEPOSITION OUTLINE — ${witness.toUpperCase()}</h1>
