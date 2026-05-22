@@ -423,30 +423,99 @@ async function deleteFile(accessToken, fileId) {
   } catch (_) { /* best-effort cleanup */ }
 }
 
-// Applies Century Schoolbook 13pt to every character in a depo outline doc.
-// HTML-to-Doc conversion doesn't reliably honor font-family from CSS;
-// this batchUpdate call guarantees the font regardless of import behavior.
-async function formatDepoDoc(accessToken, docId) {
+// Applies Century Schoolbook 13pt to every character in a depo outline doc,
+// then bolds exhibit headers / caption names and tightens spacing under the
+// "DEPOSITION OUTLINE" title.  opts.boldTexts is an array of substrings whose
+// containing paragraphs should be bolded (plaintiff name, defendant name,
+// each court-header line, etc.).
+async function formatDepoDoc(accessToken, docId, opts = {}) {
   const doc = await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${docId}`);
   const content = doc.body?.content || [];
   const lastEl = content[content.length - 1];
   const endIndex = (lastEl?.endIndex ?? 2) - 1;
   if (endIndex <= 1) return;
 
+  const requests = [
+    {
+      updateTextStyle: {
+        range: { startIndex: 1, endIndex },
+        textStyle: {
+          weightedFontFamily: { fontFamily: "Century Schoolbook" },
+          fontSize: { magnitude: 13, unit: "PT" },
+        },
+        fields: "weightedFontFamily,fontSize",
+      },
+    },
+  ];
+
+  const boldTexts = (opts.boldTexts || []).filter(Boolean);
+  const EXHIBIT_RE = /^\[(?:NEW\s+)?Ex\.\s+\d+/;
+
+  function walkContent(elems) {
+    for (let i = 0; i < elems.length; i++) {
+      const el = elems[i];
+
+      if (el.paragraph) {
+        const paraText = (el.paragraph.elements || [])
+          .map(e => e.textRun?.content || "")
+          .join("")
+          .trim();
+
+        const shouldBold =
+          EXHIBIT_RE.test(paraText) ||
+          boldTexts.some(t => paraText.includes(t));
+
+        if (shouldBold) {
+          const s = el.startIndex;
+          const e2 = el.endIndex - 1;
+          if (e2 > s) {
+            requests.push({
+              updateTextStyle: {
+                range: { startIndex: s, endIndex: e2 },
+                textStyle: { bold: true },
+                fields: "bold",
+              },
+            });
+          }
+        }
+
+        // Zero out spacing between "DEPOSITION OUTLINE" title and its hr.
+        if (paraText.startsWith("DEPOSITION OUTLINE")) {
+          requests.push({
+            updateParagraphStyle: {
+              range: { startIndex: el.startIndex, endIndex: el.endIndex },
+              paragraphStyle: { spaceBelow: { magnitude: 0, unit: "PT" } },
+              fields: "spaceBelow",
+            },
+          });
+          const next = elems[i + 1];
+          if (next) {
+            requests.push({
+              updateParagraphStyle: {
+                range: { startIndex: next.startIndex, endIndex: next.endIndex },
+                paragraphStyle: { spaceAbove: { magnitude: 0, unit: "PT" } },
+                fields: "spaceAbove",
+              },
+            });
+          }
+        }
+      }
+
+      if (el.table) {
+        for (const row of el.table.tableRows || []) {
+          for (const cell of row.tableCells || []) {
+            walkContent(cell.content || []);
+          }
+        }
+      }
+    }
+  }
+
+  walkContent(content);
+
   await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${docId}:batchUpdate`, {
     method: "POST",
-    body: JSON.stringify({
-      requests: [{
-        updateTextStyle: {
-          range: { startIndex: 1, endIndex },
-          textStyle: {
-            weightedFontFamily: { fontFamily: "Century Schoolbook" },
-            fontSize: { magnitude: 13, unit: "PT" },
-          },
-          fields: "weightedFontFamily,fontSize",
-        },
-      }],
-    }),
+    body: JSON.stringify({ requests }),
   });
 }
 

@@ -576,7 +576,13 @@ const server = http.createServer(async (request, response) => {
           buffer,
           payload.driveFolderId || null,
         );
-        await formatDepoDoc(accessToken, file.id);
+        await formatDepoDoc(accessToken, file.id, {
+          boldTexts: [
+            payload.plaintiffName,
+            payload.defendantName,
+            ...(payload.court || "").split("\n").map(l => l.trim()).filter(Boolean),
+          ],
+        });
         sendJson(response, 200, { ok: true, url: file.webViewLink, fileId: file.id });
       } catch (e) {
         sendJson(response, 500, { ok: false, error: e.message });
