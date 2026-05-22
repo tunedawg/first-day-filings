@@ -14,7 +14,7 @@ if (!clientId || !clientSecret) {
   process.exit(1);
 }
 
-const REDIRECT_URI = "http://localhost:9877/callback";
+const REDIRECT_URI = "http://localhost:9878/callback";
 const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
 const authUrl =
@@ -80,6 +80,6 @@ const server = http.createServer(async (req, res) => {
   console.log(`railway variables set DEPO_GOOGLE_REFRESH_TOKEN="${tokenData.refresh_token}"\n`);
 });
 
-server.listen(9877, () => {
-  console.log("Waiting for Google to redirect back (listening on :9877)...\n");
+server.listen(9878, () => {
+  console.log("Waiting for Google to redirect back (listening on :9878)...\n");
 });
