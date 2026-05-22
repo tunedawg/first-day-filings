@@ -205,7 +205,7 @@ function buildPrefatoryHtml(payload) {
     ? `<ul>${keyPeople.map((p) => `<li>${escHtml(p)}</li>`).join("")}</ul>`
     : "";
 
-  return `<h1 style="text-align:center;">PREFATORY QUESTIONS</h1>
+  return `<h1 style="text-align:center;text-decoration:underline;">PREFATORY QUESTIONS</h1>
 <p>Do you understand that you have been placed under oath? What does this oath mean to you? It is always important to be honest — but most conversations in our society occur without an oath, don't they? Our judicial system depends heavily on absolute honesty by every witness, and the system breaks down if witnesses shade or distort the truth. Do you agree to be honest today and abide by your oath?</p>
 <p>Full legal name / Date of birth / Current position and employer / Home address / Work address, email, phone</p>
 <p>Have you ever been arrested?<br>
@@ -234,7 +234,11 @@ ${peopleHtml}`;
 function buildDepoHtml(payload) {
   const witness = escHtml(payload.witnessFullName || "[WITNESS]");
   const witnessFirst = escHtml(payload.witnessFirstName || (payload.witnessFullName || "").split(" ")[0] || "Witness");
-  const court = escHtml(payload.court || "IN THE CIRCUIT COURT");
+  const courtLines = (payload.court || "IN THE CIRCUIT COURT")
+    .split("\n").map(l => escHtml(l.trim())).filter(Boolean);
+  const courtHtml = courtLines
+    .map(l => `<p style="text-align:center;font-weight:bold;margin:2pt 0;">${l}</p>`)
+    .join("\n");
 
   const whatWeWant = Array.isArray(payload.whatWeWant)
     ? payload.whatWeWant
@@ -280,7 +284,7 @@ function buildDepoHtml(payload) {
 
   const rulesSection =
     rulesOfRoad.length > 0
-      ? `<h1 style="text-align:center;">RULES OF THE ROAD</h1>
+      ? `<h1 style="text-align:center;text-decoration:underline;">RULES OF THE ROAD</h1>
 <ul>
 ${rulesOfRoad.map((r) => `<li>${escHtml(r)}</li>`).join("\n")}
 </ul>
@@ -295,7 +299,7 @@ ${rulesOfRoad.map((r) => `<li>${escHtml(r)}</li>`).join("\n")}
 <meta charset="UTF-8">
 <style>
   body  { font-family:"Century Schoolbook",serif; font-size:13pt; margin:1in; line-height:1.15; }
-  h1   { font-size:13pt; text-align:center; font-weight:bold; text-decoration:underline; margin:14pt 0 4pt; }
+  h1   { font-size:13pt; text-align:center; font-weight:bold; margin:14pt 0 4pt; }
   h2   { font-size:13pt; font-weight:bold; text-decoration:underline; margin:16pt 0 4pt; }
   h3   { font-size:13pt; font-weight:bold; margin:12pt 0 4pt; }
   p    { margin:5pt 0; }
@@ -309,7 +313,7 @@ ${rulesOfRoad.map((r) => `<li>${escHtml(r)}</li>`).join("\n")}
 </head>
 <body>
 
-<h1>${court}</h1>
+${courtHtml}
 
 ${buildCaptionHtml(payload)}
 
@@ -333,7 +337,7 @@ ${buildPrefatoryHtml(payload)}
 
 ${rulesSection}
 
-<h1 style="text-align:center;">&#9733; TOP DOCUMENTS &amp; MUST-GET ADMISSIONS &#9733;</h1>
+<h1 style="text-align:center;text-decoration:underline;">&#9733; TOP DOCUMENTS &amp; MUST-GET ADMISSIONS &#9733;</h1>
 
 ${sectionToHtml(payload.topDocuments || "")}
 
@@ -343,14 +347,14 @@ ${sectionToHtml(payload.topicSections || "")}
 
 <hr>
 
-<h1 style="text-align:center;">WRAP UP</h1>
+<h1 style="text-align:center;text-decoration:underline;">WRAP UP</h1>
 <ul>
 ${wrapUpQuestions.map((q) => `<li>${escHtml(q)}</li>`).join("\n")}
 </ul>
 
 <hr>
 
-<h1 style="text-align:center;">DOCUMENT INDEX</h1>
+<h1 style="text-align:center;text-decoration:underline;">DOCUMENT INDEX</h1>
 
 <p><strong>Existing Exhibits:</strong></p>
 ${existingExHtml}
