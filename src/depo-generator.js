@@ -162,36 +162,39 @@ function buildCaptionHtml(payload) {
   const defendantAddr = (payload.defendantAddress || "").split("\n").filter(Boolean);
   const caseNum = payload.caseNumber || "____________";
 
-  const sp = "&nbsp;&nbsp;&nbsp;&nbsp;";
+  const ind = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
 
-  // Build left-column lines.
+  // 3-column caption matching FDF template (49% left / 2% parens / 49% right).
+  // Left column: plain text, no bold/italic — matches FDF docx caption style.
   const leftLines = [
-    `<strong>${escHtml(plaintiff)},</strong>`,
-    ...plaintiffAddr.map((l) => `${sp}${escHtml(l)}`),
+    escHtml(plaintiff) + ",",
+    ...plaintiffAddr.map((l) => `${ind}${escHtml(l)}`),
     "&nbsp;",
-    `${sp}<em>Plaintiff,</em>`,
+    `${ind}Plaintiff,`,
     "&nbsp;",
-    "<em>v.</em>",
+    "v.",
     "&nbsp;",
-    `<strong>${escHtml(defendant)},</strong>`,
-    ...defendantAddr.map((l) => `${sp}${escHtml(l)}`),
+    escHtml(defendant) + ",",
+    ...defendantAddr.map((l) => `${ind}${escHtml(l)}`),
     "&nbsp;",
-    `${sp}<em>Defendant.</em>`,
+    `${ind}Defendant.`,
   ];
 
-  // Right column: `)` on every line, Case No. next to "Plaintiff,".
-  const rightLines = leftLines.map((l) => {
-    if (l.includes("Plaintiff,")) return `) &nbsp; Case No. ${escHtml(caseNum)}`;
-    return ")";
-  });
+  const plaintiffIdx = leftLines.findIndex((l) => l.includes("Plaintiff,"));
 
-  const cell = (lines) =>
-    lines.map((l) => `<p style="margin:0;padding:0;line-height:1.4;">${l}</p>`).join("");
+  const para = (text) => `<p style="margin:0;padding:0;line-height:1.15;">${text}</p>`;
 
-  return `<table style="width:100%;border:none;border-collapse:collapse;margin-bottom:12pt;">
+  const leftHtml  = leftLines.map((l) => para(l)).join("");
+  const parenHtml = leftLines.map(() => para(")")).join("");
+  const rightHtml = leftLines
+    .map((_, i) => para(i === plaintiffIdx ? `Case No. ${escHtml(caseNum)}` : "&nbsp;"))
+    .join("");
+
+  return `<table style="width:100%;border:none;border-collapse:collapse;margin-bottom:14pt;">
   <tr>
-    <td style="border:none;width:68%;vertical-align:top;padding:0 12px 0 0;">${cell(leftLines)}</td>
-    <td style="border:none;width:32%;vertical-align:top;padding:0;">${cell(rightLines)}</td>
+    <td style="border:none;width:49%;vertical-align:top;padding:0;">${leftHtml}</td>
+    <td style="border:none;width:2%;vertical-align:top;padding:0;">${parenHtml}</td>
+    <td style="border:none;width:49%;vertical-align:top;padding:0 0 0 6px;">${rightHtml}</td>
   </tr>
 </table>`;
 }
