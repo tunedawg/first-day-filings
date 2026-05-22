@@ -165,19 +165,17 @@ function buildCaptionHtml(payload) {
   const ind = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
 
   // 3-column caption matching FDF template (49% left / 2% parens / 49% right).
-  // Left column: plain text, no bold/italic — matches FDF docx caption style.
   const leftLines = [
-    escHtml(plaintiff) + ",",
-    ...plaintiffAddr.map((l) => `${ind}${escHtml(l)}`),
+    `<strong>${escHtml(plaintiff)},</strong>`,
     "&nbsp;",
-    `${ind}Plaintiff,`,
+    `${ind}<em>Plaintiff,</em>`,
     "&nbsp;",
     "v.",
     "&nbsp;",
-    escHtml(defendant) + ",",
+    `<strong>${escHtml(defendant)},</strong>`,
     ...defendantAddr.map((l) => `${ind}${escHtml(l)}`),
     "&nbsp;",
-    `${ind}Defendant.`,
+    `${ind}<em>Defendant.</em>`,
   ];
 
   const plaintiffIdx = leftLines.findIndex((l) => l.includes("Plaintiff,"));
@@ -318,13 +316,14 @@ ${rulesOfRoad.map((r) => `<li>${escHtml(r)}</li>`).join("\n")}
 
 ${courtHtml}
 
+<hr>
+
 ${buildCaptionHtml(payload)}
 
 <h1>DEPOSITION OUTLINE — ${witness.toUpperCase()}</h1>
+<hr>
 
-<p><strong>Search Terms:</strong> ${escHtml(payload.searchTerms || "")}</p>
-
-<p><strong>Who is ${witnessFirst}:</strong></p>
+<p><strong>Who is ${escHtml(payload.witnessFullName || witnessFirst)}:</strong></p>
 <p>${escHtml(payload.whoIsWitness || "")}</p>
 
 <p><strong>What we want out of this deposition:</strong></p>
