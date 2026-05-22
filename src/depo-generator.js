@@ -202,32 +202,31 @@ function buildCaptionHtml(payload) {
 function buildPrefatoryHtml(payload) {
   const defendant = escHtml(payload.defendantName || "Defendant");
   const keyPeople = Array.isArray(payload.keyPeople) ? payload.keyPeople : [];
-  const peopleHtml = keyPeople.length
-    ? `<ul>${keyPeople.map((p) => `<li>${escHtml(p)}</li>`).join("")}</ul>`
+  const peopleLines = keyPeople.length
+    ? "<br>" + keyPeople.map((p) => escHtml(p)).join("<br>")
     : "";
 
+  const td = (content) =>
+    `<tr><td style="border:1px solid black;padding:6pt 8pt;font-family:'Century Schoolbook',serif;font-size:13pt;line-height:1.4;">${content}</td></tr>`;
+
+  const rows = [
+    td("Do you understand that you have been placed under oath? What does this oath mean to you? It is always important to be honest — but most conversations in our society occur without an oath, don't they? Our judicial system depends heavily on absolute honesty by every witness, and the system breaks down if witnesses shade or distort the truth. Do you agree to be honest today and abide by your oath?"),
+    td("Full legal name / Date of birth / Current position and employer / Home address / Work address, email, phone<br><br>Have you ever been arrested?<br>Have you ever been found guilty, pled guilty, or entered a plea of no contest to any criminal charge?<br>Have you ever been a party to a court case — sued someone, or been sued?"),
+    td("I ask questions, you answer truthfully to the best of your recollection and ability. Let me finish before you answer. Verbal responses only. Ask for clarification — but if you don't ask, I'll assume you understood. If you want to take a break, we can — but answer any pending question first. You remain under oath during all breaks."),
+    td("Are you under the influence of any substance or medication that might affect your ability to recall facts or answer questions accurately today?<br>Can you think of any reason why you might not be able to answer questions accurately today?<br>Is there any reason why your deposition should not go forward today?"),
+    td("Where are you located right now? Anyone else in the room? Any windows open on your computer? Documents in front of you? Notes or a notepad?"),
+    td("Do you use social media — Facebook, X/Twitter, Instagram, LinkedIn? What names or handles?<br>Have you ever posted about work, coworkers, or employees on social media?"),
+    td("Personal email address(es)?"),
+    td("Are you represented by counsel today? Who? Did you meet to prepare? How many times? How long? Anyone else present? What documents did you review?"),
+    td(`Have you testified in any other cases? In cases involving ${defendant}?<br>What is your highest level of education?<br>Describe your current job duties, supervisor, and who reports to you.`),
+    td(`Personal cell number? Work number — same or different? Does ${defendant} provide you with a work phone? Do you use it to make calls at work or send texts? Tell me about all of them.<br><br>When was your last communication with each of the following, and how:${peopleLines}`),
+    td("Do you or did you use an internal messaging system at work? What system? Are messages retained or deleted? For how long?"),
+  ];
+
   return `<h1 style="text-align:center;text-decoration:underline;">PREFATORY QUESTIONS</h1>
-<p>Do you understand that you have been placed under oath? What does this oath mean to you? It is always important to be honest — but most conversations in our society occur without an oath, don't they? Our judicial system depends heavily on absolute honesty by every witness, and the system breaks down if witnesses shade or distort the truth. Do you agree to be honest today and abide by your oath?</p>
-<p>Full legal name / Date of birth / Current position and employer / Home address / Work address, email, phone</p>
-<p>Have you ever been arrested?<br>
-Have you ever been found guilty, pled guilty, or entered a plea of no contest to any criminal charge?<br>
-Have you ever been a party to a court case — sued someone, or been sued?</p>
-<p>Basics: verbal responses only; ask for clarification if needed. If you don't ask, I'll assume you understood. Breaks available, but answer any pending question first. You remain under oath during breaks.</p>
-<p>Are you under the influence of any substance or medication that might affect your ability to recall facts or answer questions accurately today?<br>
-Can you think of any reason why you might not be able to answer questions accurately today?<br>
-Is there any reason why your deposition should not go forward today?</p>
-<p>Where are you located right now? Anyone else in the room? Any windows open on your computer? Documents in front of you? Notes or a notepad?</p>
-<p>Do you use social media — Facebook, X/Twitter, Instagram, LinkedIn? What names or handles?<br>
-Have you ever posted about work, coworkers, or employees on social media?</p>
-<p>Personal email address(es)?<br>
-Are you represented by counsel today? Who? Did you meet to prepare? How many times? How long? Anyone else present? What documents did you review?</p>
-<p>Have you testified in any other cases? In cases involving ${defendant}?<br>
-What is your highest level of education?<br>
-Describe your current job duties, supervisor, and who reports to you.<br>
-Personal cell number? Does ${defendant} provide a work phone? Do you use it to text board members or administrators?</p>
-<p>Do you or did you use an internal messaging system at work? What system? Are messages retained or deleted? For how long?</p>
-<p>When was your last communication with each of the following, and how:</p>
-${peopleHtml}`;
+<table style="width:100%;border-collapse:collapse;margin:8pt 0;">
+${rows.join("\n")}
+</table>`;
 }
 
 // ── Main builder ─────────────────────────────────────────────────────────────
@@ -286,9 +285,7 @@ function buildDepoHtml(payload) {
   const rulesSection =
     rulesOfRoad.length > 0
       ? `<h1 style="text-align:center;text-decoration:underline;">RULES OF THE ROAD</h1>
-<ul>
-${rulesOfRoad.map((r) => `<li>${escHtml(r)}</li>`).join("\n")}
-</ul>
+${rulesOfRoad.map((r) => `<p>${escHtml(r)}</p>`).join("\n")}
 <hr>`
       : "";
 
