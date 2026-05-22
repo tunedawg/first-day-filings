@@ -576,11 +576,13 @@ const server = http.createServer(async (request, response) => {
           buffer,
           payload.driveFolderId || null,
         );
+        const courtLines = (payload.court || "").split("\n").map(l => l.trim()).filter(Boolean);
+        console.log("[depo] court:", JSON.stringify(payload.court), "courtLines:", courtLines.length);
         await formatDepoDoc(accessToken, file.id, {
           boldTexts: [
             payload.plaintiffName,
             payload.defendantName,
-            ...(payload.court || "").split("\n").map(l => l.trim()).filter(Boolean),
+            ...courtLines,
           ],
         });
         sendJson(response, 200, { ok: true, url: file.webViewLink, fileId: file.id });
