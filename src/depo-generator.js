@@ -304,7 +304,7 @@ ${rulesOfRoad.map((r) => `<li>${escHtml(r)}</li>`).join("\n")}
   h2   { font-family:"Century Schoolbook",serif; font-size:13pt; font-weight:bold; text-decoration:underline; margin:16pt 0 4pt; }
   h3   { font-family:"Century Schoolbook",serif; font-size:13pt; font-weight:bold; margin:12pt 0 4pt; }
   p    { font-family:"Century Schoolbook",serif; font-size:13pt; margin:5pt 0; }
-  ul   { margin:4pt 0 4pt 36pt; padding-left:0; }
+  ul   { margin:4pt 0; padding-left:36pt; }
   li   { font-family:"Century Schoolbook",serif; font-size:13pt; margin:3pt 0; }
   table{ width:100%; border-collapse:collapse; }
   td   { border:none; vertical-align:top; padding:0; }
@@ -316,12 +316,10 @@ ${rulesOfRoad.map((r) => `<li>${escHtml(r)}</li>`).join("\n")}
 
 ${courtHtml}
 
-<hr>
-
 ${buildCaptionHtml(payload)}
 
-<h1>DEPOSITION OUTLINE — ${witness.toUpperCase()}</h1>
-<hr>
+<h1 style="text-align:center;font-weight:bold;margin-bottom:0;">DEPOSITION OUTLINE — ${witness.toUpperCase()}</h1>
+<hr style="margin-top:0;">
 
 <p><strong>Who is ${escHtml(payload.witnessFullName || witnessFirst)}:</strong></p>
 <p>${escHtml(payload.whoIsWitness || "")}</p>
