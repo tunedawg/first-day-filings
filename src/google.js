@@ -449,7 +449,9 @@ async function formatDepoDoc(accessToken, docId, opts = {}) {
   ];
 
   const boldTexts = (opts.boldTexts || []).filter(Boolean);
-  const EXHIBIT_RE = /^\[(?:NEW\s+)?Ex\.\s+\d+/;
+  // Matches "Ex. 32 —", "1. Ex. 59 —", "1. NEW Ex. 71 —" (brackets stripped by sectionToHtml)
+  const EXHIBIT_RE = /^(?:\d+\.\s+)?(?:NEW\s+)?Ex\.\s+\d+/;
+  console.log("[formatDepoDoc] boldTexts:", boldTexts);
 
   function walkContent(elems) {
     for (let i = 0; i < elems.length; i++) {
@@ -512,6 +514,7 @@ async function formatDepoDoc(accessToken, docId, opts = {}) {
   }
 
   walkContent(content);
+  console.log("[formatDepoDoc] batchUpdate requests:", requests.length);
 
   await googleRequest(accessToken, `${GOOGLE_DOCS_API}/documents/${docId}:batchUpdate`, {
     method: "POST",
